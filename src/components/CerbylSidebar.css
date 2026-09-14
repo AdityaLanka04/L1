@@ -19,8 +19,8 @@
   overflow-wrap: anywhere;
   line-height: 1.25;
 }
-.cb-side :is(a.cb-side-section, a.cb-side-link, a.cb-user-chip, a.cb-side-strip-btn) { text-decoration: none; }
-.cb-side :is(.cb-side-section, .cb-side-link)[aria-current="page"] {
+.cb-side :is(a.cb-side-section, a.cb-side-link, a.cb-user-chip, a.cb-side-strip-btn, a.cb-side-flat-link) { text-decoration: none; }
+.cb-side :is(.cb-side-section, .cb-side-link, .cb-side-flat-link)[aria-current="page"] {
   color: var(--cb-text);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-color: color-mix(in srgb, var(--accent) 28%, transparent);
@@ -53,6 +53,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .ci-root .ci-shell.ci-shell--standard-sidebar,
-  .cb-side :is(.cb-side-section, .cb-side-link, .cb-user-chip, .cb-side-strip-btn) { transition: none; }
-  .cb-side :is(.cb-side-section, .cb-side-link, .cb-user-chip, .cb-side-strip-btn):is(:hover, :active) { transform: none; }
+  .cb-side :is(.cb-side-section, .cb-side-link, .cb-user-chip, .cb-side-strip-btn, .cb-side-flat-link) { transition: none; }
+  .cb-side :is(.cb-side-section, .cb-side-link, .cb-user-chip, .cb-side-strip-btn, .cb-side-flat-link):is(:hover, :active) { transform: none; }
 }

@@ -12,12 +12,17 @@ function SidebarAction({ item, className, children, onActivate }) {
 }
 
 // The B2C sidebar is the shared template; roles supply content and actions only.
+// Pass `links` for the flat, single-tier nav (icon + label rows, no quick-start
+// tier, no profile block/footer) used by the Cerbyl B2C dashboard. Omit `links`
+// and pass `quickLinks`/`workspaceLinks` instead for the tiered B2B layout with
+// its profile avatar block and footer chip.
 export default function CerbylSidebar({
   open, onOpenChange, brandKicker = 'Dashboard', displayName, profilePhoto,
   initial, profileSubtitle, profileTo, onProfile, profileLabel,
   onEditProfile, editProfileLabel = 'Edit profile picture', editProfileText = 'Edit PFP',
-  quickLinks = [], workspaceLinks = [], navigationLabel = 'Dashboard navigation',
+  quickLinks = [], workspaceLinks = [], links, navigationLabel = 'Dashboard navigation',
 }) {
+  const flat = Array.isArray(links);
   const collapseRef = useRef(null), expandRef = useRef(null), previousOpen = useRef(open);
   useEffect(() => {
     if (previousOpen.current !== open) (open ? collapseRef : expandRef).current?.focus();
@@ -26,7 +31,7 @@ export default function CerbylSidebar({
   const profile = { to: profileTo, onClick: onProfile, ariaLabel: profileLabel };
   const closeMobile = () => { if (window.matchMedia?.('(max-width: 720px)')?.matches) onOpenChange(false); };
   return <div className={`cb-side-slot ${open ? '' : 'cb-side-slot--collapsed'}`}>
-    <aside className={`cb-side ${open ? '' : 'cb-side--collapsed'}`} aria-label={`${brandKicker} sidebar`} onKeyDown={event => { if (event.key === 'Escape' && open) { event.preventDefault(); onOpenChange(false); } }}>
+    <aside className={`cb-side ${open ? '' : 'cb-side--collapsed'} ${flat ? 'cb-side--flat' : ''}`} aria-label={`${brandKicker} sidebar`} onKeyDown={event => { if (event.key === 'Escape' && open) { event.preventDefault(); onOpenChange(false); } }}>
       <div className="cb-tile-texture" aria-hidden="true" />
       {open ? <>
         <div className="cb-brand">
@@ -34,30 +39,44 @@ export default function CerbylSidebar({
           <span className="cb-brand-kicker">{brandKicker}</span>
           <button ref={collapseRef} className="cb-sidebar-collapse" type="button" onClick={() => onOpenChange(false)} title="Collapse" aria-label="Collapse dashboard sidebar" aria-expanded="true"><ChevronLeft size={12} /></button>
         </div>
-        <div className="cb-logo-wrap">
-          {profilePhoto ? <img src={profilePhoto} alt={`${displayName} profile`} className="cb-brand-pfp" referrerPolicy="no-referrer" />
-            : <div className="cb-brand-pfp cb-brand-pfp--fallback" aria-label="Profile avatar">{initial || displayName?.[0]?.toUpperCase() || 'C'}</div>}
-          {onEditProfile && <button className="cb-pfp-edit-btn" onClick={onEditProfile} aria-label={editProfileLabel} title={editProfileLabel}><Pencil size={12} />{editProfileText}</button>}
-        </div>
-        <nav className="cb-side-groups" aria-label={navigationLabel}>
-          <div className="cb-side-sections">
-            {quickLinks.map(item => <SidebarAction key={item.label} item={item} className="cb-side-section" onActivate={closeMobile}>
-              <span className="cb-side-dot" /><span className="cb-side-label">{item.label}</span><span className="cb-side-plus" aria-hidden="true"><Plus size={12} strokeWidth={2.4} /></span>
+        {!flat && (
+          <div className="cb-logo-wrap">
+            {profilePhoto ? <img src={profilePhoto} alt={`${displayName} profile`} className="cb-brand-pfp" referrerPolicy="no-referrer" />
+              : <div className="cb-brand-pfp cb-brand-pfp--fallback" aria-label="Profile avatar">{initial || displayName?.[0]?.toUpperCase() || 'C'}</div>}
+            {onEditProfile && <button className="cb-pfp-edit-btn" onClick={onEditProfile} aria-label={editProfileLabel} title={editProfileLabel}><Pencil size={12} />{editProfileText}</button>}
+          </div>
+        )}
+        {flat ? (
+          <nav className="cb-side-flat-nav" aria-label={navigationLabel}>
+            {links.map(item => <SidebarAction key={item.label} item={item} className="cb-side-flat-link" onActivate={closeMobile}>
+              {item.icon}<span className="cb-side-flat-label">{item.label}</span>
             </SidebarAction>)}
-          </div>
-          <div className="cb-side-nav">
-            {workspaceLinks.map(item => <SidebarAction key={item.label} item={item} className="cb-side-link" onActivate={closeMobile}><span className="cb-side-link-dot" /><span className="cb-side-link-label">{item.label}</span></SidebarAction>)}
-          </div>
-        </nav>
-        <SidebarAction item={profile} className="cb-user-chip" onActivate={closeMobile}>
-          <span className="cb-user-meta"><span className="cb-user-name">{displayName}</span><span className="cb-user-sub">{profileSubtitle}</span></span>
-        </SidebarAction>
+          </nav>
+        ) : (
+          <nav className="cb-side-groups" aria-label={navigationLabel}>
+            <div className="cb-side-sections">
+              {quickLinks.map(item => <SidebarAction key={item.label} item={item} className="cb-side-section" onActivate={closeMobile}>
+                <span className="cb-side-dot" /><span className="cb-side-label">{item.label}</span><span className="cb-side-plus" aria-hidden="true"><Plus size={12} strokeWidth={2.4} /></span>
+              </SidebarAction>)}
+            </div>
+            <div className="cb-side-nav">
+              {workspaceLinks.map(item => <SidebarAction key={item.label} item={item} className="cb-side-link" onActivate={closeMobile}><span className="cb-side-link-dot" /><span className="cb-side-link-label">{item.label}</span></SidebarAction>)}
+            </div>
+          </nav>
+        )}
+        {!flat && (
+          <SidebarAction item={profile} className="cb-user-chip" onActivate={closeMobile}>
+            <span className="cb-user-meta"><span className="cb-user-name">{displayName}</span><span className="cb-user-sub">{profileSubtitle}</span></span>
+          </SidebarAction>
+        )}
       </> : <div className="cb-side-strip">
         <button ref={expandRef} className="cb-side-strip-btn" type="button" onClick={() => onOpenChange(true)} aria-label="Expand dashboard sidebar" aria-expanded="false" data-tip="Expand"><ChevronRight size={15} /></button>
-        <div className="cb-side-strip-rule" />
-        <SidebarAction item={{ ...profile, ariaLabel: 'Open profile' }} className="cb-side-strip-btn cb-side-strip-btn--profile">
-          {profilePhoto ? <img src={profilePhoto} alt="Open profile" className="cb-side-strip-avatar" referrerPolicy="no-referrer" /> : <User size={15} aria-label="Open profile" />}
-        </SidebarAction>
+        {!flat && <>
+          <div className="cb-side-strip-rule" />
+          <SidebarAction item={{ ...profile, ariaLabel: 'Open profile' }} className="cb-side-strip-btn cb-side-strip-btn--profile">
+            {profilePhoto ? <img src={profilePhoto} alt="Open profile" className="cb-side-strip-avatar" referrerPolicy="no-referrer" /> : <User size={15} aria-label="Open profile" />}
+          </SidebarAction>
+        </>}
       </div>}
     </aside>
   </div>;
