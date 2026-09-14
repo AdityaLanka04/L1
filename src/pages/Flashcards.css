@@ -1283,11 +1283,11 @@
   all: unset !important;
   position: relative !important;
   width: 100% !important;
-  display: flex;
-  align-items: center;
+  display: flex !important;
+  align-items: center !important;
   border: 3px solid var(--fc-accent) !important;
   background: var(--fc-bg-primary) !important;
-  border-radius: 12px;
+  border-radius: 12px !important;
   overflow: hidden !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-sizing: border-box !important;
