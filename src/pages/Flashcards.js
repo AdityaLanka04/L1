@@ -15,10 +15,8 @@ import contextService from '../services/contextService';
 import SocialHubChrome from '../components/SocialHubChrome';
 import {
   BarChart3,
-  FileText,
   Layers3,
   RefreshCcw,
-  Search,
   Shuffle,
   Sparkles,
   Target,
@@ -154,11 +152,6 @@ const Flashcards = () => {
   const [isPublic, setIsPublic] = useState(false);
   const [additionalSpecs, setAdditionalSpecs] = useState('');
 
-  const [uploadedDocuments, setUploadedDocuments] = useState([]);
-  const [selectedPDFs, setSelectedPDFs] = useState([]);
-  const [loadingDocuments, setLoadingDocuments] = useState(false);
-  const [uploadingDocument, setUploadingDocument] = useState(false);
-  
   const [customCards, setCustomCards] = useState([{ question: '', answer: '' }]);
   const [customSetTitle, setCustomSetTitle] = useState('');
   const [customCreateMode, setCustomCreateMode] = useState(false);
@@ -167,11 +160,6 @@ const Flashcards = () => {
   const [editMode, setEditMode] = useState(false);
   const [editingCards, setEditingCards] = useState([]);
   const [editingSetTitle, setEditingSetTitle] = useState('');
-  
-  
-  const [publicSearchQuery, setPublicSearchQuery] = useState('');
-  const [publicFlashcards, setPublicFlashcards] = useState([]);
-  const [loadingPublic, setLoadingPublic] = useState(false);
   
   
   const [chatSessions, setChatSessions] = useState([]);
@@ -239,7 +227,6 @@ const Flashcards = () => {
   
   const [popup, setPopup] = useState({ isOpen: false, message: '', title: '' });
   const autoGenerateKeyRef = useRef('');
-  const sourcesLoadedRef = useRef(false);
   const getSelectedContextDocIds = () => {
     try {
       const raw = JSON.parse(localStorage.getItem(CONTEXT_SELECTION_KEY) || '[]');
@@ -457,105 +444,6 @@ const Flashcards = () => {
       }
     } catch (error) { /* silenced */ }
   }, [userName]);
-
-  const loadUploadedDocuments = useCallback(async () => {
-    if (!userName) return;
-    setLoadingDocuments(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/qb/get_uploaded_documents?user_id=${encodeURIComponent(userName)}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUploadedDocuments(Array.isArray(data.documents) ? data.documents : []);
-      } else {
-        setUploadedDocuments([]);
-      }
-    } catch (error) {
-      setUploadedDocuments([]);
-    } finally {
-      setLoadingDocuments(false);
-    }
-  }, [userName]);
-
-  const handlePDFUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file || !userName) return;
-
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      showPopup('PDF Required', 'Please upload a PDF file.');
-      event.target.value = '';
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      setUploadingDocument(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/qb/upload_pdf?user_id=${encodeURIComponent(userName)}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload PDF');
-      }
-
-      const data = await response.json();
-      await loadUploadedDocuments();
-      showPopup('PDF Uploaded', `${data.filename || file.name} is ready to convert into flashcards.`);
-    } catch (error) {
-      showPopup('Upload Failed', error.message || 'Failed to upload PDF.');
-    } finally {
-      setUploadingDocument(false);
-      event.target.value = '';
-    }
-  };
-
-  const togglePDFSelection = (doc) => {
-    setSelectedPDFs((current) => {
-      const isSelected = current.some((item) => item.id === doc.id);
-      return isSelected ? current.filter((item) => item.id !== doc.id) : [...current, doc];
-    });
-  };
-
-  const clearPDFSelection = () => {
-    setSelectedPDFs([]);
-  };
-
-  const deleteUploadedDocument = async (docId, event) => {
-    event.stopPropagation();
-
-    if (!window.confirm('Delete this PDF source? This removes it from Question Hub and Flashcards.')) {
-      return;
-    }
-
-    try {
-      setLoadingDocuments(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/qb/delete_document/${docId}?user_id=${encodeURIComponent(userName)}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete PDF');
-      }
-
-      setSelectedPDFs((current) => current.filter((doc) => doc.id !== docId));
-      await loadUploadedDocuments();
-      showPopup('PDF Deleted', 'The source was removed.');
-    } catch (error) {
-      showPopup('Delete Failed', error.message || 'Could not delete this PDF source.');
-    } finally {
-      setLoadingDocuments(false);
-    }
-  };
 
   const loadReviewCards = useCallback(async () => {
     if (!userName) return;
@@ -1203,66 +1091,6 @@ const Flashcards = () => {
   };
 
   
-  const searchPublicFlashcards = async (query = '') => {
-    setLoadingPublic(true);
-    try {
-      const token = localStorage.getItem('token');
-      const searchTerm = query || publicSearchQuery;
-      const response = await fetch(`${API_URL}/flashcards/public/search?query=${encodeURIComponent(searchTerm)}&limit=50`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPublicFlashcards(data.sets || []);
-      }
-    } catch (error) {
-      setPublicFlashcards([]);
-    }
-    setLoadingPublic(false);
-  };
-
-  const loadAllPublicFlashcards = async () => {
-    setLoadingPublic(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/flashcards/public?limit=100`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPublicFlashcards(data.sets || []);
-      }
-    } catch (error) {
-      setPublicFlashcards([]);
-    }
-    setLoadingPublic(false);
-  };
-
-  const copyPublicSet = async (setId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/flashcards/public/copy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          source_set_id: setId
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        showPopup('Copied Successfully', `"${data.title}" has been added to your flashcard sets.`);
-        loadFlashcardHistory(true); 
-      }
-    } catch (error) {
-      showPopup('Error', 'Failed to copy flashcard set');
-    }
-  };
-
-  
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -1376,16 +1204,6 @@ const Flashcards = () => {
     }
     return undefined;
   }, [userName, location.search, loadChatSessions, loadFlashcardStats, loadReviewCards, loadFlashcardSetByCode, loadDueCards, loadSrStats]);
-
-  useEffect(() => {
-    sourcesLoadedRef.current = false;
-  }, [userName]);
-
-  useEffect(() => {
-    if (activePanel !== 'sources' || !userName || sourcesLoadedRef.current) return;
-    sourcesLoadedRef.current = true;
-    loadUploadedDocuments();
-  }, [activePanel, userName, loadUploadedDocuments]);
 
   useEffect(() => {
     const openPanel = location.state?.openPanel;
@@ -1770,74 +1588,6 @@ const Flashcards = () => {
       setPreviewMode(true);
     } catch (error) {
       showPopup('Error', error.message || 'Failed to generate flashcards. Please try again.');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const generateFlashcardsFromPDFs = async () => {
-    if (selectedPDFs.length === 0) {
-      showPopup('No PDFs Selected', 'Select at least one PDF source to convert into flashcards.');
-      return;
-    }
-
-    setGenerating(true);
-    try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      const title = selectedPDFs.length === 1
-        ? `Flashcards from ${selectedPDFs[0].filename}`
-        : `Flashcards from ${selectedPDFs.length} PDFs`;
-
-      formData.append('user_id', userName);
-      formData.append('topic', selectedPDFs.map((doc) => doc.filename).join(', '));
-      formData.append('generation_type', 'document_sources');
-      formData.append('document_ids', selectedPDFs.map((doc) => doc.id).join(','));
-      formData.append('card_count', cardCount.toString());
-      formData.append('difficulty', difficultyLevel);
-      formData.append('depth_level', depthLevel);
-      formData.append('additional_specs', additionalSpecs);
-      formData.append('is_public', isPublic.toString());
-      formData.append('use_hs_context', hsMode.toString());
-      formData.append('set_title', title);
-
-      const response = await queuedAIFormFetch('/generate_flashcards', Object.fromEntries(formData.entries()), {
-        timeoutMs: 240000,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Failed to convert PDFs to flashcards');
-      }
-
-      const data = await response.json();
-      const cards = data.cards || data.flashcards || [];
-
-      if (!cards.length) {
-        showPopup('No Cards Generated', 'The selected PDFs did not produce flashcards. Try another source or add instructions.');
-        return;
-      }
-
-      setFlashcards(cards);
-      setCurrentCard(0);
-      setIsFlipped(false);
-      setCurrentSetInfo({
-        saved: true,
-        setId: data.set_id,
-        shareCode: data.share_code,
-        setTitle: data.set_title || title,
-        cardCount: cards.length
-      });
-
-      await loadFlashcardHistory(true);
-      await loadFlashcardStats();
-      gamificationService.trackFlashcardSet(userName, cards.length);
-
-      const cardsForPreview = studySettings.shuffle ? [...cards].sort(() => Math.random() - 0.5) : cards;
-      setShuffledCards(cardsForPreview);
-      setPreviewMode(true);
-    } catch (error) {
-      showPopup('Conversion Failed', error.message || 'Failed to convert selected PDFs into flashcards.');
     } finally {
       setGenerating(false);
     }
@@ -3187,8 +2937,6 @@ const Flashcards = () => {
           {
             label: 'Library',
             items: [
-              { icon: FileText, label: 'PDF Sources', active: activePanel === 'sources', onClick: () => setActivePanel('sources') },
-              { icon: Search, label: 'Explore Public', active: activePanel === 'explore', onClick: () => { setActivePanel('explore'); loadAllPublicFlashcards(); } },
               { icon: BarChart3, label: 'Statistics', active: activePanel === 'statistics', onClick: () => setActivePanel('statistics') },
             ],
           },
@@ -3717,203 +3465,6 @@ const Flashcards = () => {
             </>
           )}
 
-          {/* PDF Sources Panel */}
-          {activePanel === 'sources' && (
-            <>
-              <div className="fc-content fc-sources-panel">
-                <div className="fc-view-header">
-                  <span className="fc-view-kicker">Question Hub Sources</span>
-                  <h2 className="fc-view-title">PDF Sources</h2>
-
-                </div>
-
-                <div className="fcsrc-layout">
-                  <section className="fcsrc-upload">
-                    <div className="fcsrc-upload-icon">{FC_ICONS.file}</div>
-                    <h3>Add PDF Source</h3>
-                    <p>Uploaded PDFs appear in both Question Hub and Flashcards.</p>
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      onChange={handlePDFUpload}
-                      style={{ display: 'none' }}
-                      id="fc-pdf-upload-input"
-                    />
-                    <label htmlFor="fc-pdf-upload-input" className={`fcsrc-add-btn ${uploadingDocument ? 'disabled' : ''}`}>
-                      {uploadingDocument ? 'Uploading...' : 'Add PDF'}
-                    </label>
-                  </section>
-
-                  <section className="fcsrc-library">
-                    <div className="fcsrc-toolbar">
-                      <div>
-                        <h3>Your Sources ({uploadedDocuments.length})</h3>
-                        <p>Click PDFs to select multiple sources for flashcard generation.</p>
-                      </div>
-                      <div className="fcsrc-toolbar-actions">
-                        {selectedPDFs.length > 0 && (
-                          <button className="fcsrc-toolbar-btn" onClick={clearPDFSelection}>
-                            Clear Selection
-                          </button>
-                        )}
-                        <button className="fcsrc-toolbar-btn" onClick={loadUploadedDocuments} disabled={loadingDocuments}>
-                          {loadingDocuments ? 'Refreshing...' : 'Refresh'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {loadingDocuments && uploadedDocuments.length === 0 ? (
-                      <div className="fcsrc-loading">
-                        <div className="fc-pulse-loader">
-                          <div className="fc-pulse-square fc-pulse-1"></div>
-                          <div className="fc-pulse-square fc-pulse-2"></div>
-                          <div className="fc-pulse-square fc-pulse-3"></div>
-                        </div>
-                        <p>Loading PDF sources...</p>
-                      </div>
-                    ) : uploadedDocuments.length === 0 ? (
-                      <div className="fcsrc-empty">
-                        <h3>No PDF Sources Yet</h3>
-                        <p>Upload a PDF here or in Question Hub. It will show in both places.</p>
-                      </div>
-                    ) : (
-                      <div className="fcsrc-grid">
-                        {uploadedDocuments.map((doc) => {
-                          const isSelected = selectedPDFs.some((pdf) => pdf.id === doc.id);
-                          const topics = doc.analysis?.main_topics || [];
-                          return (
-                            <div
-                              key={doc.id}
-                              role="button"
-                              tabIndex={0}
-                              className={`fcsrc-card ${isSelected ? 'selected' : ''}`}
-                              onClick={() => togglePDFSelection(doc)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter' || event.key === ' ') {
-                                  event.preventDefault();
-                                  togglePDFSelection(doc);
-                                }
-                              }}
-                            >
-                              <span className="fcsrc-card-check">{isSelected ? FC_ICONS.check : null}</span>
-                              <button
-                                type="button"
-                                className="fcsrc-card-delete"
-                                onClick={(event) => deleteUploadedDocument(doc.id, event)}
-                                aria-label={`Delete ${doc.filename}`}
-                              >
-                                {FC_ICONS.trash}
-                              </button>
-                              <div className="fcsrc-card-head">
-                                <span className="fcsrc-file-icon">{FC_ICONS.file}</span>
-                                <div>
-                                  <h4 className="fcsrc-card-title">{doc.filename}</h4>
-                                  <p className="fcsrc-card-type">{doc.document_type || 'PDF source'}</p>
-                                </div>
-                              </div>
-                              {topics.length > 0 && (
-                                <div className="fcsrc-topics">
-                                  {topics.slice(0, 3).map((item, index) => (
-                                    <span key={`${doc.id}-${item}-${index}`} className="fcsrc-topic">{item}</span>
-                                  ))}
-                                </div>
-                              )}
-                              <div className="fcsrc-date">
-                                {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'Uploaded source'}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
-                </div>
-
-                {selectedPDFs.length > 0 && (
-                  <section className="fcsrc-settings">
-                    <div className="fcsrc-settings-head">
-                      <div>
-                        <span className="fc-view-kicker">Selected Sources</span>
-                        <h3>{selectedPDFs.length} PDF{selectedPDFs.length === 1 ? '' : 's'} ready to convert</h3>
-                      </div>
-                    </div>
-
-                    <div className="fcsrc-pill-list">
-                      {selectedPDFs.map((doc) => (
-                        <div key={doc.id} className="fcsrc-pill">
-                          {FC_ICONS.file}
-                          <span>{doc.filename}</span>
-                          <button type="button" className="fcsrc-pill-remove" onClick={() => togglePDFSelection(doc)}>×</button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="fcsrc-form-row">
-                      <div className="fc-form-group">
-                        <label className="fc-label">Number of Cards</label>
-                        <div className="fc-number-input">
-                          <button className="fc-number-btn" onClick={() => setCardCount(Math.max(1, cardCount - 1))}>−</button>
-                          <input type="number" value={cardCount} onChange={(e) => setCardCount(Math.min(50, Math.max(1, parseInt(e.target.value) || 1)))} />
-                          <button className="fc-number-btn" onClick={() => setCardCount(Math.min(50, cardCount + 1))}>+</button>
-                        </div>
-                      </div>
-
-                      <div className="fc-form-group">
-                        <label className="fc-label">Difficulty</label>
-                        <select className="fc-input" value={difficultyLevel} onChange={(e) => setDifficultyLevel(e.target.value)}>
-                          <option value="easy">Easy</option>
-                          <option value="medium">Medium</option>
-                          <option value="hard">Hard</option>
-                          <option value="auto">Adaptive (based on your past performance)</option>
-                        </select>
-                      </div>
-
-                      <div className="fc-form-group">
-                        <label className="fc-label">Depth</label>
-                        <select className="fc-input" value={depthLevel} onChange={(e) => setDepthLevel(e.target.value)}>
-                          <option value="surface">Surface</option>
-                          <option value="standard">Standard</option>
-                          <option value="deep">Deep</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="fc-form-group">
-                      <label className="fc-label">Custom Instructions (optional)</label>
-                      <textarea
-                        className="fc-input fc-source-textarea"
-                        placeholder="e.g., Focus on formulas, generate exam revision cards, cover definitions first..."
-                        value={additionalSpecs}
-                        onChange={(e) => setAdditionalSpecs(e.target.value)}
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="fc-form-group">
-                      <label className="fc-label">Visibility</label>
-                      <div className="fc-visibility-toggle">
-                        <button className={`fc-visibility-btn ${!isPublic ? 'active' : ''}`} onClick={() => setIsPublic(false)}>
-                          Private
-                        </button>
-                        <button className={`fc-visibility-btn ${isPublic ? 'active' : ''}`} onClick={() => setIsPublic(true)}>
-                          Public
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      className="fc-generate-btn"
-                      onClick={generateFlashcardsFromPDFs}
-                      disabled={generating || selectedPDFs.length === 0}
-                    >
-                      {generating ? 'CONVERTING PDFS...' : `CONVERT ${selectedPDFs.length} PDF${selectedPDFs.length === 1 ? '' : 'S'} TO ${cardCount} FLASHCARDS`}
-                    </button>
-                  </section>
-                )}
-              </div>
-            </>
-          )}
-
           {/* Needs Review Panel */}
           {activePanel === 'review' && (
             <>
@@ -4003,165 +3554,6 @@ const Flashcards = () => {
                         </button>
                       </div>
                     ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-
-          {activePanel === 'explore' && (
-            <>
-              <div className="fc-content fc-cards-panel">
-                {loadingPublic ? (
-                  <div className="fc-loading">
-                    <div className="fc-pulse-loader">
-                      <div className="fc-pulse-square fc-pulse-1"></div>
-                      <div className="fc-pulse-square fc-pulse-2"></div>
-                      <div className="fc-pulse-square fc-pulse-3"></div>
-                    </div>
-                    <p>Searching public flashcards...</p>
-                  </div>
-                ) : publicFlashcards.length === 0 ? (
-                  <>
-                    <div className="fc-view-header">
-                      <span className="fc-view-kicker">Community</span>
-                      <h2 className="fc-view-title">Explore Public</h2>
-
-                    </div>
-                    <div className="fce-landing">
-                      <form
-                        className="fce-searchbar"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          searchPublicFlashcards();
-                        }}
-                      >
-                        <span className="fce-search-icon">{FC_ICONS.search}</span>
-                        <input
-                          type="text"
-                          className="fce-search-input"
-                          aria-label="Search public flashcard sets"
-                          placeholder="Search public flashcard sets..."
-                          value={publicSearchQuery}
-                          onChange={(e) => setPublicSearchQuery(e.target.value)}
-                        />
-                        <button className="fce-search-btn" type="submit">
-                          Search
-                        </button>
-                      </form>
-
-                      <div className="fce-secondary-row">
-                        <span>Search by subject, topic, or deck title</span>
-                        <button className="fce-browse-btn" onClick={loadAllPublicFlashcards} type="button">
-                          Browse All Public Sets
-                        </button>
-                      </div>
-
-                      <div className="fce-empty-state" role="status">
-                        <div className="fce-empty-icon" aria-hidden="true">
-                          <Layers3 size={24} />
-                        </div>
-                        <h3>{publicSearchQuery.trim() ? 'No matching public sets' : 'No public sets available yet'}</h3>
-                        <p>
-                          {publicSearchQuery.trim()
-                            ? 'Try a broader topic or browse the complete public library.'
-                            : 'Shared decks will appear here as soon as the community publishes them.'}
-                        </p>
-                        {publicSearchQuery.trim() && (
-                          <button
-                            className="fce-clear-btn"
-                            type="button"
-                            onClick={() => {
-                              setPublicSearchQuery('');
-                              loadAllPublicFlashcards();
-                            }}
-                          >
-                            Clear Search
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="fc-view-header">
-                      <span className="fc-view-kicker">Community</span>
-                      <h2 className="fc-view-title">Explore Public</h2>
-
-                    </div>
-
-                    <div className="fce-results-bar">
-                      <form
-                        className="fce-results-row"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          searchPublicFlashcards();
-                        }}
-                      >
-                        <div className="fce-results-field">
-                          <span className="fce-results-icon">{FC_ICONS.search}</span>
-                          <input
-                            type="text"
-                            className="fce-results-input"
-                            aria-label="Search public flashcard sets"
-                            placeholder="Search public flashcard sets..."
-                            value={publicSearchQuery}
-                            onChange={(e) => setPublicSearchQuery(e.target.value)}
-                          />
-                        </div>
-                        <button className="fce-search-submit" type="submit">
-                          Search
-                        </button>
-                        <button className="fce-show-all-btn" onClick={loadAllPublicFlashcards} type="button">
-                          Show All
-                        </button>
-                      </form>
-                    </div>
-
-                    <div className="fce-grid">
-                      {publicFlashcards.map((set, index) => {
-                      const colors = [
-                        '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-                        '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
-                      ];
-                      const cardColor = colors[index % colors.length];
-                      
-                      return (
-                        <div key={set.id} className="fc-set-card-new fc-public-card">
-                          <div className="fc-set-thumbnail" style={{ background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}dd 100%)` }}>
-                            <div className="fc-set-thumbnail-content">
-                              <h2 className="fc-thumbnail-title">{(set.title || 'Untitled Set').replace(/^(Cerbyl:\s*|AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
-                            </div>
-                            <div className="fc-public-badge">PUBLIC</div>
-                          </div>
-
-                          <div className="fc-set-content-new">
-                            <div className="fc-set-meta-new">
-                              <div className="fc-meta-item-new">
-                                <span className="fc-meta-label">Cards:</span>
-                                <span className="fc-meta-value">{set.card_count}</span>
-                              </div>
-                              <div className="fc-meta-item-new">
-                                <span className="fc-meta-label">By:</span>
-                                <span className="fc-meta-value">{set.creator || 'Anonymous'}</span>
-                              </div>
-                            </div>
-                            
-                            <p className="fc-set-date-new">Created: {formatDate(set.created_at)}</p>
-                          </div>
-
-                          <div className="fc-set-actions-new">
-                            <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')} disabled={loadingSetId !== null}>
-                              <span>{loadingSetId === set.id ? '...' : 'PREVIEW'}</span>
-                            </button>
-                            <button className="fc-action-btn-new fc-action-copy" onClick={() => copyPublicSet(set.id)}>
-                              <span>COPY TO MY SETS</span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
                     </div>
                   </>
                 )}
