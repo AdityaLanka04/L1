@@ -1253,7 +1253,7 @@ async def google_auth(request: Request, auth_data: GoogleAuth, db: Session = Dep
         if allowed_google_audiences and aud not in allowed_google_audiences:
             raise HTTPException(status_code=400, detail="Token audience mismatch")
 
-        email = user_info.get('email')
+        email = _normalize_email(user_info.get('email') or '')
         if not email:
             raise HTTPException(status_code=400, detail="Email not found")
 
@@ -1352,9 +1352,12 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                         raise ValueError("Invalid Firebase token issuer")
                     if not isinstance(subject, str) or not subject or len(subject) > 128:
                         raise ValueError("Invalid Firebase token subject")
+                    # Same tolerance as clock_skew_in_seconds above: a freshly issued
+                    # token's auth_time can be a few seconds ahead of our own clock
+                    # (server clock drift, request latency), which isn't forgery.
                     invalid_auth_time = (
                         not isinstance(auth_time, (int, float))
-                        or auth_time > datetime.now(timezone.utc).timestamp()
+                        or auth_time > datetime.now(timezone.utc).timestamp() + 10
                     )
                     if invalid_auth_time:
                         raise ValueError("Invalid Firebase token authentication time")

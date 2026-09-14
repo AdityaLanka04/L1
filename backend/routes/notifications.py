@@ -19,10 +19,15 @@ def _assert_user_matches_request(user_id: Optional[str], current_user: models.Us
         return
     requested = str(user_id).strip().lower()
     allowed = {
+        str(current_user.id).strip().lower(),
         (current_user.username or "").strip().lower(),
         (current_user.email or "").strip().lower(),
     }
     if requested and requested not in allowed:
+        logger.warning(
+            "Access scope mismatch on notifications: token user_id=%s username=%r email=%r vs requested user_id=%r",
+            current_user.id, current_user.username, current_user.email, user_id,
+        )
         raise HTTPException(status_code=403, detail="Access denied")
 
 def _parse_hours_list(raw: str) -> List[float]:
