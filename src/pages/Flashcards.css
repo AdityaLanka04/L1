@@ -11087,3 +11087,248 @@
   }
 }
 
+/* ==========================================================================
+   PDF Sources & Explore Public — layout on top of the shared fc-content /
+   fc-set-card-new / fc-form-group primitives used across every other panel.
+   ========================================================================== */
+
+.fc-sources-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.fc-sources-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 28px 22px;
+  border: 1px dashed var(--fc-border-subtle);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--fc-bg-secondary) 60%, transparent);
+}
+
+.fc-sources-upload-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--fc-accent);
+}
+
+.fc-sources-upload h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.fc-sources-upload p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--fc-text-muted);
+}
+
+.fc-sources-upload label.disabled {
+  pointer-events: none;
+  opacity: .6;
+}
+
+.fc-sources-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fc-sources-toolbar h3 {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.fc-sources-toolbar p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fc-text-muted);
+}
+
+.fc-sources-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.fc-sources-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.fc-source-card-new {
+  cursor: pointer;
+}
+
+.fc-source-card-new.selected {
+  box-shadow: 0 0 0 2px var(--fc-accent);
+}
+
+.fc-source-thumbnail .fc-set-thumbnail-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fc-source-file-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--fc-accent);
+}
+
+.fc-source-file-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fc-source-check {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fc-accent);
+  color: var(--fc-bg-primary);
+  z-index: 2;
+}
+
+.fc-source-check svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fc-source-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.fc-source-topic {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--fc-accent);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.fc-sources-settings {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--fc-border-subtle);
+}
+
+.fc-sources-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 22px;
+}
+
+.fc-sources-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 20px;
+  background: var(--fc-bg-secondary);
+  border: 1px solid var(--fc-border-subtle);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fc-sources-pill svg {
+  width: 13px;
+  height: 13px;
+  color: var(--fc-accent);
+  flex-shrink: 0;
+}
+
+.fc-sources-pill button {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--fc-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fc-sources-pill button:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--fc-accent);
+}
+
+.fc-sources-pill button svg {
+  width: 11px;
+  height: 11px;
+  color: inherit;
+}
+
+.fc-explore-search-row {
+  margin: 18px 0 22px;
+  align-items: stretch;
+}
+
+.fc-explore-search-row .fc-form-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.fc-explore-panel .fc-set-actions-new {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fc-source-creator {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--fc-accent);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+@media (max-width: 900px) {
+  .fc-sources-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .fc-explore-search-row {
+    flex-direction: column;
+  }
+  .fc-explore-search-row .fc-form-group {
+    width: 100%;
+  }
+}
+
