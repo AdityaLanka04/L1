@@ -1,46 +1,150 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { sampleEvent } from '../services/productService';
-import './ProductFlows.css';
+import { sampleEvent, generateSampleQuiz } from '../services/productService';
+import './SampleCourse.css';
 
-const questions = [
-  { question: 'A bag contains 3 blue counters and 1 gold counter. What is the probability of drawing gold?', options: ['1/4', '1/3', '3/4', '1/2'], correct: '1/4', explanation: 'There is 1 gold counter among 4 counters in total. The denominator counts every possible outcome, including the gold counter.' },
-  { question: 'A second bag contains 2 gold counters and 3 blue counters. What is the probability of drawing gold?', options: ['2/3', '2/5', '3/5', '1/5'], correct: '2/5', explanation: 'Count the 2 gold counters, then all 5 counters. The probability is 2/5. The blue counters alone are not the total.' },
-];
+const EXAMPLES = ['Photosynthesis', 'The French Revolution', 'Supply and demand', "Newton's laws"];
+
 export default function SampleCourse() {
+  const [phase, setPhase] = useState('topic');
+  const [topic, setTopic] = useState('');
+  const [error, setError] = useState('');
+  const [questions, setQuestions] = useState([]);
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState('');
   const [answers, setAnswers] = useState([]);
-  useEffect(() => { sampleEvent('sample_opened'); }, []);
+
   const current = questions[step];
   const checked = answers.length > step;
-  const complete = step === questions.length;
-  function submit(event) {
+  const complete = phase === 'quiz' && step === questions.length;
+
+  async function submitTopic(event) {
+    event.preventDefault();
+    const clean = topic.trim();
+    if (!clean) return;
+    setError('');
+    setPhase('loading');
+    try {
+      const data = await generateSampleQuiz(clean);
+      setTopic(clean);
+      setQuestions(data.questions);
+      setStep(0);
+      setAnswers([]);
+      setSelected('');
+      setPhase('quiz');
+      sampleEvent('sample_opened');
+    } catch (err) {
+      setError(err.message || 'Could not generate a sample. Try a different topic.');
+      setPhase('topic');
+    }
+  }
+
+  function submitAnswer(event) {
     event.preventDefault();
     if (!selected || checked) return;
     setAnswers([...answers, selected]);
     sampleEvent('sample_answered');
     if (step === questions.length - 1) sampleEvent('sample_completed');
   }
-  return <main className="learning-flow flow-page">
-    <nav className="flow-topline" aria-label="Sample navigation"><Link to="/">← Cerbyl</Link><span className="flow-muted">Free sample · No account needed</span></nav>
-    <h1>Find the gap.<br />Try again with understanding.</h1>
-    <p className="flow-muted">A three-minute probability lesson. Read, practise, and use the explanation on a fresh question.</p>
-    <div className="flow-columns">
-      <article id="source-note" aria-labelledby="sample-lesson-title"><h2 id="sample-lesson-title">Count every possible outcome</h2>
-        <p>When outcomes are equally likely, probability is the number of outcomes you want divided by the total number of possible outcomes.</p>
-        <p><strong>Probability = favourable outcomes / total outcomes</strong></p>
-        <p>For example, a fair six-sided die has six possible outcomes. Two are greater than four: 5 and 6. So the probability of rolling greater than four is 2/6, or 1/3.</p>
-        <p className="flow-source flow-muted">Source: this prepared Cerbyl sample lesson. Assume each counter is equally likely to be drawn. The questions and explanations here are authored examples; this sample does not call the AI tutor.</p>
-      </article>
-      <section aria-label="Sample practice">
-        {!complete ? <><h2>Practice {step + 1} of {questions.length}</h2><form onSubmit={submit}>
-          <fieldset className="flow-options" disabled={checked}><legend>{current.question}</legend>{current.options.map(option => <label className="flow-option" key={option}><input type="radio" name="answer" value={option} checked={selected === option} onChange={() => setSelected(option)} />{option}</label>)}</fieldset>
-          {!checked && <button className="flow-primary" disabled={!selected}>Check my answer</button>}
-        </form>
-        {checked && <div className="flow-feedback" role="status"><strong>{selected === current.correct ? 'Correct.' : `The answer is ${current.correct}.`}</strong><p>{current.explanation}</p><p><a href="#source-note">Check the lesson reference ↑</a></p><button className="flow-primary" onClick={() => { setStep(step + 1); setSelected(''); }}>{step === 0 ? 'Try a fresh question →' : 'See my results →'}</button></div>}</>
-        : <div role="status"><h2>{answers.filter((answer, i) => answer === questions[i].correct).length} of 2 correct</h2><p>{answers[1] === questions[1].correct ? 'You applied the idea to a new example.' : 'Keep practising the denominator: count all counters, not just the blue ones.'} Two questions are a starting point, not proof of mastery.</p><p>Create your workspace to practise your own subjects and return to weak topics.</p><div className="flow-actions"><Link className="flow-action flow-primary" to="/register">Create my workspace</Link><button onClick={() => { setStep(0); setSelected(''); setAnswers([]); }}>Repeat sample</button></div></div>}
-      </section>
+
+  function reset() {
+    setPhase('topic');
+    setTopic('');
+    setQuestions([]);
+    setStep(0);
+    setAnswers([]);
+    setSelected('');
+    setError('');
+  }
+
+  return (
+    <div className="sc-root">
+      <header className="sc-header">
+        <span className="sc-tag">Free sample &middot; No account needed</span>
+      </header>
+
+      <main className="sc-main">
+        {phase === 'topic' && (
+          <section className="sc-step">
+            <div className="sc-index">01</div>
+            <h1 className="sc-title">Pick anything you&rsquo;re studying.</h1>
+            <p className="sc-sub">Type a subject or topic. Cerbyl writes two practice questions on it, on the spot, no signup required.</p>
+            <form className="sc-form" onSubmit={submitTopic}>
+              <label className="sc-label" htmlFor="sc-topic">Topic</label>
+              <input
+                id="sc-topic"
+                className="sc-input"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="e.g. Cellular respiration"
+                autoFocus
+                autoComplete="off"
+              />
+              {error && <p className="sc-error" role="alert">{error}</p>}
+              <button className="sc-btn sc-btn-primary" type="submit" disabled={!topic.trim()}>Generate my sample</button>
+            </form>
+            <div className="sc-examples">
+              <span className="sc-examples-label">Try</span>
+              {EXAMPLES.map((example) => (
+                <button key={example} type="button" className="sc-example" onClick={() => setTopic(example)}>{example}</button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {phase === 'loading' && (
+          <section className="sc-step">
+            <div className="sc-index">01</div>
+            <h1 className="sc-title">Writing your sample on {topic}.</h1>
+            <div className="sc-loading-bar" role="status" aria-label="Generating"><span /></div>
+          </section>
+        )}
+
+        {phase === 'quiz' && !complete && current && (
+          <section className="sc-step">
+            <div className="sc-index">{String(step + 2).padStart(2, '0')}</div>
+            <div className="sc-meta">Question {step + 1} of {questions.length} &middot; {topic}</div>
+            <h1 className="sc-question">{current.question}</h1>
+            <form onSubmit={submitAnswer}>
+              <fieldset className="sc-options" disabled={checked}>
+                <legend className="sr-only">Answer options</legend>
+                {current.options.map((option, i) => (
+                  <label className="sc-option" key={option}>
+                    <span className="sc-option-index" aria-hidden="true">{String.fromCharCode(65 + i)}</span>
+                    <span>{option}</span>
+                    <input type="radio" name="answer" value={option} checked={selected === option} onChange={() => setSelected(option)} />
+                  </label>
+                ))}
+              </fieldset>
+              {!checked && <button className="sc-btn sc-btn-primary" disabled={!selected}>Check my answer</button>}
+            </form>
+            {checked && (
+              <div className="sc-feedback" role="status">
+                <strong className={selected === current.correct ? 'sc-good' : 'sc-bad'}>
+                  {selected === current.correct ? 'Correct.' : `The answer is ${current.correct}.`}
+                </strong>
+                <p>{current.explanation}</p>
+                <button className="sc-btn sc-btn-primary" onClick={() => { setStep(step + 1); setSelected(''); }}>
+                  {step === questions.length - 1 ? 'See my results' : 'Next question'}
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {complete && (
+          <section className="sc-step">
+            <div className="sc-index">{String(questions.length + 2).padStart(2, '0')}</div>
+            <div className="sc-meta">Results &middot; {topic}</div>
+            <h1 className="sc-title">{answers.filter((a, i) => a === questions[i].correct).length} of {questions.length} correct</h1>
+            <p className="sc-sub">Two questions on one topic are a starting point, not proof of mastery. Create your workspace to practise this and every other subject, with a tutor that remembers your weak spots.</p>
+            <div className="sc-actions">
+              <Link className="sc-btn sc-btn-primary" to="/register">Create my workspace</Link>
+              <button className="sc-btn sc-btn-ghost" type="button" onClick={reset}>Try another topic</button>
+            </div>
+          </section>
+        )}
+      </main>
     </div>
-  </main>;
+  );
 }

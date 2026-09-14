@@ -10,6 +10,10 @@ export async function productRequest(path, options = {}) {
   return data;
 }
 
+export function generateSampleQuiz(topic) {
+  return productRequest('/product/sample-quiz', { method: 'POST', body: JSON.stringify({ topic }) });
+}
+
 export function sampleEvent(name) {
   try {
     let visitor = localStorage.getItem('cerbyl.sample.visitor');
