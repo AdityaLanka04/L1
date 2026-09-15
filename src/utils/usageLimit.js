@@ -6,21 +6,25 @@ const LIMIT_CODES = new Set([
 export const USAGE_LIMIT_EVENT = 'cerbyl:usage-limit';
 
 const toNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const pluralizeHours = (hours) => {
-  const value = Math.max(1, Number(hours || 24));
-  const rounded = Number.isInteger(value) ? value : Math.ceil(value);
-  return `${rounded} hour${rounded === 1 ? '' : 's'}`;
-};
-
 export const formatUsageLimitMessage = (limit = {}) => {
   const seconds = toNumber(limit.resetAfterSeconds);
-  const hours = toNumber(limit.resetAfterHours) ?? (seconds !== null ? seconds / 3600 : null);
-  const hoursText = pluralizeHours(hours);
-  return `You've reached your usage limit. Your messages will reset in ${hoursText}.`;
+  const hours = toNumber(limit.resetAfterHours);
+  const delay = seconds ?? (hours === null ? null : hours * 3600);
+  const providerLimit = limit.code === 'ai_provider_limit_exceeded';
+  const message = providerLimit
+    ? 'The AI service has reached its shared provider limit. This is not your account allowance.'
+    : "You've reached your account's AI usage limit.";
+  if (delay === null) return `${message} No reset time is available yet.`;
+  if (delay <= 0) return `${message} You can retry now.`;
+  const minutes = Math.ceil(delay / 60);
+  const count = delay < 3600 ? minutes : Math.ceil(delay / 3600);
+  const unit = delay < 3600 ? 'minute' : 'hour';
+  return `${message} Try again in ${count} ${unit}${count === 1 ? '' : 's'}.`;
 };
 
 const normalizeLimitPayload = (payload = {}, headers = null) => {

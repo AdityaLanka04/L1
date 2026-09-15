@@ -55,5 +55,10 @@ export function isAnsweringPreviousComprehensionCheck(text = '', messages = []) 
 export function isAnsweringTutorStep(text = '', messages = []) {
   const previousAi = getLastAiMessage(messages);
   if (!previousAi || !looksLikeTutorReply(text)) return false;
-  return isTutorMessage(previousAi) || TUTOR_CHECK_RE.test(previousAi.content || '');
+  const state = previousAi.tutorState;
+  const hasExpected = Boolean(state?.expectedStepAnswer || state?.expected_step_answer);
+  const lastQuestion = String(previousAi.content || '').split('?').slice(-2, -1).join('?');
+  const isOffer = /would you like|do you want|shall (?:we|i)|ready for|want me to/i.test(lastQuestion);
+  if (isOffer && !hasExpected) return false;
+  return hasExpected || TUTOR_CHECK_RE.test(previousAi.content || '');
 }

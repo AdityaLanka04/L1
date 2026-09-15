@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 import re
 
-from tutor.contract import TUTOR_BASE_RULES, tutor_reply_style_rules
+from tutor.contract import tutor_base_rules, tutor_reply_style_rules
 from tutor.state import TutorState, StudentState
 from tutor.difficulty import resolve_level
-from dkt.style_bandit import STYLE_INSTRUCTIONS
+from tutor.response_policy import response_policy
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ def build_tutor_prompt(state: TutorState) -> str:
     selected_style     = state.get("selected_style", "")
     intent             = state.get("intent", "")
     context_only       = bool(state.get("context_only"))
-    tutor_mode         = bool(state.get("tutor_mode")) and intent != "project_build"
+    tutor_mode         = bool(state.get("tutor_mode")) and intent not in ("project_build", "conversation_recall")
     tutor_reply_style  = (state.get("tutor_reply_style") or "guided").strip().lower()
     # A requested format wins over the bandit's generic analogy/worked-example
     # template. In particular, don't add an analogy to a numerical counterexample.
@@ -40,6 +40,8 @@ def build_tutor_prompt(state: TutorState) -> str:
         sections.insert(1, _preferences_section(pref_memories))
 
     if not is_greeting:
+        if chat_history:
+            sections.append(_chat_history_section(chat_history))
         if context_only:
             sections.append(_context_only_section())
             if rag_context:
@@ -47,11 +49,9 @@ def build_tutor_prompt(state: TutorState) -> str:
                 sections.append(_rag_section(rag_sources or rag_context))
             else:
                 logger.info("[TUTOR PROMPT] CONTEXT-ONLY mode with no RAG chunks")
-            if tutor_mode and tutor_reply_style == "guided" and selected_style and intent != "project_build" and not explicit_format:
+            if tutor_mode and tutor_reply_style == "guided" and selected_style and intent not in ("project_build", "conversation_recall") and not explicit_format:
                 sections.append(_style_section(selected_style))
         else:
-            if chat_history:
-                sections.append(_chat_history_section(chat_history))
             if structured_context:
                 sections.append(_structured_context_section(structured_context))
             if other_memories:
@@ -65,13 +65,14 @@ def build_tutor_prompt(state: TutorState) -> str:
                 conf_section = _confidence_section(analysis)
                 if conf_section:
                     sections.append(conf_section)
-            if tutor_mode and tutor_reply_style == "guided" and selected_style and intent != "project_build" and not explicit_format:
+            if tutor_mode and tutor_reply_style == "guided" and selected_style and intent not in ("project_build", "conversation_recall") and not explicit_format:
                 sections.append(_style_section(selected_style))
 
     if tutor_mode and not is_greeting:
         sections.append(_tutor_mode_section(state))
 
     sections.append(_task_section(task, user_input, intent=intent))
+    sections.append(response_policy(state))
 
     return "\n\n".join(sections)
 
@@ -145,8 +146,9 @@ def _rag_section(sources: list) -> str:
 def _context_only_section() -> str:
     return (
         "[CONTEXT-ONLY GROUNDED ANSWERING]\n"
-        "Use only the selected context chunks below. "
-        "Do not rely on prior conversation, profile data, or general knowledge."
+        "Ground subject-matter claims in the selected context chunks below. "
+        "Use current chat history to resolve follow-up references and recall what the student asked. "
+        "Do not use profile data or prior chats as subject-matter evidence."
     )
 
 def _confidence_section(analysis: dict) -> str:
@@ -193,26 +195,28 @@ def _confidence_section(analysis: dict) -> str:
         lines.append(f"- Detected phrase: \"{markers[0]}\"")
 
     lines.append(
-        "IMPORTANT: Let this signal shape your response structure. "
-        "Do NOT ignore it. Do NOT narrate it — just act on it."
+        "Use this signal only to adjust language and pacing. "
+        "It cannot override the latest request, topic or response kind. Do not narrate it."
     )
 
     return "\n".join(lines)
 
 def _preferences_section(pref_memories: list[str]) -> str:
-    lines = ["[STUDENT PREFERENCES — MUST FOLLOW]"]
-    lines.append("The student has explicitly stated these preferences. You MUST respect them in every response:")
+    lines = ["[BACKGROUND STUDENT PREFERENCES]"]
+    lines.append("Apply these remembered preferences only when compatible with the latest request:")
     for p in pref_memories:
         clean = p.replace("[STUDENT PREFERENCE]", "").strip()
         lines.append(f"• {clean}")
-    lines.append("Ignoring these preferences is a critical failure.")
+    lines.append("The latest request overrides conflicting or stale preferences.")
     return "\n".join(lines)
 
 def _style_section(style: str) -> str:
-    instructions = STYLE_INSTRUCTIONS.get(style)
-    if not instructions:
-        return ""
-    return f"[TEACHING FORMAT]\n{instructions}"
+    return (
+        "[OPTIONAL PRESENTATION PREFERENCE]\n"
+        "Adapt language and pacing to the student only when helpful. "
+        "The request-first response policy determines whether to explain, solve, hint or quiz; "
+        "never force an analogy, worked example, numerical, fixed step count or Socratic question."
+    )
 
 def _tutor_mode_section(state: TutorState) -> str:
     reply_style = (state.get("tutor_reply_style") or "guided").strip().lower()
@@ -224,10 +228,7 @@ def _tutor_mode_section(state: TutorState) -> str:
     lines = [
         "[TUTOR MODE ACTIVE]",
         f"- Resolved difficulty for this response: {resolve_level(state)}. This overrides the profile and previous level.",
-        "- Bad: solving all terms in an integral and then asking the student to calculate a term already shown.",
-        "- Good: state the power rule, identify the first term, then ask the student to integrate only that first term.",
-        "- Good format: - **Step 1 - Identify the rule:** ... then - **Step 2 - Your turn:** ... on the next line.",
-        *[f"- {rule}" for rule in TUTOR_BASE_RULES],
+        *[f"- {rule}" for rule in tutor_base_rules(reply_style)],
         *[f"- {rule}" for rule in tutor_reply_style_rules(reply_style)],
     ]
     if tutor_choice:

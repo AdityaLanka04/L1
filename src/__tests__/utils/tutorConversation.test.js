@@ -54,3 +54,14 @@ describe('tutor conversation turn detection', () => {
       .toMatchObject({ enabled: false, replyMode: null });
   });
 });
+
+test.each(['yes', 'no thanks', 'maybe later'])('optional offer response %s is not a graded attempt', (reply) => {
+  const offer = { type: 'ai', content: 'Atoms contain nuclei. Would you like a numerical example?',
+    tutorMode: true, tutorState: { nextAction: 'Would you like a numerical example?', expectedStepAnswer: '' } };
+  expect(isAnsweringTutorStep(reply, [offer])).toBe(false);
+});
+
+test('tutor mode alone is not evidence of a pending exercise', () => {
+  expect(isAnsweringTutorStep('interesting', [{ type: 'ai', tutorMode: true, content: 'Atoms contain nuclei.',
+    tutorState: { expectedStepAnswer: '' } }])).toBe(false);
+});

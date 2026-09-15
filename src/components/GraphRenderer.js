@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
+import { repairMermaidSyntax } from '../utils/mermaidSyntax';
 import './GraphRenderer.css';
 
 const MERMAID_LANGS = new Set(['mermaid', 'diagram', 'mindmap']);
@@ -125,57 +126,6 @@ const parseGraphJson = (source = '') => {
 
 const looksLikeGraphJson = (content = '') => Boolean(parseGraphJson(content));
 
-const repairMermaidSyntax = (source = '') => {
-  let fixed = String(source || '').trim();
-  if (!fixed) return fixed;
-
-  
-  fixed = fixed.replace(/\|([^|\n]+)\|\s*>\s*/g, '|$1| ');
-
-  
-  fixed = fixed.replace(/->\s*\|/g, '-->|');
-
-  
-  fixed = fixed.replace(/-{3,}>\s*/g, '--> ');
-  fixed = fixed.replace(/={3,}>\s*/g, '==> ');
-
-  
-  fixed = fixed.replace(/-&gt;/g, '->').replace(/--&gt;/g, '-->');
-
-  
-  
-  const lines = fixed.split('\n');
-  let fallbackCounter = 1;
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (!/(-->|==>|-.->)\|[^|\n]+\|\s*$/.test(line)) continue;
-
-    let inferredTarget = '';
-    for (let j = i + 1; j < lines.length; j += 1) {
-      const probe = lines[j].trim();
-      if (!probe) continue;
-      if (/^(graph|flowchart|subgraph|end)\b/i.test(probe)) continue;
-      const match = probe.match(/^([A-Za-z][A-Za-z0-9_]*)\b/);
-      if (match?.[1]) {
-        inferredTarget = match[1];
-      }
-      break;
-    }
-
-    if (!inferredTarget) {
-      inferredTarget = `AUTO_NODE_${fallbackCounter}`;
-      fallbackCounter += 1;
-      lines.splice(i + 1, 0, `${inferredTarget}[Auto target]`);
-    }
-
-    lines[i] = `${line} ${inferredTarget}`;
-  }
-
-  fixed = lines.join('\n');
-
-  return fixed;
-};
-
 const isMermaidErrorSvg = (svg = '') => {
   const raw = String(svg || '');
   if (!raw) return true;
@@ -271,8 +221,7 @@ const MermaidGraph = ({ source, compact = false, darkMode }) => {
         }
       } catch (error) {
         if (!cancelled) {
-          const errText = error?.message || 'Invalid Mermaid syntax.';
-          setRenderError(`${errText} Try using "A -->|label| B" arrow format.`);
+          setRenderError('This diagram could not be displayed. Ask the AI to redraw it or explain it in words.');
         }
       } finally {
         if (!cancelled) setIsRendering(false);

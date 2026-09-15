@@ -49,7 +49,8 @@ def test_current_chat_history_is_authoritative_and_not_overridden_by_normal_mode
 
 def test_adaptive_teaching_style_is_reserved_for_tutor_mode():
     prompt = build_tutor_prompt(_state(tutor_mode=True, intent="question"))
-    assert "TEACHING FORMAT — ANALOGY FIRST" in prompt
+    assert "OPTIONAL PRESENTATION PREFERENCE" in prompt
+    assert "TEACHING FORMAT — ANALOGY FIRST" not in prompt
     assert "[TUTOR MODE ACTIVE]" in prompt
 
 
