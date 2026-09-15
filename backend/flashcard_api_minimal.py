@@ -8,11 +8,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from flashcard_minimal import (
-    generate_flashcards_minimal,
-    get_agent,
-    FlashcardGenerationRequest
-)
 import models
 
 logger = logging.getLogger(__name__)
@@ -67,81 +62,6 @@ def get_user(db: Session, user_identifier: str):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
-
-@router.post("/generate")
-async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session = Depends(get_db)):
-    
-    try:
-        user = get_user(db, payload.user_id)
-        
-        from deps import unified_ai
-        
-        if payload.topic:
-            flashcards = generate_flashcards_minimal(
-                unified_ai,
-                payload.topic,
-                payload.card_count,
-                payload.difficulty_level,
-                is_topic=True
-            )
-        elif payload.chat_data:
-            flashcards = generate_flashcards_minimal(
-                unified_ai,
-                payload.chat_data,
-                payload.card_count,
-                payload.difficulty_level,
-                is_topic=False
-            )
-        else:
-            raise HTTPException(status_code=400, detail="Provide topic or chat_data")
-        
-        if payload.save_to_set and flashcards:
-            set_title = payload.set_title or f"Generated - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
-            
-            share_code = get_unique_share_code(db)
-            
-            flashcard_set = models.FlashcardSet(
-                user_id=user.id,
-                title=set_title,
-                description=f"Generated {len(flashcards)} cards",
-                source_type="ai_generated",
-                share_code=share_code,
-                is_public=payload.is_public
-            )
-            db.add(flashcard_set)
-            db.commit()
-            db.refresh(flashcard_set)
-            
-            for card in flashcards:
-                db_card = models.Flashcard(
-                    set_id=flashcard_set.id,
-                    question=card["question"],
-                    answer=card["answer"],
-                    difficulty=card.get("difficulty", "medium")
-                )
-                db.add(db_card)
-                
-                agent = get_agent(payload.user_id)
-                agent.add_card(str(db_card.id))
-            
-            db.commit()
-            
-            return {
-                "success": True,
-                "flashcards": flashcards,
-                "set_id": flashcard_set.id,
-                "share_code": share_code,
-                "set_title": set_title
-            }
-        
-        return {
-            "success": True,
-            "flashcards": flashcards
-        }
-        
-    except Exception as e:
-        logger.error(f"Generation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/review")
 async def review_card(payload: CardReview, db: Session = Depends(get_db)):
@@ -198,12 +118,8 @@ async def review_card(payload: CardReview, db: Session = Depends(get_db)):
         else:
             set_mastery = 0.0
         
-        agent = get_agent(payload.user_id)
-        result = agent.review_card(payload.card_id, payload.was_correct)
-        
         return {
             "success": True,
-            "data": result,
             "set_mastery": set_mastery
         }
         
@@ -250,41 +166,6 @@ async def complete_study_session(payload: StudySessionComplete, db: Session = De
         
     except Exception as e:
         logger.error(f"Error saving study session: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/statistics")
-async def get_statistics(user_id: str = Query(...)):
-    
-    try:
-        agent = get_agent(user_id)
-        stats = agent.get_statistics()
-        
-        return {
-            "success": True,
-            "data": stats
-        }
-        
-    except Exception as e:
-        logger.error(f"Statistics error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/weak-cards")
-async def get_weak_cards(user_id: str = Query(...)):
-    
-    try:
-        agent = get_agent(user_id)
-        weak_cards = agent.get_weak_cards()
-        
-        return {
-            "success": True,
-            "data": {
-                "weak_cards": weak_cards,
-                "count": len(weak_cards)
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"Weak cards error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/sets/create")

@@ -57,6 +57,48 @@ def sample_event(payload: SampleEvent, db: Session = Depends(get_db)):
     return {"recorded": True}
 
 
+class SampleQuizRequest(BaseModel):
+    topic: str = Field(min_length=1, max_length=120)
+
+
+@router.post("/sample-quiz")
+async def sample_quiz(payload: SampleQuizRequest):
+    from services.topic_utils import is_valid_topic
+    topic = payload.topic.strip()
+    if not is_valid_topic(topic):
+        raise HTTPException(status_code=422, detail="Enter a real subject or topic to try, not a greeting or single word.")
+
+    from graphs.quiz_graph import get_quiz_graph
+    quiz_graph = get_quiz_graph()
+    if not quiz_graph:
+        raise HTTPException(status_code=503, detail="The sample generator is unavailable right now. Try again shortly.")
+
+    questions_data = await quiz_graph.invoke(
+        user_id="",
+        topic=topic,
+        generation_type="topic",
+        question_count=2,
+        difficulty="easy",
+        use_hs_context=False,
+    )
+
+    questions = [
+        {
+            "question": q["question_text"],
+            "options": q["options"],
+            "correct": q["correct_answer"],
+            "explanation": q["explanation"],
+        }
+        for q in questions_data
+        if q.get("question_text") and len(q.get("options") or []) >= 2 and q.get("correct_answer")
+    ][:2]
+
+    if len(questions) < 2:
+        raise HTTPException(status_code=502, detail="Could not generate a sample for that topic. Try rephrasing it.")
+
+    return {"topic": topic, "questions": questions}
+
+
 class Activation(BaseModel):
     visitor_id: uuid.UUID | None = None
 

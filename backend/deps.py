@@ -15,6 +15,7 @@ load_backend_env()
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 from argon2 import PasswordHasher
@@ -182,9 +183,10 @@ def invalidate_cached_auth_user(user, extra_subjects=()):
 def _find_user_for_subject(db, subject):
     if isinstance(subject, AuthSubject):
         return db.query(models.User).filter(models.User.id == subject.user_id).first()
-    user = db.query(models.User).filter(models.User.username == subject).first()
+    subject_lower = (subject or "").strip().lower()
+    user = db.query(models.User).filter(func.lower(models.User.username) == subject_lower).first()
     if not user:
-        user = db.query(models.User).filter(models.User.email == subject).first()
+        user = db.query(models.User).filter(func.lower(models.User.email) == subject_lower).first()
     return user
 
 
@@ -261,12 +263,20 @@ async def enforce_request_user_scope(
     if not current_user:
         raise HTTPException(status_code=401, detail="Authentication required")
 
-    allowed = {str(current_user.id), current_user.username, current_user.email}
+    # Case-insensitive: usernames/emails are stored and typed with inconsistent
+    # casing (Google auth in particular), so an exact-case match here was
+    # rejecting a request's own account.
+    allowed = {
+        str(current_user.id).strip().lower(),
+        (current_user.username or "").strip().lower(),
+        (current_user.email or "").strip().lower(),
+    }
     for requested in normalized_candidates:
-        if requested not in allowed:
+        requested_lower = requested.lower()
+        if requested_lower not in allowed:
             raise HTTPException(status_code=403, detail="Access denied")
         # A numeric username must not let an ID-shaped reference select another account.
-        other = db.query(models.User.id).filter(models.User.username == requested, models.User.id != current_user.id).first()
+        other = db.query(models.User.id).filter(func.lower(models.User.username) == requested_lower, models.User.id != current_user.id).first()
         if other:
             raise HTTPException(status_code=403, detail="Ambiguous account reference")
     return current_user
@@ -275,7 +285,7 @@ def get_user_by_username(db: Session, username: str):
     return _get_or_query_user_for_subject(db, username)
 
 def get_user_by_email(db: Session, email: str):
-    return db.query(models.User).filter(models.User.email == email).first()
+    return db.query(models.User).filter(func.lower(models.User.email) == (email or "").strip().lower()).first()
 
 def get_user_by_phone(db: Session, phone: str):
     if not phone:

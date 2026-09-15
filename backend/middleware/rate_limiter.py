@@ -27,12 +27,13 @@ TIERS: dict[str, tuple[int, int]] = {
     "auth_social":   (10,   60),
     "ai_heavy":      (30,   14400),   # 4-hour rolling window (like ChatGPT)
     "ai_light":      (100,  3600),
+    "sample_quiz":   (5,    3600),    # anonymous, unauthenticated AI call — IP-limited
     "file_upload":   (20,   3600),
     "write":         (300,  3600),
     "read":          (1000, 3600),
 }
 
-_AUTH_TIERS = {"auth_login", "auth_register", "auth_social"}
+_AUTH_TIERS = {"auth_login", "auth_register", "auth_social", "sample_quiz"}
 
 _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
     (None,                          "/api/health",                      None),
@@ -88,6 +89,8 @@ _RULES: list[tuple[Optional[frozenset], Optional[str], Optional[str]]] = [
     (frozenset(["POST"]),           "/api/autocomplete",                "ai_light"),
     (frozenset(["POST"]),           "/api/get_personalized_prompts",    "ai_light"),
     (frozenset(["POST"]),           "/api/get_search_suggestion",       "ai_light"),
+
+    (frozenset(["POST"]),           "/api/product/sample-quiz",         "sample_quiz"),
 
     (frozenset(["POST"]),           "/api/context",                     "file_upload"),
     (frozenset(["POST"]),           "/api/import",                      "file_upload"),

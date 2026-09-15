@@ -383,6 +383,9 @@
   margin-top: 14px;
   background: transparent;
   border: none;
+  /* neumorphism.css's "#root :where(button, ...)" rule has ID-level
+     specificity that no class-only selector can beat without !important. */
+  box-shadow: none !important;
   color: var(--lg-fg-dim);
   font-family: inherit;
   font-size: 0.76rem;

@@ -3,7 +3,10 @@ import useModalFocus from '../hooks/useModalFocus';
 import useCerbylCardMotion from '../hooks/useCerbylCardMotion';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Plus, ChevronLeft, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check, User, Bell, Sparkles, Trash2, LogOut } from 'lucide-react';
+import {
+  ArrowUpRight, Plus, ChevronLeft, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check, User, Bell, Sparkles, Trash2, LogOut,
+  History, MessageSquare, BarChart2, Layers, Network, Route, HelpCircle, Presentation, Users, Target, Trophy,
+} from 'lucide-react';
 import { API_URL } from '../config/api';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -60,17 +63,22 @@ const ALL_FEATURES = [
   { label: 'Customize Dashboard', route: '/customize-dashboard', keywords: 'settings personalize' },
 ];
 
-const SIDE_LINKS = [
-  { label: 'Search Hub',        route: '/search-hub' },
-  { label: 'Knowledge Map',     route: '/knowledge-map' },
-  { label: 'Questions',         route: '/question-bank' },
-  { label: 'Slides',            route: '/slide-explorer' },
-  { label: 'Weak Areas',        route: '/weaknesses' },
-  { label: 'Social Hub',        route: '/social' },
-  { label: 'Activity Timeline', route: '/activity-timeline' },
-  { label: 'Learning Path',     route: '/learning-paths' },
-  { label: 'XP Roadmap',        route: '/xp-roadmap' },
-  { label: 'Analytics',         route: '/analytics' }
+// Single flat sidebar nav — every feature is an equal-weight row, ordered
+// alphabetically so no ordering implies priority between them.
+const FLAT_NAV_LINKS = [
+  { label: 'Activity Timeline', route: '/activity-timeline', icon: <History size={16} /> },
+  { label: 'AI Chat',           route: '/ai-chat',            icon: <MessageSquare size={16} /> },
+  { label: 'Analytics',         route: '/analytics',          icon: <BarChart2 size={16} /> },
+  { label: 'Flashcards',        route: '/flashcards',         icon: <Layers size={16} /> },
+  { label: 'Knowledge Map',     route: '/knowledge-map',      icon: <Network size={16} /> },
+  { label: 'Learning Path',     route: '/learning-paths',     icon: <Route size={16} /> },
+  { label: 'Notes',             route: '/notes',              icon: <FileText size={16} /> },
+  { label: 'Questions',         route: '/question-bank',      icon: <HelpCircle size={16} /> },
+  { label: 'Search Hub',        route: '/search-hub',         icon: <Search size={16} /> },
+  { label: 'Slides',            route: '/slide-explorer',     icon: <Presentation size={16} /> },
+  { label: 'Social Hub',        route: '/social',             icon: <Users size={16} /> },
+  { label: 'Weak Areas',        route: '/weaknesses',         icon: <Target size={16} /> },
+  { label: 'XP Roadmap',        route: '/xp-roadmap',         icon: <Trophy size={16} /> },
 ];
 
 const greetingForHour = (h) => {
@@ -358,16 +366,7 @@ const DashboardCerbyl = () => {
     error: null
   });
   const [isPfpModalOpen, setIsPfpModalOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return undefined;
-    const media = window.matchMedia('(max-width: 1100px)');
-    const syncSidebarToViewport = () => setIsSidebarOpen(!media.matches);
-    syncSidebarToViewport();
-    media.addEventListener?.('change', syncSidebarToViewport);
-    return () => media.removeEventListener?.('change', syncSidebarToViewport);
-  }, []);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [featureQuery, setFeatureQuery] = useState('');
   const [showFeatureResults, setShowFeatureResults] = useState(false);
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(-1);
@@ -1623,7 +1622,6 @@ const DashboardCerbyl = () => {
 
       {}
       <div className="cb-topbar">
-        <div className="cb-tagline"><span>LEARNING,</span> UNIFIED</div>
         <div
           className={`cb-usage-meter ${isAdminUnlimited ? 'cb-usage-meter--admin' : ''}`}
           aria-label={isAdminUnlimited
@@ -1672,15 +1670,6 @@ const DashboardCerbyl = () => {
           )}
         </div>
         <div className="cb-topbar-right">
-          {!isSidebarOpen && (
-            <button
-              className="cb-topbar-text-btn"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label="Show sidebar"
-            >
-              SHOW SIDEBAR
-            </button>
-          )}
           <div className="cb-date">{formatDateLong(now)}</div>
           <ThemeSwitcher />
           <div className="cb-notif-wrap">
@@ -1739,6 +1728,7 @@ const DashboardCerbyl = () => {
                           }
                         }}
                       >
+                        <div className="cb-tile-texture" aria-hidden="true" />
                         <span className="cb-notif-item-icon">
                           <Sparkles size={14} />
                         </span>
@@ -1789,6 +1779,10 @@ const DashboardCerbyl = () => {
                   <User size={14} />
                   <span>Profile</span>
                 </button>
+                <button type="button" role="menuitem" onClick={openPfpModal}>
+                  <Pencil size={14} />
+                  <span>Change photo</span>
+                </button>
                 <button type="button" role="menuitem" className="cb-profile-drawer-signout" onClick={handleDashboardSignOut}>
                   <LogOut size={14} />
                   <span>Log out</span>
@@ -1803,15 +1797,8 @@ const DashboardCerbyl = () => {
         {}
         <CerbylSidebar
           open={isSidebarOpen} onOpenChange={setIsSidebarOpen}
-          displayName={displayName} profilePhoto={profilePhoto} initial={initial}
-          profileSubtitle={`Level ${stats.level} · ${stats.xp} XP`}
-          onProfile={() => navigate('/profile')} onEditProfile={openPfpModal}
-          quickLinks={[
-            { label: 'AI Chat', onClick: () => navigate('/ai-chat') },
-            { label: 'Flashcards', onClick: () => navigate('/flashcards') },
-            { label: 'Notes', onClick: () => navigate('/notes') },
-          ]}
-          workspaceLinks={SIDE_LINKS.map(item => ({ label: item.label, onClick: () => navigate(item.route) }))}
+          brandKicker="Learning, Unified"
+          links={FLAT_NAV_LINKS.map(item => ({ label: item.label, icon: item.icon, onClick: () => navigate(item.route) }))}
         />
 
         <main className="cb-main">
@@ -1832,9 +1819,6 @@ const DashboardCerbyl = () => {
                   <span className="cb-period">.</span>
                 )}
               </h1>
-              <button type="button" className="cb-continue-study" onClick={() => navigate('/practice-next')}>
-                <Library size={16} aria-hidden="true" />Practice next<ArrowUpRight size={16} aria-hidden="true" />
-              </button>
             </div>
 
             <div className="cb-feature-search" ref={featureSearchRef}>
@@ -1890,29 +1874,20 @@ const DashboardCerbyl = () => {
 
             <div className="cb-stat-row">
               <div className="cb-stat" onMouseMove={handleTileMove} onMouseLeave={handleTileLeave}>
-                <div className="cb-tile-texture" />
                 <div className="cb-stat-num">{String(stats.level).padStart(2, '0')}</div>
                 <div className="cb-stat-lbl">LEVEL</div>
               </div>
               <div className="cb-stat" onMouseMove={handleTileMove} onMouseLeave={handleTileLeave}>
-                <div className="cb-tile-texture" />
                 <div className="cb-stat-num">{stats.xp}<span className="cb-stat-tiny"> XP</span></div>
                 <div className="cb-stat-lbl">OF {stats.nextXp}</div>
               </div>
               <div className="cb-stat" onMouseMove={handleTileMove} onMouseLeave={handleTileLeave}>
-                <div className="cb-tile-texture" />
                 <div className="cb-stat-num">#{stats.rank || 1}</div>
                 <div className="cb-stat-lbl">GLOBAL</div>
               </div>
               <div className="cb-stat" onMouseMove={handleTileMove} onMouseLeave={handleTileLeave}>
-                <div className="cb-tile-texture" />
                 <div className="cb-stat-num">{stats.streak}</div>
                 <div className="cb-stat-lbl">STREAK</div>
-              </div>
-              <div className="cb-stat" onMouseMove={handleTileMove} onMouseLeave={handleTileLeave}>
-                <div className="cb-tile-texture" />
-                <div className="cb-stat-num">{stats.questions}</div>
-                <div className="cb-stat-lbl">QUESTIONS</div>
               </div>
               <button className="cb-ai-cta" onClick={() => navigate('/search-hub')}>
                 <Search size={15} /> Search Hub <ArrowUpRight size={16} />
