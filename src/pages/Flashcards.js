@@ -3367,6 +3367,7 @@ const Flashcards = () => {
                   </div>
 
                   <div className="fc-generator-workspace">
+                  <div className="cb-tile-texture" aria-hidden />
                   {generationMode === 'topic' ? (
                     <>
                       <div className="fc-form-group">
@@ -3721,118 +3722,107 @@ const Flashcards = () => {
 
           {/* PDF Sources Panel */}
           {activePanel === 'sources' && (
-            <>
-              <div className="fc-content fc-sources-panel">
-                <div className="fc-view-header">
-                  <span className="fc-view-kicker">Question Hub Sources</span>
-                  <h2 className="fc-view-title">PDF Sources</h2>
-                  <p className="fc-view-sub">
-                    {uploadedDocuments.length} {uploadedDocuments.length === 1 ? 'source' : 'sources'} · shared with Question Hub
-                  </p>
-                </div>
+            <div className="fc-content fc-sources-panel">
+              <div className="fc-view-header">
+                <span className="fc-view-kicker">Question Hub Sources</span>
+                <h2 className="fc-view-title">PDF Sources</h2>
+                <p className="fc-view-sub">
+                  {uploadedDocuments.length} {uploadedDocuments.length === 1 ? 'source' : 'sources'} · shared with Question Hub
+                </p>
+              </div>
 
-                <div className="fc-sources-layout">
-                  <section className="fc-sources-upload">
-                    <div className="fc-sources-upload-icon">{FC_ICONS.file}</div>
-                    <h3>Add a PDF</h3>
-                    <p>Upload a PDF and turn it into flashcards. It'll also show up in Question Hub.</p>
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      onChange={handlePDFUpload}
-                      style={{ display: 'none' }}
-                      id="fc-pdf-upload-input"
-                    />
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handlePDFUpload}
+                style={{ display: 'none' }}
+                id="fc-pdf-upload-input"
+              />
+
+              {loadingDocuments && uploadedDocuments.length === 0 ? (
+                <div className="fc-loading">
+                  <div className="fc-pulse-loader">
+                    <div className="fc-pulse-square fc-pulse-1"></div>
+                    <div className="fc-pulse-square fc-pulse-2"></div>
+                    <div className="fc-pulse-square fc-pulse-3"></div>
+                  </div>
+                  <p>Loading PDF sources...</p>
+                </div>
+              ) : uploadedDocuments.length === 0 ? (
+                <div className="fc-empty">
+                  <h3>No PDF Sources Yet</h3>
+                  <p>Upload a PDF and turn it into flashcards. It'll also show up in Question Hub.</p>
+                  <label htmlFor="fc-pdf-upload-input" className={`fc-btn fc-btn-primary ${uploadingDocument ? 'disabled' : ''}`}>
+                    {FC_ICONS.sparkle} {uploadingDocument ? 'Uploading…' : 'Upload PDF'}
+                  </label>
+                </div>
+              ) : (
+                <>
+                  <div className="fc-form-row">
                     <label htmlFor="fc-pdf-upload-input" className={`fc-btn fc-btn-primary ${uploadingDocument ? 'disabled' : ''}`}>
                       {uploadingDocument ? 'Uploading…' : 'Upload PDF'}
                     </label>
-                  </section>
-
-                  <section className="fc-sources-library">
-                    <div className="fc-sources-toolbar">
-                      <div>
-                        <h3>Your Sources</h3>
-                        <p>Click a PDF to select it for flashcard generation.</p>
-                      </div>
-                      <div className="fc-sources-toolbar-actions">
-                        {selectedPDFs.length > 0 && (
-                          <button className="fc-btn fc-btn-secondary" onClick={clearPDFSelection}>Clear selection</button>
-                        )}
-                        <button className="fc-btn fc-btn-secondary" onClick={loadUploadedDocuments} disabled={loadingDocuments}>
-                          {FC_ICONS.refresh} {loadingDocuments ? 'Refreshing…' : 'Refresh'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {loadingDocuments && uploadedDocuments.length === 0 ? (
-                      <div className="fc-loading">
-                        <div className="fc-pulse-loader">
-                          <div className="fc-pulse-square fc-pulse-1"></div>
-                          <div className="fc-pulse-square fc-pulse-2"></div>
-                          <div className="fc-pulse-square fc-pulse-3"></div>
-                        </div>
-                        <p>Loading PDF sources...</p>
-                      </div>
-                    ) : uploadedDocuments.length === 0 ? (
-                      <div className="fc-empty">
-                        <h3>No PDF Sources Yet</h3>
-                        <p>Upload a PDF here or in Question Hub — it appears in both places.</p>
-                      </div>
-                    ) : (
-                      <div className="fc-grid fc-sources-grid">
-                        {uploadedDocuments.map((doc) => {
-                          const isSelected = selectedPDFs.some((pdf) => pdf.id === doc.id);
-                          const topics = doc.analysis?.main_topics || [];
-                          return (
-                            <div
-                              key={doc.id}
-                              role="button"
-                              tabIndex={0}
-                              className={`fc-set-card-new fc-source-card-new ${isSelected ? 'selected' : ''}`}
-                              onClick={() => togglePDFSelection(doc)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter' || event.key === ' ') {
-                                  event.preventDefault();
-                                  togglePDFSelection(doc);
-                                }
-                              }}
-                            >
-                              <div className="fc-set-thumbnail fc-source-thumbnail">
-                                <div className="fc-set-thumbnail-content">
-                                  <span className="fc-source-file-icon">{FC_ICONS.file}</span>
-                                  <h2 className="fc-thumbnail-title">{doc.filename}</h2>
-                                </div>
-                                {isSelected && <span className="fc-source-check">{FC_ICONS.check}</span>}
-                                <button
-                                  type="button"
-                                  className="fc-delete-btn-thumb"
-                                  onClick={(event) => deleteUploadedDocument(doc.id, event)}
-                                  aria-label={`Delete ${doc.filename}`}
-                                >
-                                  {FC_ICONS.trash}
-                                </button>
-                              </div>
-                              <div className="fc-set-content-new">
-                                {topics.length > 0 && (
-                                  <div className="fc-source-topics">
-                                    {topics.slice(0, 3).map((item, index) => (
-                                      <span key={`${doc.id}-${item}-${index}`} className="fc-source-topic">{item}</span>
-                                    ))}
-                                  </div>
-                                )}
-                                <p className="fc-set-date-new">
-                                  {doc.created_at ? `Uploaded ${formatDate(doc.created_at)}` : 'Uploaded source'}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                    {selectedPDFs.length > 0 && (
+                      <button className="fc-btn fc-btn-secondary" onClick={clearPDFSelection}>Clear selection</button>
                     )}
-                  </section>
-                </div>
+                    <button className="fc-btn fc-btn-secondary" onClick={loadUploadedDocuments} disabled={loadingDocuments}>
+                      {FC_ICONS.refresh} {loadingDocuments ? 'Refreshing…' : 'Refresh'}
+                    </button>
+                  </div>
 
-                {selectedPDFs.length > 0 && (
+                  <div className="fc-grid fc-sources-grid">
+                    {uploadedDocuments.map((doc) => {
+                      const isSelected = selectedPDFs.some((pdf) => pdf.id === doc.id);
+                      const topics = doc.analysis?.main_topics || [];
+                      return (
+                        <div
+                          key={doc.id}
+                          role="button"
+                          tabIndex={0}
+                          className={`fc-set-card-new fc-source-card-new ${isSelected ? 'selected' : ''}`}
+                          onClick={() => togglePDFSelection(doc)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              togglePDFSelection(doc);
+                            }
+                          }}
+                        >
+                          <div className="fc-set-thumbnail fc-source-thumbnail">
+                            <div className="fc-set-thumbnail-content">
+                              <span className="fc-source-file-icon">{FC_ICONS.file}</span>
+                              <h2 className="fc-thumbnail-title">{doc.filename}</h2>
+                            </div>
+                            {isSelected && <span className="fc-source-check">{FC_ICONS.check}</span>}
+                            <button
+                              type="button"
+                              className="fc-delete-btn-thumb"
+                              onClick={(event) => deleteUploadedDocument(doc.id, event)}
+                              aria-label={`Delete ${doc.filename}`}
+                            >
+                              {FC_ICONS.trash}
+                            </button>
+                          </div>
+                          <div className="fc-set-content-new">
+                            {topics.length > 0 && (
+                              <div className="fc-source-topics">
+                                {topics.slice(0, 3).map((item, index) => (
+                                  <span key={`${doc.id}-${item}-${index}`} className="fc-source-topic">{item}</span>
+                                ))}
+                              </div>
+                            )}
+                            <p className="fc-set-date-new">
+                              {doc.created_at ? `Uploaded ${formatDate(doc.created_at)}` : 'Uploaded source'}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {selectedPDFs.length > 0 && (
                   <section className="fc-sources-settings">
                     <div className="fc-view-header">
                       <span className="fc-view-kicker">Selected Sources</span>
@@ -3967,9 +3957,8 @@ const Flashcards = () => {
                       {generating ? 'CONVERTING PDFS...' : `CONVERT ${selectedPDFs.length} PDF${selectedPDFs.length === 1 ? '' : 'S'} TO ${cardCount} FLASHCARDS`}
                     </button>
                   </section>
-                )}
-              </div>
-            </>
+              )}
+            </div>
           )}
 
           {/* Needs Review Panel */}
@@ -4234,6 +4223,7 @@ const Flashcards = () => {
               {/* SR Stats Section */}
               {srStats && (
                 <div className="fc-sr-stats-panel">
+                  <div className="cb-tile-texture" aria-hidden />
                   <div className="fc-sr-stats-heading">
                     <span className="fc-view-kicker" style={{opacity:1}}>Algorithm Data</span>
                     <h3 className="fc-sr-stats-title">Your Learning Stats</h3>
@@ -4325,6 +4315,7 @@ const Flashcards = () => {
 
               {/* AI Suggestions Section */}
               <div className="fc-sr-ai-section">
+                <div className="cb-tile-texture" aria-hidden />
                 <div className="fc-sr-stats-heading">
                   <span className="fc-view-kicker" style={{opacity:1}}>Personalized</span>
                   <h3 className="fc-sr-stats-title">AI Study Coach</h3>
