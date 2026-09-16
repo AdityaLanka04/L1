@@ -8893,3 +8893,25 @@ h1.note-title ::-moz-selection,
     padding-inline: 10px;
   }
 }
+
+/* Paper colors belong to the document, independently of the app shell theme.
+   MathRenderer and TableBlock consume these tokens inside imported note blocks. */
+.notes-redesign .block-editor-container {
+  --text-primary: #28231f;
+  --text-secondary: #59534e;
+  --text-muted: #706861;
+  --accent: #725434;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f3f0;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --hover-bg: #f3f0eb;
+  --border: #d8d1c8;
+}
+.notes-redesign .block-editor-container .math-content {
+  color: #28231f;
+}
+.notes-redesign .block-editor-container .math-content :is(.math-display-wrap, .katex-display) {
+  background: #f5f3f0 !important;
+  border-color: #bba58a !important;
+}

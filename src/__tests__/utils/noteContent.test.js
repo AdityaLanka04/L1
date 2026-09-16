@@ -43,3 +43,17 @@ test('nested lists preserve structure and inline code without duplicating childr
  expect(html.match(/Child detail/g)).toHaveLength(1);
  expect(html).toContain('<code>&lt;div&gt;</code>');
 });
+
+test('repairs legacy chat tables stored as paragraph HTML with math', () => {
+  const legacy = '<p>| Principle | Meaning |<br>|---|---|<br>| <strong>Uncertainty</strong> | $\\Delta x$ |</p>';
+  const blocks = htmlToBlocks(markdownToNoteHtml(legacy));
+  expect(blocks).toHaveLength(1);
+  expect(blocks[0].type).toBe('table');
+  expect(blocks[0].properties.tableData.rows).toEqual([['Principle', 'Meaning'], ['Uncertainty', '$\\Delta x$']]);
+  expect(htmlToBlocks(blocksToHtml(blocks))[0].type).toBe('table');
+});
+
+test('does not convert literal pipe prose or code into a table', () => {
+  const blocks = htmlToBlocks('<p>A | B is a choice.</p><pre><code>| A | B |\n|---|---|</code></pre>');
+  expect(blocks.map(b => b.type)).toEqual(['paragraph', 'code']);
+});

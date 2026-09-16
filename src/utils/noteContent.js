@@ -63,6 +63,20 @@ export const htmlToBlocks = (html) => {
     
     if (node.nodeType === Node.ELEMENT_NODE) {
       const tagName = node.tagName.toLowerCase();
+      // Older chat imports wrapped Markdown tables in paragraph HTML. Recover
+      // only a complete GFM table, leaving ordinary prose and code untouched.
+      if (tagName === 'p' || tagName === 'div') {
+        const tableSource = node.innerHTML.replace(/<br\s*\/?\s*>/gi, '\n');
+        const plain = new DOMParser().parseFromString(tableSource, 'text/html').body.textContent.trim();
+        if (/^\|.*\|\s*\n\s*\|?\s*:?-{3,}/.test(plain)) {
+          const recovered = new DOMParser().parseFromString(markdownToNoteHtml(plain), 'text/html');
+          if (recovered.body.children.length === 1 && recovered.body.firstElementChild?.tagName === 'TABLE') {
+            processNode(recovered.body.firstElementChild);
+            return;
+          }
+        }
+      }
+
       const dataBlockType = node.getAttribute('data-block-type');
       if (dataBlockType === 'canvas') {
         const canvasData = decodeBlockPayload(node.getAttribute('data-canvas') || '');
