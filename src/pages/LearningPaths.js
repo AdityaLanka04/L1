@@ -230,7 +230,9 @@ const LearningPaths = () => {
       }
     } catch (error) {
       console.error('Error creating path:', error);
-      setGenerateError('The path was not created. Check your connection and try again.');
+      setGenerateError(error.message && !/failed to fetch|network|internal server error/i.test(error.message)
+        ? error.message
+        : 'The path could not be created. Your input is preserved; please try again.');
     } finally {
       setGenerating(false);
     }

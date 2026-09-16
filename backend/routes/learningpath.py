@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 import models
 from database import SessionLocal
 from deps import get_current_user, get_db, unified_ai
+from services.learning_path_input import learning_path_title
 from services.youtube_api_service import youtube_service
 from services.learning_path_lessons import generate_lesson, valid_lesson, LEVELS
 from types import SimpleNamespace
@@ -600,7 +601,7 @@ async def generate_learning_path(
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not request.topicPrompt:
+    if not request.topicPrompt.strip():
         raise HTTPException(status_code=400, detail="Topic prompt is required")
 
     topic_prompt = _normalize_topic_prompt(request.topicPrompt)
@@ -666,7 +667,7 @@ async def generate_learning_path(
     try:
         path = models.LearningPath(
             user_id=user.id,
-            title=outline.get("title") or topic_prompt,
+            title=learning_path_title(outline.get("title"), topic_prompt),
             topic_prompt=topic_prompt,
             description=outline.get("description") or f"A structured path to master {topic_prompt}.",
             difficulty=difficulty,
@@ -678,7 +679,7 @@ async def generate_learning_path(
             updated_at=datetime.now(timezone.utc),
         )
         db.add(path)
-        db.commit()
+        db.flush()
         db.refresh(path)
 
         auto_resource_node_limit = 0 if load_test_fallback else _env_int("LEARNING_PATH_AUTO_RESOURCE_NODE_LIMIT", 12, 0, 50)
@@ -717,7 +718,7 @@ async def generate_learning_path(
             node = models.LearningPathNode(
                 path_id=path.id,
                 order_index=idx,
-                title=node_title,
+                title=learning_path_title(node_title),
                 description=node_data.get("description", ""),
                 tags=node_data.get("tags"),
                 keywords=node_data.get("keywords"),
@@ -757,7 +758,7 @@ async def generate_learning_path(
                 updated_at=datetime.now(timezone.utc),
             )
             db.add(node)
-        db.commit()
+        db.flush()
 
         nodes = (
             db.query(models.LearningPathNode)
