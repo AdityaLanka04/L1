@@ -593,24 +593,6 @@ function pickSmartActions({ userMessage, aiResponse, recentActionIds = [], inten
   }));
 }
 
-const CHAT_GREETINGS = [
-  "Welcome back! How can I help you today?",
-  "Ready to explore new topics together?",
-  "Let's dive into learning something new",
-  "Your personal AI tutor is here to help",
-  "What would you like to learn today?",
-  "Hello {name}! I'm excited to help you learn",
-  "{name}, ready to unlock new knowledge?",
-  "Welcome back, {name}! Let's continue your learning",
-  "Hey {name}! What would you like to explore?",
-  "{name}, let's make today a learning adventure",
-  "Good day, {name}! Ready to expand your horizons?",
-  "Hi {name}! Let's tackle your questions together",
-  "Welcome, {name}! Your AI learning companion is here",
-  "{name}, let's turn curiosity into understanding",
-  "Hello {name}! What fascinating topic shall we discuss?",
-];
-
 const SYMBOL_MAP = {
   '*alpha*': 'α', '*Alpha*': 'Α',
   '*beta*': 'β', '*Beta*': 'Β',
@@ -924,8 +906,6 @@ const AIChat = ({ sharedMode = false }) => {
   const [activePromptId, setActivePromptId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const greetings = CHAT_GREETINGS;
-
   const loadSharedChat = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -955,9 +935,15 @@ const AIChat = ({ sharedMode = false }) => {
     }
   };
 
-  const getRandomGreeting = (name) => {
-    const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-    return randomGreeting.replace(/{name}/g, name);
+  const getTimeBasedGreeting = (name) => {
+    const hour = new Date().getHours();
+    let timeOfDay;
+    if (hour < 5) timeOfDay = 'Burning the midnight oil';
+    else if (hour < 12) timeOfDay = 'Good morning';
+    else if (hour < 17) timeOfDay = 'Good afternoon';
+    else if (hour < 21) timeOfDay = 'Good evening';
+    else timeOfDay = 'Good night';
+    return `${timeOfDay}, ${name}`;
   };
 
   
@@ -2743,12 +2729,12 @@ const AIChat = ({ sharedMode = false }) => {
         const parsedProfile = JSON.parse(profile);
         setUserProfile(parsedProfile);
         const displayName = parsedProfile?.firstName || username;
-        setGreeting(getRandomGreeting(displayName));
+        setGreeting(getTimeBasedGreeting(displayName));
       } catch (error) {
-                setGreeting(getRandomGreeting(username || 'there'));
+                setGreeting(getTimeBasedGreeting(username || 'there'));
       }
     } else {
-      setGreeting(getRandomGreeting(username || 'there'));
+      setGreeting(getTimeBasedGreeting(username || 'there'));
     }
   }, [navigate]);
 
@@ -3519,7 +3505,7 @@ const AIChat = ({ sharedMode = false }) => {
             {messages.length === 0 && !isChatSwitching ? (
               <div className="ac-empty-center">
                 <div className="ac-welcome-hero">
-                  <h1 className="ac-welcome-title plain-page-title">AI Chat</h1>
+                  <h1 className="ac-welcome-title plain-page-title">{greeting || 'AI Chat'}</h1>
                 </div>
 
                 <div
@@ -3604,7 +3590,6 @@ const AIChat = ({ sharedMode = false }) => {
                       <div className="ac-message-content">
                         {renderMessageContent(message.content)}
                       </div>
-                      {message.type === 'ai' && !sharedMode && message.message_id && <AnswerFeedback resourceType="chat_message" resourceId={message.message_id} sources={message.sources || []} />}
 
                       {message.files && message.files.length > 0 && (
                         <div className="ac-msg-attachments">
@@ -3880,6 +3865,14 @@ const AIChat = ({ sharedMode = false }) => {
                             hour12: true
                           })}
                         </span>
+                        {message.type === 'ai' && !sharedMode && message.message_id && (
+                          <AnswerFeedback
+                            className="ac-answer-feedback"
+                            resourceType="chat_message"
+                            resourceId={message.message_id}
+                            sources={message.sources || []}
+                          />
+                        )}
                       </div>
                     </div>
 

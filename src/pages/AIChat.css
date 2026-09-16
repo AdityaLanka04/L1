@@ -882,8 +882,8 @@ html:has(.ai-chat-page) {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 100% !important;
-  margin: 0 !important;
+  max-width: 900px !important;
+  margin: 0 auto !important;
   width: 100%;
   padding: 24px 40px;
   overflow-y: auto !important;
@@ -1140,6 +1140,60 @@ html:has(.ai-chat-page) {
   transition: all 0.3s;
 }
 
+/* AnswerFeedback ("Report an issue") is a shared component styled by the
+   generic ProductFlows.css design system — full-size button, its own dark
+   background, a border-top divider. Scoped down here so it reads as a
+   small inline action next to the timestamp instead of a standalone block. */
+.ac-answer-feedback.learning-flow {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  background: transparent;
+  font-size: 11px;
+  color: var(--ac-text-muted);
+}
+
+.ac-answer-feedback.learning-flow > button {
+  min-height: 0;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border-color: var(--ac-border-subtle);
+  background: transparent;
+  color: var(--ac-text-muted);
+  font-size: 11px;
+}
+
+.ac-answer-feedback.learning-flow > button:hover {
+  border-color: var(--ac-accent);
+  color: var(--text-primary);
+}
+
+.ac-answer-feedback.learning-flow form button {
+  min-height: 32px;
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+.ac-answer-feedback.learning-flow > details,
+.ac-answer-feedback.learning-flow form,
+.ac-answer-feedback.learning-flow > p[role="status"] {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 5;
+  width: max-content;
+  max-width: 320px;
+  margin-top: 6px;
+  padding: 12px;
+  border: 1px solid var(--ac-border-subtle);
+  border-radius: 10px;
+  background: var(--ac-bg-card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
 .ac-input-area {
   padding: 20px 32px !important;
   background: var(--ac-bg-primary) !important;
@@ -1173,16 +1227,16 @@ html:has(.ai-chat-page) {
   display: flex !important;
   flex-direction: column !important;
   gap: 0 !important;
-  background: var(--bg-secondary) !important;
-  border: 1px solid var(--border) !important;
+  background: transparent !important;
+  border: none !important;
   border-radius: 16px !important;
   padding: 10px 14px !important;
-  transition: border-color 0.2s, box-shadow 0.2s, left 0.3s !important;
+  transition: left 0.3s !important;
   min-height: 56px !important;
   max-height: 380px !important;
   height: auto !important;
   z-index: 200 !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: none !important;
   align-items: center;
   overflow: hidden !important;
   transform: none !important;
@@ -1206,7 +1260,6 @@ html:has(.ai-chat-page) {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25),
     0 0 0 2px color-mix(in srgb, var(--ac-accent) 18%, transparent) !important;
   transform: none !important;
-  animation: borderGlow 2s infinite;
 }
 
 .ac-input-wrapper.drag-active {
@@ -2988,18 +3041,11 @@ sub {
   border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-[data-theme-mode="dark"] .ac-input-wrapper {
-  background: var(--ac-bg-secondary);
-  border: 1px solid color-mix(in srgb, var(--ac-accent) 25%, transparent);
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4), 
-              0 0 0 1px color-mix(in srgb, var(--ac-accent) 15%, transparent),
-              inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
+[data-theme-mode="dark"] .ac-input-wrapper,
 [data-theme-mode="light"] .ac-input-wrapper {
-  background: #ffffff !important;
-  border: 1px solid color-mix(in srgb, var(--ac-accent) 20%, transparent);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .ac-input-btn::before {
@@ -3718,17 +3764,6 @@ sub {
 .ac-session-item:active,
 .ac-folder-item:active {
   transform: scale(0.98);
-}
-
-@keyframes borderGlow {
-  0%, 100% {
-    border-color: var(--ac-accent);
-    box-shadow: 0 0 10px var(--ac-accent);
-  }
-  50% {
-    border-color: var(--ac-accent-dark);
-    box-shadow: 0 0 20px var(--ac-accent-dark);
-  }
 }
 
 .ac-welcome-icon::after {
@@ -5121,6 +5156,7 @@ sub {
   z-index: 1;
   width: 100% !important;
   max-width: 680px !important;
+  background: transparent !important;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -6212,7 +6248,9 @@ sub {
 .ai-chat-page.ac-qb-page .ac-main > .ac-input-wrapper {
   left: max(326px, calc((100vw - 1600px) / 2 + 326px)) !important;
   right: max(62px, calc((100vw - 1600px) / 2 + 62px)) !important;
-  max-width: none !important;
+  width: min(900px, calc(100% - 388px)) !important;
+  max-width: 900px !important;
+  margin: 0 auto !important;
 }
 
 .ai-chat-page.ac-qb-page .ac-qb-shell--collapsed .ac-main > .ac-input-wrapper,
