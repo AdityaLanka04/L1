@@ -3231,7 +3231,14 @@ const Flashcards = () => {
                       {displayedSets.map((set) => {
                         const mastery = getMasteryLevel(set.accuracy_percentage || 0);
                         return (
-                          <div key={set.id} className="fc-set-card-new">
+                          <div key={set.id} className="fc-set-card-new fc-preview-card">
+                            <button
+                              type="button"
+                              className="fc-card-preview-target"
+                              aria-label={`Preview ${set.title || 'Untitled Set'}`}
+                              onClick={() => loadFlashcardSet(set.id, 'preview')}
+                              disabled={loadingSetId !== null}
+                            />
                             <div className="fc-set-thumbnail">
                               <div className="fc-set-thumbnail-content">
                                 {editingSetId === set.id ? (
@@ -4139,7 +4146,14 @@ const Flashcards = () => {
                   ) : (
                     <div className="fc-grid">
                       {publicFlashcards.map((set) => (
-                        <div key={set.id} className="fc-set-card-new">
+                        <div key={set.id} className="fc-set-card-new fc-preview-card">
+                            <button
+                              type="button"
+                              className="fc-card-preview-target"
+                              aria-label={`Preview ${set.title || 'Untitled Set'}`}
+                              onClick={() => loadFlashcardSet(set.id, 'preview')}
+                              disabled={loadingSetId !== null}
+                            />
                           <div className="fc-set-thumbnail">
                             <div className="fc-set-thumbnail-content">
                               <h2 className="fc-thumbnail-title">{(set.title || 'Untitled Set').replace(/^(Cerbyl:\s*|AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>

@@ -11129,3 +11129,33 @@
   }
 }
 
+/* Stretch the preview action over the card; explicit controls remain above it. */
+.flashcards-page .fc-preview-card {
+  position: relative;
+}
+.flashcards-page .fc-preview-card .fc-card-preview-target {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.flashcards-page .fc-preview-card .fc-card-preview-target:focus-visible {
+  outline: 2px solid var(--accent-color, #d4b48c);
+  outline-offset: -3px;
+}
+.flashcards-page .fc-preview-card .fc-card-preview-target:disabled {
+  cursor: wait;
+}
+.flashcards-page .fc-preview-card :is(.fc-delete-btn-thumb, .fc-action-btn-new, .fc-input-title-thumb) {
+  position: relative;
+  z-index: 2;
+}
+.flashcards-page .fc-preview-card .fc-delete-btn-thumb {
+  position: absolute;
+}
