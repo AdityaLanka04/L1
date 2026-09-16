@@ -1275,7 +1275,7 @@ def gate_and_retrieve(state: TutorState) -> dict:
         "rag_context": rag_chunks,
         "rag_sources": rag_sources,
         "context_only": context_only,
-        "context_only_no_match": bool(context_only and not rag_chunks),
+        "context_only_no_match": bool(context_only and not rag_chunks and not state.get("attachment_context")),
     }
 
 def select_teaching_style(state: TutorState) -> dict:
@@ -2046,7 +2046,7 @@ async def build_prompt_and_respond(state: TutorState) -> dict:
     if context_only:
         system += (
             "\n\nCONTEXT-ONLY MODE — HARD RULES:\n"
-            "1. Use only the provided CURRICULUM CONTEXT chunks from selected documents.\n"
+            "1. Use only the provided CURRICULUM CONTEXT and UPLOADED DOCUMENT source material.\n"
             "2. Ground teaching claims in these sources; use current conversation to resolve references and requests.\n"
             "3. If the answer is not supported by the provided chunks, say that clearly.\n"
             "4. Quote or paraphrase only what is present in those chunks."

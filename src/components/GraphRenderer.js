@@ -35,37 +35,7 @@ export const isGraphLanguage = (language = '') => {
   return MERMAID_LANGS.has(lang) || GRAPH_JSON_LANGS.has(lang);
 };
 
-const LIKELY_MERMAID_STARTS = [
-  'graph ',
-  'flowchart ',
-  'sequencediagram',
-  'classdiagram',
-  'statediagram',
-  'erdiagram',
-  'journey',
-  'gantt',
-  'pie',
-  'mindmap',
-  'timeline',
-  'gitgraph',
-  'quadrantchart',
-  'xychart-beta',
-  'sankey-beta',
-  'requirementdiagram',
-  'c4context',
-  'c4container',
-  'c4component',
-  'c4dynamic',
-  'c4deployment',
-];
-
-const looksLikeMermaid = (content = '') => {
-  const trimmed = String(content || '').trim();
-  if (!trimmed) return false;
-  const lower = trimmed.toLowerCase();
-  if (LIKELY_MERMAID_STARTS.some((prefix) => lower.startsWith(prefix))) return true;
-  return /-->|==>|-.->|:::|subgraph\b|end\b/i.test(trimmed);
-};
+const looksLikeMermaid = (content = '') => /^(?:\s*%%[^\n]*\n)*\s*(?:graph\s+(?:TD|TB|BT|RL|LR)\b|flowchart\s+(?:TD|TB|BT|RL|LR)\b|sequenceDiagram\b|classDiagram\b|stateDiagram(?:-v2)?\b|erDiagram\b|journey\b|gantt\b|pie(?:\s|$)|mindmap\b|timeline\b|gitGraph\b|quadrantChart\b|xychart-beta\b|sankey-beta\b|requirementDiagram\b|C4(?:Context|Container|Component|Dynamic|Deployment)\b)/i.test(String(content || ''));
 
 const normalizePoint = (point, index) => {
   if (Array.isArray(point)) {
@@ -136,6 +106,8 @@ export const detectGraphLanguage = (language = '', content = '') => {
   const lang = String(language || '').trim().toLowerCase();
   if (isGraphLanguage(lang)) return lang;
 
+  // A declared programming language must never be reinterpreted as a diagram.
+  if (lang && !["text", "plaintext", "plain"].includes(lang)) return null;
   if (looksLikeMermaid(content)) return 'mermaid';
   if (looksLikeGraphJson(content)) return 'graphjson';
   return null;

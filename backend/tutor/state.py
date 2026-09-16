@@ -47,6 +47,7 @@ class TutorPlan:
 class TutorState(TypedDict, total=False):
     user_id: str
     user_input: str
+    attachment_context: str
     chat_id: Optional[int]
     chat_history: list[dict]
     intent: str

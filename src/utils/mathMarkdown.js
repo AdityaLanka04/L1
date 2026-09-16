@@ -58,7 +58,7 @@ function buildRenderer({ tutorStepList = false } = {}) {
 
   if (tutorStepList) {
     const renderListItem = function renderListItem(token) {
-      const t = this.parser.parseInline(token.tokens || []);
+      const t = this.parser.parse(token.tokens || []);
       const stepMatch = String(t || '').match(/^(?:<p>)?\s*(?:<strong[^>]*>)?\s*(Step\s+\d+\s*[—–-]\s*[^:<]+:?)(?:<\/strong>)?\s*([\s\S]*?)(?:<\/p>)?$/i);
       if (stepMatch) {
         return `<li class="ac-tutor-step-item"><span class="ac-tutor-step-title">${stepMatch[1].trim()}</span>${stepMatch[2] ? ` <span class="ac-tutor-step-body">${stepMatch[2].trim()}</span>` : ''}</li>`;
@@ -70,7 +70,7 @@ function buildRenderer({ tutorStepList = false } = {}) {
       const isTutorStepList = /class="ac-tutor-step-item"/.test(body);
       const tag = token.ordered ? 'ol' : 'ul';
       const className = isTutorStepList ? 'ac-tutor-step-list' : (token.ordered ? 'md-ol' : 'md-ul');
-      return `<${tag} class="${className}">${body}</${tag}>`;
+      return `<${tag} class="${className}"${token.ordered && token.start !== 1 ? ` start="${Number(token.start) || 1}"` : ''}>${body}</${tag}>`;
     };
     renderer.listitem = renderListItem;
   } else {
@@ -78,10 +78,10 @@ function buildRenderer({ tutorStepList = false } = {}) {
       const body = (token.items || []).map((item) => this.listitem(item)).join('');
       const tag = token.ordered ? 'ol' : 'ul';
       const className = token.ordered ? 'md-ol' : 'md-ul';
-      return `<${tag} class="${className}">${body}</${tag}>`;
+      return `<${tag} class="${className}"${token.ordered && token.start !== 1 ? ` start="${Number(token.start) || 1}"` : ''}>${body}</${tag}>`;
     };
     renderer.listitem = function listitem(token) {
-      return `<li class="md-li">${this.parser.parseInline(token.tokens || [])}</li>`;
+      return `<li class="md-li">${this.parser.parse(token.tokens || [])}</li>`;
     };
   }
   return renderer;

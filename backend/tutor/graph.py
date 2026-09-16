@@ -87,11 +87,13 @@ class TutorGraph:
         tutor_reply_style: str = "guided",
         tutor_choice: str | None = None,
         tutor_session_state: dict | None = None,
+        attachment_context: str = "",
     ) -> dict:
         selected_doc_ids = context_doc_ids or []
         initial_state: TutorState = {
             "user_id": user_id,
             "user_input": user_input,
+            "attachment_context": attachment_context,
             "chat_id": chat_id,
             "chat_history": chat_history or [],
             "use_hs_context": use_hs_context,

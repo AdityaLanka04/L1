@@ -1810,10 +1810,9 @@ async def ask_with_files(
 
         if not response_text:
             tutor_input = (tutor_user_question if tutor_mode else model_question).strip() or "What can you help me with?"
-            if text_extracts:
-                tutor_input += "\n\n" + "\n\n".join(text_extracts)
+            attachment_context = "\n\n".join(text_extracts)
             if extraction_errors:
-                tutor_input += "\n\n[Attachment extraction warnings]\n" + "\n".join(extraction_errors)
+                attachment_context += "\n\n[Attachment extraction warnings]\n" + "\n".join(extraction_errors)
             try:
                 from tutor.graph import get_tutor
                 tutor = get_tutor()
@@ -1821,6 +1820,7 @@ async def ask_with_files(
                     result = await tutor.invoke(
                         user_id=str(user.id),
                         user_input=tutor_input,
+                        attachment_context=attachment_context,
                         chat_id=chat_id_int,
                         chat_history=chat_history,
                         use_hs_context=bool(use_hs_context),

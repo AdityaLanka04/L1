@@ -2479,100 +2479,6 @@ const AIChat = ({ sharedMode = false }) => {
     return result;
   };
 
-  const normalizeTutorStepMarkdown = (text = '') => {
-    const raw = String(text || '').trim();
-    if (!/\bStep\s+\d+\s*[—–-]/i.test(raw)) return raw;
-
-    const withoutExistingBullets = raw
-      .replace(/^\s*[-*]\s+(?=(?:\*\*)?Step\s+\d+\s*[—–-])/gim, '')
-      .replace(/\n{3,}/g, '\n\n');
-    const stepPattern = /(?:\*\*)?Step\s+\d+\s*[—–-][\s\S]*?(?=\s+(?:\*\*)?Step\s+\d+\s*[—–-]|$)/gi;
-    const matches = withoutExistingBullets.match(stepPattern);
-    if (!matches || matches.length < 2) return withoutExistingBullets;
-
-    return matches
-      .map((step) => `- ${step.trim().replace(/\*\*/g, '')}`)
-      .join('\n');
-  };
-
-  const normalizeMarkdownForRenderer = (text = '') => {
-    const splitInlineHeadingBodies = (src) => {
-      const bodyStartRe = /(?:[A-Z][a-z][\w'-]*\s+[a-z][\w'-]*\s+(?:is|are|was|were|can|will|would|does|involves|refers|means|works|learns?|helps|uses|allows|includes|contains|provides|appears|starts|begins|processes|generates)|To\s+[a-z]|This\s+[a-z]|These\s+[a-z]|There\s+(?:is|are)|Let's\s+[a-z]|We\s+[a-z]|You\s+[a-z])/;
-
-      return src.replace(/^(#{1,6}\s+)([^\n]+)$/gm, (full, marker, rest) => {
-        const match = rest.match(new RegExp(`^(.{3,120}?)\\s+(${bodyStartRe.source}.*)$`));
-        if (!match) return full;
-
-        const title = match[1].trim();
-        const body = match[2].trim();
-        const titleWords = title.split(/\s+/).filter(Boolean);
-        const allowsShortTitle = /^(answer|applications?|examples?|explanation|overview|summary)$/i.test(title);
-        if ((titleWords.length < 2 && !allowsShortTitle) || /[.!?]$/.test(title)) {
-          return full;
-        }
-
-        return `${marker}${title}\n\n${body}`;
-      });
-    };
-
-    let normalized = String(text || '')
-      // Some OpenAI-compatible providers escape markdown punctuation in plain text.
-      // Restore only markdown control characters; leave LaTeX delimiters like \( and \[ intact.
-      .replace(/\\([*`>#.!+\-])/g, '$1')
-      .replace(/\\#/g, '#')
-      .replace(/(?:&num;|&#35;|&#x23;)/gi, '#')
-      .replace(/\r\n/g, '\n')
-      .replace(/([^\n])\s+(#{1,6}\s+)/g, '$1\n\n$2');
-
-    const sectionHeadings = [
-      'Analysis of the Uploaded Files',
-      'Analysis of Uploaded Files',
-      'Breakdown of the Information',
-      'Breakdown of Information',
-      'Key Concepts',
-      'Core Concepts',
-      'Main Concepts',
-      'Key Observations',
-      'Comprehension Check',
-      'Introduction to Neural Networks',
-      'Basic Components',
-      'How Neural Networks Learn',
-      'Importance of Avoiding Overfitting and Underfitting',
-      'Summary',
-      'Key Points',
-      'Overview',
-      'Explanation',
-      'Answer',
-    ];
-
-    const headingPattern = sectionHeadings
-      .map((heading) => heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      .join('|');
-    const headingRe = new RegExp(`(^|\\s)(#{1,6}\\s+(?:${headingPattern})\\b)\\s*`, 'gim');
-
-    normalized = normalized
-      .replace(headingRe, (_, prefix, heading) => `${prefix && prefix.trim() ? '\n\n' : ''}${heading}\n\n`)
-      .replace(/(^|\n)(#{1,6}\s+Introduction to\s+[A-Z][\w/-]*(?:\s+(?:and|or|of|the|to|in|for|with|[A-Z][\w/-]*)){0,8})\s+(?=[A-Z][a-z][\w'-]*\s+[a-z][\w'-]*\s+(?:is|are|can|will|would|involves|refers|means|works|learns?|helps|uses|allows|includes|contains|provides|appears|starts|begins|processes))/gm, '$1$2\n\n')
-      .replace(/(^|\n)(#{1,6}\s+How\s+[A-Z][\w/-]*(?:\s+(?:and|or|of|the|to|in|for|with|[A-Z][\w/-]*)){0,8})\s+(?=[A-Z][a-z][\w'-]*\s+[a-z][\w'-]*\s+(?:is|are|can|will|would|involves|refers|means|works|learns?|helps|uses|allows|includes|contains|provides|appears|starts|begins|processes))/gm, '$1$2\n\n')
-      .replace(/(^|\n)(#{1,6}\s+(?:What|Why|When|Where)\s+[A-Z][\w/-]*(?:\s+(?:and|or|of|the|to|in|for|with|[A-Z][\w/-]*)){0,8})\s+(?=[A-Z][a-z][\w'-]*\s+[a-z][\w'-]*\s+(?:is|are|can|will|would|involves|refers|means|works|learns?|helps|uses|allows|includes|contains|provides|appears|starts|begins|processes))/gm, '$1$2\n\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .replace(/([^\n])\s+[*+-]\s+(?=(?:\*\*)?[A-Z0-9])/g, '$1\n- ')
-      .replace(/(:\*\*)\s+-\s+/g, '$1\n  - ')
-      .replace(/(\*\*)\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
-      .replace(/([.:])\s+(\d+\.\s+\*\*)/g, '$1\n\n$2')
-      .replace(/([^\n])\s+(\d+\.\s+(?=(?:\*\*)?[A-Z0-9]))/g, '$1\n$2')
-      .replace(/([^\n])\s+(\d+\.\s+\*\*[^*]+:\*\*)/g, '$1\n\n$2')
-      .replace(/\s+([*-]\s+\*\*[^*]+:\*\*)/g, '\n$1');
-
-    normalized = splitInlineHeadingBodies(normalized)
-      .replace(/([^\n])\n(#{1,6}\s+)/g, '$1\n\n$2')
-      .replace(/^(#{1,6}[^\n]+)\n(?=[^\n])/gm, '$1\n\n')
-      .replace(/([^\n])\n(-\s+(?:\*\*)?[A-Z0-9])/g, '$1\n\n$2')
-      .replace(/([^\n])\n(\d+\.\s+(?:\*\*)?[A-Z0-9])/g, '$1\n\n$2');
-
-    return normalized.replace(/\n{3,}/g, '\n\n');
-  };
-
   const renderMarkdown = (text) => {
     if (!text) return '';
     return renderMarkdownWithMath(text, {
@@ -2581,8 +2487,8 @@ const AIChat = ({ sharedMode = false }) => {
         if (tutorContract?.answer) {
           src = tutorContract.answer;
         }
-        src = normalizeTutorStepMarkdown(src);
-        src = normalizeMarkdownForRenderer(src);
+        // Preserve Markdown structure; global whitespace/heading guesses corrupt tables.
+        src = src.replace(/\r\n/g, "\n");
         return src;
       },
       tutorStepList: true,
