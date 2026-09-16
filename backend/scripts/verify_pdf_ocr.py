@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 def main():
     import fitz
-    from services.document_processor import extract_text_from_pdf_detailed
+    from services.document_processor import extract_text_from_pdf_detailed, _extract_with_tesseract_ocr
 
     expected = "Data science combines statistics and computing to learn from data."
     with fitz.open() as original:
@@ -27,7 +27,10 @@ def main():
         assert "data science combines statistics" in normalized, (name, result)
         assert "learn from data" in normalized, (name, result)
         if name == "scanned":
-            assert result["parser"] == "ocr-tesseract", result
+            # Newer pymupdf4llm can itself invoke OCR before the fallback.
+            # Verify the explicit fallback too, without prescribing the winner.
+            fallback = _extract_with_tesseract_ocr(content)
+            assert fallback and "data science combines statistics" in fallback.text.lower(), fallback
         print(f"PASS {name} PDF: {result['parser']}")
 
 
