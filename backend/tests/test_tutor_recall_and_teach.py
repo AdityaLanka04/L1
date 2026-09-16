@@ -323,3 +323,11 @@ def test_uploaded_syllabus_cannot_select_project_build_intent():
 def test_explicit_build_request_still_works_with_an_attachment():
     state = {'user_input': 'Build a web application based on this document', 'attachment_context': 'A syllabus'}
     assert nodes.detect_intent(state)['intent'] == 'project_build'
+
+
+def test_document_analysis_policy_does_not_invent_a_curriculum():
+    from tutor.response_policy import response_policy
+    policy = response_policy({'user_input': 'Analyze the attached file', 'attachment_context': 'Unit 1: Regression'})
+    assert 'RESPONSE KIND: DOCUMENT ANALYSIS' in policy
+    assert 'Never claim libraries, methods, requirements or performance results' in policy
+    assert 'RESPONSE KIND: CONCEPTUAL EXPLANATION' not in policy

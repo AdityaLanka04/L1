@@ -64,6 +64,17 @@ def response_policy(state: dict) -> str:
     )
     if not state.get("tutor_mode") and not state.get("_review_only"):
         common += "Return only student-facing Markdown. Do not output JSON, tutor_state, next_action, verdict, options or any internal metadata. "
+    if state.get("attachment_context") and kind == "explanation":
+        return common + (
+            "RESPONSE KIND: DOCUMENT ANALYSIS. The uploaded source is the subject of this request. "
+            "First give a faithful summary of what it actually says, including listed units and objectives. "
+            "Do not expand a sparse syllabus into an invented detailed curriculum, project plan or assignment. "
+            "Never claim libraries, methods, requirements or performance results are listed unless present in the source. "
+            "If helpful, put brief additional explanation in a separate section explicitly titled 'Additional explanation (not specified in the document)'. "
+            "Do not fabricate experiment results or numerical examples. Offer to explain a listed topic next. "
+            "Use valid Markdown tables with matching column counts and no blank lines between rows. "
+            "In TutorResponse JSON, leave expected_step_answer empty, verdict not_applicable and options empty."
+        )
     if offer_reply(state) == "decline":
         return common + "The student declined the optional offer. Acknowledge briefly without grading, repeating the lesson, or introducing another exercise."
     if kind == "explanation":
