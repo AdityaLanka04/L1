@@ -5,6 +5,8 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     libpq-dev \
     gcc \
     curl \
@@ -17,6 +19,9 @@ RUN python -m pip install --no-cache-dir --upgrade "pip>=26.1.2" "setuptools>=78
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+
+# Fail the build if scanned PDF extraction is unavailable.
+RUN python scripts/verify_pdf_ocr.py
 
 RUN mkdir -p uploads attachments exports
 

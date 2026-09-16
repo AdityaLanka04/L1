@@ -4,6 +4,8 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     libpq-dev \
     gcc \
     curl \
@@ -21,6 +23,9 @@ RUN python -c "from sentence_transformers import SentenceTransformer; \
     SentenceTransformer('all-MiniLM-L6-v2')"
 
 COPY . .
+
+# Fail the build if scanned PDF extraction is unavailable.
+RUN python scripts/verify_pdf_ocr.py
 
 RUN mkdir -p uploads attachments exports .chroma_data cache/transcripts
 
