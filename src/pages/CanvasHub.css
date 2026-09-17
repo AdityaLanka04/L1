@@ -1,11 +1,8 @@
 .ch-root {
   min-height: 100vh;
   background:
-    linear-gradient(rgba(215, 179, 140, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(215, 179, 140, 0.045) 1px, transparent 1px),
-    radial-gradient(circle at 12% 12%, rgba(215, 179, 140, 0.13), transparent 32%),
+    radial-gradient(ellipse at 12% 12%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 55%),
     var(--bg-primary);
-  background-size: 70px 70px, 70px 70px, auto, auto;
   color: var(--text-primary);
   display: flex;
   flex-direction: column;

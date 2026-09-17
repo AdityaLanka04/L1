@@ -13,12 +13,9 @@
   min-height: 100vh;
   color: var(--aa-text);
   background:
-    linear-gradient(rgba(215, 179, 140, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(215, 179, 140, 0.04) 1px, transparent 1px),
     radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
     radial-gradient(circle at 20% 20%, rgba(244, 195, 122, 0.08), transparent 45%),
     var(--bg-primary);
-  background-size: 72px 72px, 72px 72px, auto, auto, auto;
 }
 
 .aa-topbar {
