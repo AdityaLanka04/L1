@@ -26,11 +26,8 @@
   width: 100vw !important;
   height: 100vh !important;
   background:
-    linear-gradient(rgba(215, 179, 140, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(215, 179, 140, 0.045) 1px, transparent 1px),
-    radial-gradient(circle at 12% 10%, rgba(215, 179, 140, 0.14), transparent 34%),
+    radial-gradient(ellipse at 12% 10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
     var(--st-bg-primary) !important;
-  background-size: 72px 72px, 72px 72px, auto, auto !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--st-text-primary);
   overflow: hidden !important;
@@ -54,8 +51,7 @@
   min-height: 70px;
   max-height: 70px;
   padding: 0 40px;
-  background: color-mix(in srgb, var(--st-bg-primary) 80%, transparent);
-  backdrop-filter: blur(20px) saturate(180%);
+  background: var(--st-bg-primary);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   display: flex;
   justify-content: space-between;
