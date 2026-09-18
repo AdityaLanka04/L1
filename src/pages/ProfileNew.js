@@ -216,23 +216,7 @@ export const formatReset = (resetAt) => {
 
 export const PriceTicker = ({ amount }) => {
   const target = Number.isFinite(Number(amount)) ? Number(amount) : 0;
-  const previousAmountRef = useRef(target);
-  const direction = target >= previousAmountRef.current ? 'up' : 'down';
-
-  useEffect(() => {
-    previousAmountRef.current = target;
-  }, [target]);
-
-  return (
-    <span
-      key={target}
-      className={`pn-price-ticker ${direction === 'up' ? 'pn-price-ticker--up' : 'pn-price-ticker--down'}`}
-    >
-      <span className="pn-price-ticker-value pn-price-ticker-value--new">
-        {formatUsd(target)}
-      </span>
-    </span>
-  );
+  return <span className="pn-price-ticker">{formatUsd(target)}</span>;
 };
 
 export const GeoBackground = () => (
@@ -391,9 +375,6 @@ const ProfileNew = () => {
     usage: null,
     error: null
   });
-  const [previewPlanId, setPreviewPlanId] = useState('');
-  const [isReactorScrubbing, setIsReactorScrubbing] = useState(false);
-
   const [rateLimits, setRateLimits] = useState(null);
   const [activeSection, setActiveSection] = useState('pn-section-overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
@@ -473,70 +454,6 @@ const ProfileNew = () => {
   const currentPlanYearlySavingsPct = currentPlan ? getYearlySavingsPct(currentPlan) : 0;
   const currentPlanYearlySavingsUsd = currentPlan ? getYearlySavingsUsd(currentPlan) : 0;
   const currentPlanYearlyEquivalentMonthly = currentPlan ? getYearlyEquivalentMonthly(currentPlan) : 0;
-  const planCapacityCeiling = Math.max(
-    1,
-    ...subscriptionData.plans.map((plan) => Number(plan.included_tokens_monthly) || 0)
-  );
-  const previewPlan = subscriptionData.plans.find((plan) => String(plan.id || '').toLowerCase() === previewPlanId)
-    || subscriptionData.plans[Math.min(1, Math.max(0, subscriptionData.plans.length - 1))]
-    || subscriptionData.plans.find((plan) => String(plan.id || '').toLowerCase() === currentPlanId)
-    || FALLBACK_PLANS[0];
-  const previewPlanIdResolved = String(previewPlan.id || '').toLowerCase();
-  const previewPlanIndex = Math.max(0, subscriptionData.plans.findIndex((plan) => String(plan.id || '').toLowerCase() === previewPlanIdResolved));
-  const previewPlanMeta = PLAN_META[previewPlan.id] || PLAN_META.starter;
-  const PreviewPlanIcon = previewPlanMeta.icon;
-  const previewIncludedCredits = Number(previewPlan.included_tokens_monthly) || 0;
-  const previewIsUnlimited = Boolean(previewPlan.unlimited || previewPlanIdResolved === 'unlimited');
-  const previewCapacityPct = previewIsUnlimited ? 100 : Math.max(3, Math.round((previewIncludedCredits / planCapacityCeiling) * 100));
-  const previewActiveStages = Math.max(1, Math.round((previewCapacityPct / 100) * 24));
-  const previewPlanPrice = getPlanPrice(previewPlan, activeBillingCycle);
-  const previewPlanIsCurrent = previewPlanIdResolved === currentPlanId;
-  const previewPlanFeatureLines = (previewPlan.features || []).filter(Boolean).slice(0, 4);
-  const previewFeatureLines = previewPlanFeatureLines.length > 0 ? previewPlanFeatureLines : [
-    `${formatTokens(previewIncludedCredits)} AI credits each month`,
-    'Monthly capacity reset',
-    activeBillingCycle === 'yearly' ? 'Yearly billing selected' : 'Monthly billing selected'
-  ];
-  const selectPlanPreview = (planId) => {
-    const updatePreview = () => setPreviewPlanId(String(planId || '').toLowerCase());
-    const reduceMotion = typeof window !== 'undefined'
-      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
-    if (!reduceMotion && typeof document !== 'undefined' && document.startViewTransition) {
-      document.startViewTransition(updatePreview);
-      return;
-    }
-    updatePreview();
-  };
-  const scrubPlanPreview = (value) => {
-    const targetCapacity = Number(value) || 0;
-    const closestPlan = subscriptionData.plans.reduce((closest, plan) => {
-      const includedCredits = Number(plan.included_tokens_monthly) || 0;
-      const planCapacity = plan.unlimited || String(plan.id || '').toLowerCase() === 'unlimited'
-        ? 100
-        : Math.max(3, Math.round((includedCredits / planCapacityCeiling) * 100));
-      return Math.abs(planCapacity - targetCapacity) < Math.abs(closest.capacity - targetCapacity)
-        ? { plan, capacity: planCapacity }
-        : closest;
-    }, { plan: previewPlan, capacity: previewCapacityPct });
-
-    setPreviewPlanId(String(closestPlan.plan.id || '').toLowerCase());
-  };
-  const handleRunwayKeyDown = (event) => {
-    const direction = ['ArrowRight', 'ArrowUp', 'PageUp'].includes(event.key)
-      ? 1
-      : ['ArrowLeft', 'ArrowDown', 'PageDown'].includes(event.key)
-        ? -1
-        : 0;
-    let nextIndex = previewPlanIndex;
-    if (event.key === 'Home') nextIndex = 0;
-    if (event.key === 'End') nextIndex = subscriptionData.plans.length - 1;
-    if (direction) nextIndex = Math.min(subscriptionData.plans.length - 1, Math.max(0, previewPlanIndex + direction));
-    if (!direction && !['Home', 'End'].includes(event.key)) return;
-    event.preventDefault();
-    selectPlanPreview(subscriptionData.plans[nextIndex]?.id);
-  };
-
   useEffect(() => {
     let cancelled = false;
     fetchAccountSession({ force: true })
@@ -1039,21 +956,6 @@ const ProfileNew = () => {
           <div className="pnw-main" ref={mainScrollRef}>
             <div className="pnw-canvas">
               <section className={`pnw-identity ${displayProfilePhoto ? '' : 'pnw-identity--no-photo'}`} id="pn-section-overview">
-                <svg className="pnw-identity-signal" viewBox="0 0 1000 330" preserveAspectRatio="none" aria-hidden="true">
-                  <path className="pnw-signal-path pnw-signal-path--primary" d="M26 270 C178 228 240 276 376 202 S610 116 760 154 S888 94 980 58" />
-                  <path className="pnw-signal-path pnw-signal-path--secondary" d="M88 74 C226 118 296 94 418 136 S636 244 808 210 S922 230 988 184" />
-                  <path className="pnw-signal-path pnw-signal-path--quiet" d="M236 318 C354 250 452 276 556 212 S738 76 946 106" />
-                  <g className="pnw-signal-nodes">
-                    <circle cx="178" cy="238" r="4" />
-                    <circle cx="376" cy="202" r="5" />
-                    <circle cx="610" cy="133" r="3" />
-                    <circle cx="760" cy="154" r="5" />
-                    <circle cx="296" cy="94" r="3" />
-                    <circle cx="556" cy="212" r="4" />
-                    <circle cx="808" cy="210" r="3" />
-                    <circle cx="946" cy="106" r="4" />
-                  </g>
-                </svg>
                 {displayProfilePhoto && (
                   <img
                     className="pnw-identity-backdrop"
@@ -1092,7 +994,6 @@ const ProfileNew = () => {
                     aria-hidden="true"
                   >
                     <span className="pnw-orbit-progress"><strong>{Math.round(levelProgress)}%</strong><small>next</small></span>
-                    <span className="pnw-orbit-satellite" />
                   </div>
                   <button ref={pfpTriggerRef} type="button" className="pnw-photo-button" onClick={() => setPfpModalOpen(true)} aria-label="Change profile picture">
                     {displayProfilePhoto
@@ -1283,109 +1184,39 @@ const ProfileNew = () => {
                 {subscriptionData.loading ? (
                   <div className="pnw-plan-loading" role="status">Loading available plans</div>
                 ) : (
-                  <div className="pnw-capacity-reactor">
-                    <nav className="pnw-plan-switcher" aria-label="Preview a subscription plan">
-                      <div className="pnw-plan-switcher-label"><span>Capacity presets</span><small>Select to preview</small></div>
-                      {subscriptionData.plans.map((plan, planIndex) => {
+                  <div className="pnw-plan-grid">
+                    {subscriptionData.plans.map((plan) => {
                       const meta = PLAN_META[plan.id] || PLAN_META.starter;
                       const Icon = meta.icon;
                       const isCurrent = currentPlanId === String(plan.id || '').toLowerCase();
-                      const isPreviewed = previewPlanIdResolved === String(plan.id || '').toLowerCase();
                       const planPrice = getPlanPrice(plan, activeBillingCycle);
                       const includedCredits = Number(plan.included_tokens_monthly) || 0;
+                      const planFeatureLines = (plan.features || []).filter(Boolean).slice(0, 4);
+                      const featureLines = planFeatureLines.length > 0 ? planFeatureLines : [
+                        `${plan.unlimited ? 'Unlimited' : formatTokens(includedCredits)} AI credits each month`,
+                        'Monthly capacity reset'
+                      ];
+                      const isSwitching = subscriptionData.saving && subscriptionData.saveAction === 'plan';
+                      const isSamePlanAndCycle = isCurrent && activeBillingCycle === currentBillingCycle;
                       return (
-                        <button
-                          key={plan.id}
-                          type="button"
-                          className={isPreviewed ? 'is-active' : ''}
-                          aria-pressed={isPreviewed}
-                          onClick={() => selectPlanPreview(plan.id)}
-                        >
-                          <span className="pnw-switcher-index">{String(planIndex + 1).padStart(2, '0')}</span>
-                          <span className="pnw-switcher-icon"><Icon size={17} /></span>
-                          <span className="pnw-switcher-copy"><strong>{plan.name} plan</strong><small>{plan.unlimited ? 'Unlimited' : formatTokens(includedCredits)} credits</small></span>
-                          <span className="pnw-switcher-price">{formatUsd(planPrice)}<small>{billingLabel}</small></span>
-                          {isCurrent && <i className="pnw-switcher-current">Current</i>}
-                        </button>
+                        <article key={plan.id} className={`pnw-plan-card ${isCurrent ? 'is-current' : ''}`}>
+                          {isCurrent && <i className="pnw-plan-card-current">Current</i>}
+                          <span className="pnw-plan-card-icon"><Icon size={20} /></span>
+                          <h3>{plan.name}</h3>
+                          <div className="pnw-plan-card-price"><PriceTicker amount={planPrice} /><small>{billingLabel}</small></div>
+                          <p className="pnw-plan-card-credits">{plan.unlimited ? 'Unlimited' : formatTokens(includedCredits)} credits / month</p>
+                          <ul>
+                            {featureLines.map((feature) => <li key={feature}><Check size={13} /><span>{feature}</span></li>)}
+                          </ul>
+                          <button type="button" onClick={() => handleSelectPlan(plan.id)} disabled={isSamePlanAndCycle || subscriptionData.saving}>
+                            {isSamePlanAndCycle ? 'Current plan' : isSwitching ? 'Switching…' : `Switch to ${plan.name}`}
+                          </button>
+                        </article>
                       );
                     })}
-                    </nav>
-
-                    <article
-                      className={`pnw-reactor-detail ${isReactorScrubbing ? 'is-scrubbing' : ''}`}
-                      style={{ '--pnw-plan-capacity': `${previewCapacityPct}%`, '--pnw-plan-index': previewPlanIndex }}
-                    >
-                      <section className="pnw-reactor-stage" aria-live="polite">
-                        <div className="pnw-reactor-stage-head">
-                          <span className="pnw-reactor-emblem"><PreviewPlanIcon size={21} /></span>
-                          <span><small>Previewing capacity</small><strong>{previewPlan.name}</strong></span>
-                          <i>{String(previewPlanIndex + 1).padStart(2, '0')} / {String(subscriptionData.plans.length).padStart(2, '0')}</i>
-                        </div>
-
-                        <div className="pnw-reactor-readout">
-                          <span>AI credits / month</span>
-                          <strong>{previewIsUnlimited ? 'Unlimited' : formatTokens(previewIncludedCredits)}</strong>
-                          <small>{previewCapacityPct}% of the highest listed monthly capacity</small>
-                        </div>
-
-                        <div className="pnw-credit-runway" role="group" aria-label={`${previewPlan.name} capacity tuner`}>
-                          <div className="pnw-runway-axis"><span>Light use</span><span>Daily acceleration</span><span>Maximum output</span></div>
-                          <div className="pnw-runway-stages">
-                            <span className={`pnw-runway-tracer ${previewCapacityPct > 74 ? 'is-end' : ''}`} aria-hidden="true">
-                              <b>{previewCapacityPct}%</b>
-                              <small>Capacity lock</small>
-                            </span>
-                            {Array.from({ length: 24 }, (_, stageIndex) => (
-                              <i
-                                key={stageIndex}
-                                className={stageIndex < previewActiveStages ? 'is-live' : ''}
-                                style={{
-                                  '--pnw-stage': stageIndex,
-                                  '--pnw-stage-height': `${30 + ((stageIndex % 6) * 9)}%`
-                                }}
-                              />
-                            ))}
-                            <input
-                              className="pnw-runway-input"
-                              type="range"
-                              min="0"
-                              max="100"
-                              step="1"
-                              value={previewCapacityPct}
-                              aria-label="Tune subscription capacity"
-                              aria-valuetext={`${previewPlan.name}, ${previewCapacityPct}% capacity, ${previewActiveStages} of 24 stages`}
-                              onChange={(event) => scrubPlanPreview(event.target.value)}
-                              onKeyDown={handleRunwayKeyDown}
-                              onPointerDown={() => setIsReactorScrubbing(true)}
-                              onPointerUp={() => setIsReactorScrubbing(false)}
-                              onPointerCancel={() => setIsReactorScrubbing(false)}
-                              onBlur={() => setIsReactorScrubbing(false)}
-                            />
-                          </div>
-                          <div className="pnw-runway-scale"><span>100K</span><span>2M</span><span>5M</span></div>
-                          <div className="pnw-runway-instruction"><span>Drag the runway to tune capacity</span><kbd>←</kbd><kbd>→</kbd></div>
-                        </div>
-
-                        <p>{previewPlan.summary || previewFeatureLines[0]}</p>
-                      </section>
-
-                      <aside className="pnw-reactor-decision">
-                        <div className="pnw-decision-status"><span>{previewPlanIsCurrent ? 'Active capacity' : 'Ready to switch'}</span>{previewPlanIsCurrent && <i />}</div>
-                        <div className="pnw-decision-price"><PriceTicker amount={previewPlanPrice} /><small>{billingLabel}</small></div>
-                        <div className="pnw-decision-cycle"><span>Billing rhythm</span><strong>{activeBillingCycle === 'yearly' ? 'Once per year' : 'Month to month'}</strong></div>
-                        <ul>
-                          {previewFeatureLines.map((feature) => <li key={feature}><Check size={14} /><span>{feature}</span></li>)}
-                        </ul>
-                        <button type="button" onClick={() => handleSelectPlan(previewPlan.id)} disabled={(previewPlanIsCurrent && activeBillingCycle === currentBillingCycle) || subscriptionData.saving}>
-                          <span>{previewPlanIsCurrent && activeBillingCycle === currentBillingCycle ? 'Current plan active' : subscriptionData.saveAction === 'plan' ? 'Switching plan' : `Activate ${previewPlan.name}`}</span>
-                          {!previewPlanIsCurrent && <ArrowUpRight size={16} />}
-                        </button>
-                        <small className="pnw-decision-footnote">Previewing a plan does not change your subscription.</small>
-                      </aside>
-                    </article>
                   </div>
                 )}
-                <button type="button" onClick={openBillingPortal} disabled={subscriptionData.saving}>Manage billing / cancel subscription</button>
+                <button type="button" className="pnw-text-action" onClick={openBillingPortal} disabled={subscriptionData.saving}>Manage billing / cancel subscription</button>
                 {subscriptionData.error && <div className="pnw-inline-error" role="alert">{subscriptionData.error}</div>}
 
                 <div className="pnw-usage-rack">
