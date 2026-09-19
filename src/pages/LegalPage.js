@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Mail, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Mail, MapPin } from 'lucide-react';
+import GeometricGrid from '../components/GeometricGrid';
 import './LegalPage.css';
 
 const LAST_UPDATED = '5 September 2026';
@@ -89,7 +90,7 @@ function Delivery() {
 }
 
 function ContactCard({ title, email, copy }) {
-  return <a className="legal-contact-card" href={`mailto:${email}`}><Mail size={18} aria-hidden="true" /><span><strong>{title}</strong><small>{copy}</small><em>{email} <ArrowUpRight size={13} /></em></span></a>;
+  return <a className="legal-contact-card" href={`mailto:${email}`}><Mail size={18} aria-hidden="true" /><span><strong>{title}</strong><small>{copy}</small><em>{email} <ChevronRight size={13} /></em></span></a>;
 }
 
 function AddressBlock() {
@@ -120,5 +121,5 @@ export default function LegalPage() {
   const current = DOCUMENTS.find((item) => item.path === pathname) || DOCUMENTS[0];
   const Content = CONTENT[current.path] || Terms;
   useEffect(() => { document.title = `${current.title} | Cerbyl`; window.scrollTo(0, 0); }, [current.title]);
-  return <div className="legal-page"><header className="legal-header"><Link className="legal-brand" to="/" aria-label="Cerbyl home"><span aria-hidden="true" />cerbyl</Link><Link className="legal-back" to="/"><ArrowLeft size={15} />Back to Cerbyl</Link></header><div className="legal-layout"><aside className="legal-sidebar" aria-label="Legal documents"><p>Legal</p><nav>{DOCUMENTS.map((item) => <NavLink key={item.path} to={item.path}>{item.short}</NavLink>)}</nav></aside><main className="legal-document"><div className="legal-title-block"><p>cerbyl.com</p><h1>{current.title}</h1><span>Last updated {LAST_UPDATED}</span></div><Content /></main></div><footer className="legal-footer"><span>© 2026 {COMPANY.legalName}</span><span>CIN {COMPANY.cin}</span></footer></div>;
+  return <div className="legal-page"><div className="legal-bg-fx" aria-hidden="true"><div className="legal-bg-wash" /><div className="legal-bg-orb legal-bg-orb-1" /><div className="legal-bg-orb legal-bg-orb-2" /><GeometricGrid className="legal-bg-geo" linesClassName="legal-bg-geo-lines" numsClassName="legal-bg-geo-nums" /><div className="legal-bg-grain" /><div className="legal-bg-vignette" /></div><Link className="legal-back" to="/"><ChevronLeft size={16} aria-hidden="true" />Back</Link><div className="legal-layout"><aside className="legal-sidebar" aria-label="Legal documents"><p>Legal</p><nav>{DOCUMENTS.map((item) => <NavLink key={item.path} to={item.path}>{item.short}</NavLink>)}</nav></aside><main className="legal-document"><div className="legal-title-block"><p>cerbyl.com</p><h1>{current.title}</h1><span>Last updated {LAST_UPDATED}</span></div><Content /></main></div><footer className="legal-footer"><span>© 2026 {COMPANY.legalName}</span><span>CIN {COMPANY.cin}</span></footer></div>;
 }
