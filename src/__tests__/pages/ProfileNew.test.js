@@ -8,7 +8,7 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-import ProfileNew, { getHighResolutionProfilePhoto } from '../../pages/ProfileNew';
+import ProfileNew, { getHighResolutionProfilePhoto, ProfileSelect } from '../../pages/ProfileNew';
 
 describe('profile photo resolution', () => {
   it('requests a high-resolution Google avatar without changing other image sources', () => {
@@ -244,5 +244,37 @@ describe('ProfileNew billing cycle regression', () => {
       .filter(([url]) => url.includes('/subscription/select'))
       .map(([, options]) => JSON.parse(options.body || '{}'));
     expect(selectCalls).toHaveLength(0);
+  });
+});
+
+describe('ProfileSelect', () => {
+  const options = [{ value: 'a', label: 'Alpha' }, { value: 'b', label: 'Beta' }];
+  const setup = (props = {}) => {
+    const onChange = jest.fn();
+    render(<ProfileSelect id="t" label="Pick" value="" onChange={onChange} options={options} placeholder="Choose one" {...props} />);
+    return { onChange, trigger: screen.getByRole('combobox') };
+  };
+
+  it('shows the placeholder, opens a listbox on click and reports the chosen value', () => {
+    const { onChange, trigger } = setup();
+    expect(trigger).toHaveTextContent('Choose one');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    fireEvent.click(trigger);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole('option', { name: 'Beta' }));
+    expect(onChange).toHaveBeenCalledWith('b');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('supports the keyboard: arrows move, Enter chooses, Escape closes', () => {
+    const { onChange, trigger } = setup({ value: 'a' });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    fireEvent.keyDown(trigger, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('b');
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    fireEvent.keyDown(trigger, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
   });
 });
