@@ -2,7 +2,7 @@ import { consumeReturnPath } from '../utils/returnPath';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase/config';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -296,7 +296,7 @@ function Login() {
           <div className="lg-bg-vignette" />
         </div>
 
-        <Link className="lg-back-link" to="/">Back</Link>
+        <Link className="lg-back-link" to="/"><ChevronLeft size={16} aria-hidden="true" />Back</Link>
 
         <div className="lg-card">
           <div className="lg-card-texture" aria-hidden>

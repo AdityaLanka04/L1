@@ -13,8 +13,10 @@
   --lg-accent: #d8b38d;
   --lg-shadow-hi: rgba(255, 255, 255, 0.03);
 
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
+  padding: 72px 16px 48px;
+  box-sizing: border-box;
   background: var(--lg-bg);
   color: var(--lg-fg);
   display: flex;
@@ -23,7 +25,6 @@
   font-family: 'Inter', -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   position: relative;
-  overflow: hidden;
 }
 
 /* ---------- page background (literal Home.css BgFx) ---------- */
@@ -107,6 +108,10 @@
   top: 28px;
   left: 32px;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.2em;
@@ -128,9 +133,7 @@
   z-index: 1;
   width: 100%;
   max-width: 400px;
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   background: linear-gradient(155deg, var(--lg-card) 0%, #050506 100%);
   border-radius: 28px;
   box-shadow:
@@ -142,7 +145,7 @@
 }
 
 .lg-card-register {
-  max-width: 460px;
+  max-width: 580px;
 }
 
 .lg-card-texture {
@@ -151,6 +154,7 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  border-radius: inherit;
 }
 
 .lg-card-inner {
@@ -162,8 +166,10 @@
 .lg-name-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 20px;
 }
+
+.lg-name-row > * { min-width: 0; }
 
 /* ---------- hero (literal .cb-intro-word + .cb-intro-tagline) ---------- */
 
@@ -443,8 +449,8 @@
     padding: 34px 24px 30px;
   }
 
-  .lg-card {
-    margin: 0 12px;
+  .lg-page {
+    padding: 64px 12px 32px;
   }
 
   .lg-name-row {

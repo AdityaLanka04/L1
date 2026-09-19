@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithPopup } from 'firebase/auth';
 import axios from 'axios';
-import { Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { auth, googleProvider } from '../firebase/config';
 import LoadingSpinner from '../components/LoadingSpinner';
 import GeometricGrid from '../components/GeometricGrid';
@@ -243,7 +243,7 @@ function Register() {
           <div className="lg-bg-vignette" />
         </div>
 
-        <Link className="lg-back-link" to="/">Back</Link>
+        <Link className="lg-back-link" to="/"><ChevronLeft size={16} aria-hidden="true" />Back</Link>
 
         <div className="lg-card lg-card-register">
           <div className="lg-card-texture" aria-hidden>
@@ -328,85 +328,89 @@ function Register() {
                       disabled={disabled}
                     />
                   </div>
-                  <div className="lg-field">
-                    <label className="lg-label" htmlFor="rg-phone">Phone number</label>
-                    <input
-                      id="rg-phone"
-                      type="tel"
-                      name="phoneNumber"
-                      value={formData.phoneNumber}
-                      onChange={handleChange}
-                      className="lg-input"
-                      placeholder="+14155552671"
-                      autoComplete="tel"
-                      required
-                      disabled={disabled}
-                    />
-                  </div>
-                  <div className="lg-field">
-                    <label className="lg-label" htmlFor="rg-username">Username</label>
-                    <input
-                      id="rg-username"
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleChange}
-                      className="lg-input"
-                      placeholder="Choose a username"
-                      required
-                      disabled={disabled}
-                    />
-                  </div>
-                  <div className="lg-field">
-                    <label className="lg-label" htmlFor="rg-password">Password</label>
-                    <div className="lg-input-group">
+                  <div className="lg-name-row">
+                    <div className="lg-field">
+                      <label className="lg-label" htmlFor="rg-phone">Phone number</label>
                       <input
-                        id="rg-password"
-                        type={showPassword ? 'text' : 'password'}
-                        name="password"
-                        value={formData.password}
+                        id="rg-phone"
+                        type="tel"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
                         onChange={handleChange}
-                        className="lg-input lg-input--pw"
-                        placeholder="Create a password"
+                        className="lg-input"
+                        placeholder="+14155552671"
+                        autoComplete="tel"
                         required
                         disabled={disabled}
                       />
-                      <button
-                        type="button"
-                        className="lg-eye-btn"
-                        onClick={() => setShowPassword(v => !v)}
+                    </div>
+                    <div className="lg-field">
+                      <label className="lg-label" htmlFor="rg-username">Username</label>
+                      <input
+                        id="rg-username"
+                        type="text"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        className="lg-input"
+                        placeholder="Choose a username"
+                        required
                         disabled={disabled}
-                        tabIndex={0}
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
+                      />
                     </div>
                   </div>
-                  <div className="lg-field">
-                    <label className="lg-label" htmlFor="rg-confirm">Confirm password</label>
-                    <div className="lg-input-group">
-                      <input
-                        id="rg-confirm"
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        name="confirmPassword"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        className="lg-input lg-input--pw"
-                        placeholder="Re-enter your password"
-                        required
-                        disabled={disabled}
-                      />
-                      <button
-                        type="button"
-                        className="lg-eye-btn"
-                        onClick={() => setShowConfirmPassword(v => !v)}
-                        disabled={disabled}
-                        tabIndex={0}
-                        aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
+                  <div className="lg-name-row">
+                    <div className="lg-field">
+                      <label className="lg-label" htmlFor="rg-password">Password</label>
+                      <div className="lg-input-group">
+                        <input
+                          id="rg-password"
+                          type={showPassword ? 'text' : 'password'}
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          className="lg-input lg-input--pw"
+                          placeholder="Create a password"
+                          required
+                          disabled={disabled}
+                        />
+                        <button
+                          type="button"
+                          className="lg-eye-btn"
+                          onClick={() => setShowPassword(v => !v)}
+                          disabled={disabled}
+                          tabIndex={0}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="lg-field">
+                      <label className="lg-label" htmlFor="rg-confirm">Confirm password</label>
+                      <div className="lg-input-group">
+                        <input
+                          id="rg-confirm"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          className="lg-input lg-input--pw"
+                          placeholder="Re-enter password"
+                          required
+                          disabled={disabled}
+                        />
+                        <button
+                          type="button"
+                          className="lg-eye-btn"
+                          onClick={() => setShowConfirmPassword(v => !v)}
+                          disabled={disabled}
+                          tabIndex={0}
+                          aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <label className="lg-legal-consent">
