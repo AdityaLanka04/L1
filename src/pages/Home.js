@@ -416,11 +416,9 @@ export default function Home() {
       <div className="cb-grid-wrap">
         <div className="cb-grid">
           <div className="cb-tile cb-tile-mark" ref={(el) => { tileRefs.current.mark = el; }}>
-            <GeometricGrid />
-            <div className="cb-bg-grain" />
+            <div className="cb-tile-texture" />
             <div className="cb-mark-logo" />
             <span className="cb-mark-word">cerbyl</span>
-            <h1 className="cb-mark-promise plain-page-title">Study Workspace</h1>
             <p className="cb-mark-description">Ask questions, organize notes, and practice with quizzes and flashcards in one workspace.</p>
             <button className="cb-mark-start" onClick={() => navigate('/sample-course')}>Try a free sample</button>
           </div>
