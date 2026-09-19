@@ -2032,14 +2032,17 @@ async def update_comprehensive_profile(
             raise HTTPException(status_code=404, detail="User not found")
 
         new_username = None
-        if "username" in payload:
+        # Google sign-ups are stored with their email as the username, which fails the
+        # username pattern. The profile page resends the current username on every save,
+        # so only validate it when the user actually changes it; otherwise those accounts
+        # can never save any other profile edit.
+        if "username" in payload and (payload.get("username") or "").strip() != (user.username or ""):
             requested_username = _validate_username(payload.get("username"))
-            if requested_username != user.username:
-                existing_user = get_user_by_username(db, requested_username)
-                if existing_user and existing_user.id != user.id:
-                    raise HTTPException(status_code=400, detail="Username already registered")
-                new_username = requested_username
-                user.username = requested_username
+            existing_user = get_user_by_username(db, requested_username)
+            if existing_user and existing_user.id != user.id:
+                raise HTTPException(status_code=400, detail="Username already registered")
+            new_username = requested_username
+            user.username = requested_username
 
         if payload.get("firstName"):
             user.first_name = payload["firstName"]

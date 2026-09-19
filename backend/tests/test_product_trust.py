@@ -249,6 +249,28 @@ def test_profile_cannot_change_email_or_paid_entitlements(setup):
     assert owner.email=='owner@example.test'
 
 
+def test_profile_save_allows_unchanged_email_style_username_but_validates_changes(setup):
+    from routes import auth
+    db, (owner, _, _), client = setup
+    client.app.include_router(auth.router)
+    owner.username = owner.email = 'google.user@example.test'
+    db.commit()
+
+    # Google sign-ups store their email as the username. The profile page resends it on
+    # every save, so an unchanged username must not block other edits.
+    ok = client.post('/api/update_comprehensive_profile', json={'user_id': owner.email, 'username': owner.username, 'firstName': 'Ada'})
+    assert ok.status_code == 200, ok.text
+    db.refresh(owner)
+    assert owner.first_name == 'Ada' and owner.username == 'google.user@example.test'
+
+    # Actually changing it is still validated.
+    bad = client.post('/api/update_comprehensive_profile', json={'user_id': owner.email, 'username': 'not valid@name'})
+    assert bad.status_code == 400
+    good = client.post('/api/update_comprehensive_profile', json={'user_id': owner.email, 'username': 'ada_l'})
+    assert good.status_code == 200, good.text
+    assert good.json()['username'] == 'ada_l'
+
+
 def test_product_metrics_distinguish_unpriced_usage_and_browser_attribution(setup):
     import uuid
     db, (owner, _, _), client=setup
