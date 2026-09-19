@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Calendar, Award, Flame, TrendingUp, X, Zap, BookOpen, UserPlus, Users, Share2, Swords, MessageSquare, FileText, Target, Clock, Trophy, ArrowUpRight } from 'lucide-react';
+import { Bell, Calendar, Award, Flame, TrendingUp, X, Zap, BookOpen, UserPlus, Users, Share2, Swords, MessageSquare, FileText, Target, Clock, Trophy, ChevronRight } from 'lucide-react';
 import './SlideNotification.css';
 
 let lastNotificationSoundAt = 0;
@@ -331,24 +331,13 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
     }
   };
 
-  const handlePointerMove = (event) => {
-    if (event.pointerType === 'touch') return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty('--sn-mx', `${event.clientX - bounds.left}px`);
-    event.currentTarget.style.setProperty('--sn-my', `${event.clientY - bounds.top}px`);
-  };
-
   const actionLabel = notification.notification_type === 'welcome'
     ? 'Acknowledge'
     : 'View details';
 
   return (
     <div className={`slide-notif ${visible ? 'show' : ''}`} style={style}>
-      <div
-        className="slide-notif-card"
-        onPointerMove={handlePointerMove}
-      >
-        <span className="slide-notif-rail" aria-hidden="true" />
+      <div className="slide-notif-card">
         <button
           className="slide-notif-hitarea"
           type="button"
@@ -378,7 +367,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         </div>
         <div className="slide-notif-footer">
           <span className="slide-notif-action">{actionLabel}</span>
-          <ArrowUpRight className="slide-notif-action-icon" size={15} aria-hidden="true" />
+          <ChevronRight className="slide-notif-action-icon" size={16} aria-hidden="true" />
         </div>
       </div>
     </div>
