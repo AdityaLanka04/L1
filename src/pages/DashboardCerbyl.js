@@ -1,10 +1,9 @@
 import CerbylSidebar from '../components/CerbylSidebar';
-import useModalFocus from '../hooks/useModalFocus';
 import useCerbylCardMotion from '../hooks/useCerbylCardMotion';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowUpRight, Plus, ChevronLeft, ChevronRight, FileText, Mic, Library, Search, Pencil, X, Check, User, Bell, Sparkles, Trash2, LogOut,
+  ArrowUpRight, ChevronLeft, ChevronRight, FileText, Mic, Library, Search, X, User, Bell, Sparkles, Trash2, LogOut,
   History, MessageSquare, BarChart2, Layers, Network, Route, HelpCircle, Presentation, Users, Target, Trophy,
 } from 'lucide-react';
 import { API_URL } from '../config/api';
@@ -173,7 +172,13 @@ const QUICK_ASK_PROMPT = 'Explain quantum mechanics in simple terms.';
 const QUICK_REPLY_PREVIEW = 'Sure. Let us break it into three simple ideas.';
 const PRESET_PFPS = [
   { id: 'cat', label: 'Cat', src: '/pfp/cat.png' },
-  { id: 'woman', label: 'Woman', src: '/pfp/woman.png' }
+  { id: 'woman', label: 'Woman', src: '/pfp/woman.png' },
+  { id: 'fox', label: 'Fox', src: '/pfp/fox.svg' },
+  { id: 'robot', label: 'Robot', src: '/pfp/robot.svg' },
+  { id: 'astronaut', label: 'Astronaut', src: '/pfp/astronaut.svg' },
+  { id: 'panda', label: 'Panda', src: '/pfp/panda.svg' },
+  { id: 'owl', label: 'Owl', src: '/pfp/owl.svg' },
+  { id: 'penguin', label: 'Penguin', src: '/pfp/penguin.svg' }
 ];
 const isPresetPfp = (src) => PRESET_PFPS.some((p) => p.src === src);
 const isUploadedPfp = (src) => typeof src === 'string' && src.startsWith('data:image/jpeg;');
@@ -181,7 +186,6 @@ const isAllowedCustomPfp = (src) => isPresetPfp(src) || isUploadedPfp(src);
 const PFP_DEFAULT_KEY = 'cerbyl.defaultPfp';
 const PFP_CUSTOM_KEY = 'cerbyl.customPfp';
 const DISPLAY_NAME_KEY = 'cerbyl.displayName';
-const MAX_CUSTOM_PFP_BYTES = 2 * 1024 * 1024;
 const PLAN_INCLUDED_TOKENS = {
   starter: 100000,
   pro: 2000000,
@@ -318,7 +322,6 @@ const hydrateProfile = (parsedProfile = {}, username = '') => {
 
 const DashboardCerbyl = () => {
   const navigate = useNavigate();
-  const pfpUploadInputRef = useRef(null);
   const tokenUsageExactModeRef = useRef(false);
 
   const [userName, setUserName] = useState(() => localStorage.getItem('username') || '');
@@ -365,7 +368,6 @@ const DashboardCerbyl = () => {
     hasUnlimitedAccess: false,
     error: null
   });
-  const [isPfpModalOpen, setIsPfpModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [featureQuery, setFeatureQuery] = useState('');
   const [showFeatureResults, setShowFeatureResults] = useState(false);
@@ -793,10 +795,7 @@ const DashboardCerbyl = () => {
     profile?.first_name ||
     localStorage.getItem(DISPLAY_NAME_KEY) ||
     (userName ? userName.split('@')[0] : 'there');
-  const initial = (displayName[0] || 'A').toUpperCase();
   const profilePhoto = profile?.picture || profile?.picture_url || profile?.photoURL || profile?.photo_url || '';
-  const defaultUserPfp = profile?.defaultPfp || '';
-  const activeCustomPfp = profile?.customPfp || '';
   const hasUnlimitedAccess = subscriptionUsage.hasUnlimitedAccess;
   const isAdminUnlimited = subscriptionUsage.isAdmin && subscriptionUsage.hasUnlimitedAccess;
   const usagePct = Math.max(0, Math.min(100, Number(subscriptionUsage.utilizationPct || 0)));
@@ -1449,131 +1448,6 @@ const DashboardCerbyl = () => {
     });
   };
 
-  const closePfpModal = () => setIsPfpModalOpen(false);
-  const avatarDialogRef = useModalFocus(isPfpModalOpen, closePfpModal);
-
-  const saveProfile = (nextProfile) => {
-    let baseProfile = {};
-    const raw = localStorage.getItem('userProfile');
-    if (raw) {
-      try { baseProfile = JSON.parse(raw) || {}; } catch (e) { /* silenced */ }
-    }
-    const mergedProfile = hydrateProfile({ ...baseProfile, ...nextProfile }, userName);
-    setProfile(mergedProfile);
-    localStorage.setItem('userProfile', JSON.stringify(mergedProfile));
-
-    if (mergedProfile.defaultPfp) localStorage.setItem(PFP_DEFAULT_KEY, mergedProfile.defaultPfp);
-    if (mergedProfile.customPfp) localStorage.setItem(PFP_CUSTOM_KEY, mergedProfile.customPfp);
-    else localStorage.removeItem(PFP_CUSTOM_KEY);
-
-    const resolvedName = mergedProfile.firstName || mergedProfile.first_name || '';
-    if (resolvedName) localStorage.setItem(DISPLAY_NAME_KEY, resolvedName);
-  };
-
-  const openPfpModal = (e) => {
-    e.stopPropagation();
-    setIsPfpModalOpen(true);
-  };
-
-  const selectPresetPfp = (src) => {
-    const current = profile || {};
-    const inferredDefault =
-      current.defaultPfp ||
-      current.googlePicture ||
-      current.photoURL ||
-      current.photo_url ||
-      (isAllowedCustomPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
-      '';
-
-    const nextProfile = {
-      ...current,
-      defaultPfp: inferredDefault,
-      customPfp: src,
-      picture: src,
-      picture_url: src
-    };
-    saveProfile(nextProfile);
-    closePfpModal();
-  };
-
-  const selectDefaultPfp = () => {
-    const current = profile || {};
-    const fallbackDefault =
-      current.defaultPfp ||
-      current.googlePicture ||
-      current.photoURL ||
-      current.photo_url ||
-      (isAllowedCustomPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
-      '';
-
-    const nextProfile = {
-      ...current,
-      defaultPfp: fallbackDefault,
-      customPfp: '',
-      picture: fallbackDefault,
-      picture_url: fallbackDefault
-    };
-    saveProfile(nextProfile);
-    closePfpModal();
-  };
-
-  const selectUploadedPfp = (dataUrl) => {
-    const current = profile || {};
-    const inferredDefault =
-      current.defaultPfp ||
-      current.googlePicture ||
-      current.photoURL ||
-      current.photo_url ||
-      (isAllowedCustomPfp(current.picture_url || current.picture || '') ? '' : (current.picture_url || current.picture || '')) ||
-      '';
-
-    saveProfile({
-      ...current,
-      defaultPfp: inferredDefault,
-      customPfp: dataUrl,
-      picture: dataUrl,
-      picture_url: dataUrl
-    });
-  };
-
-  const handlePfpUpload = (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
-    const lowerName = file.name.toLowerCase();
-    const isJpeg = file.type === 'image/jpeg' || lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
-    if (!isJpeg) {
-      alert('Please choose a JPG or JPEG image.');
-      return;
-    }
-    if (file.size > MAX_CUSTOM_PFP_BYTES) {
-      alert('Please choose an image under 2 MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
-      if (!isUploadedPfp(dataUrl)) {
-        alert('Could not read this JPG image.');
-        return;
-      }
-      selectUploadedPfp(dataUrl);
-    };
-    reader.onerror = () => alert('Could not read this image.');
-    reader.readAsDataURL(file);
-  };
-
-  useEffect(() => {
-    if (!isPfpModalOpen) return undefined;
-    const onKeyDown = (ev) => {
-      if (ev.key === 'Escape') setIsPfpModalOpen(false);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isPfpModalOpen]);
-
   useEffect(() => {
     if (!showNotifications) return undefined;
     const onPointerDown = (ev) => {
@@ -1778,10 +1652,6 @@ const DashboardCerbyl = () => {
                 <button type="button" role="menuitem" onClick={() => navigate('/profile')}>
                   <User size={14} />
                   <span>Profile</span>
-                </button>
-                <button type="button" role="menuitem" onClick={openPfpModal}>
-                  <Pencil size={14} />
-                  <span>Change photo</span>
                 </button>
                 <button type="button" role="menuitem" className="cb-profile-drawer-signout" onClick={handleDashboardSignOut}>
                   <LogOut size={14} />
@@ -2321,80 +2191,6 @@ const DashboardCerbyl = () => {
         </main>
       </div>
 
-      {isPfpModalOpen && (
-        <div className="cb-pfp-modal-overlay" onClick={closePfpModal}>
-          <section ref={avatarDialogRef} className="cb-pfp-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Select profile picture">
-            <div className="cb-pfp-modal-head">
-              <div>
-                <div className="cb-pfp-modal-kicker">PROFILE PERSONALIZATION</div>
-                <h3 className="cb-pfp-modal-title">Select Your PFP</h3>
-              </div>
-              <button className="cb-pfp-modal-close" onClick={closePfpModal} aria-label="Close avatar picker">
-                <X size={16} />
-              </button>
-            </div>
-
-            <input
-              ref={pfpUploadInputRef}
-              className="cb-pfp-upload-input"
-              type="file"
-              accept=".jpg,.jpeg,image/jpeg"
-              onChange={handlePfpUpload}
-            />
-
-            <div className="cb-pfp-grid">
-              <button
-                className={`cb-pfp-card ${activeCustomPfp ? '' : 'cb-pfp-card--active'}`}
-                onClick={selectDefaultPfp}
-                type="button"
-              >
-                <div className="cb-pfp-card-media">
-                  {defaultUserPfp ? (
-                    <img src={defaultUserPfp} alt="Default profile" className="cb-pfp-card-img" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="cb-pfp-card-fallback">{initial}</div>
-                  )}
-                </div>
-                <div className="cb-pfp-card-label">Default</div>
-                {!activeCustomPfp && <span className="cb-pfp-card-check"><Check size={12} /></span>}
-              </button>
-
-              {PRESET_PFPS.map((preset) => (
-                <button
-                  key={preset.id}
-                  className={`cb-pfp-card ${activeCustomPfp === preset.src ? 'cb-pfp-card--active' : ''}`}
-                  onClick={() => selectPresetPfp(preset.src)}
-                  type="button"
-                >
-                  <div className="cb-pfp-card-media">
-                    <img src={preset.src} alt={`${preset.label} avatar`} className="cb-pfp-card-img" />
-                  </div>
-                  <div className="cb-pfp-card-label">{preset.label}</div>
-                  {activeCustomPfp === preset.src && <span className="cb-pfp-card-check"><Check size={12} /></span>}
-                </button>
-              ))}
-
-              <button
-                className={`cb-pfp-card cb-pfp-card--upload ${isUploadedPfp(activeCustomPfp) ? 'cb-pfp-card--active' : ''}`}
-                onClick={() => pfpUploadInputRef.current?.click()}
-                type="button"
-              >
-                <div className="cb-pfp-card-media">
-                  {isUploadedPfp(activeCustomPfp) ? (
-                    <img src={activeCustomPfp} alt="Custom uploaded profile" className="cb-pfp-card-img" />
-                  ) : (
-                    <div className="cb-pfp-upload-placeholder">
-                      <Plus size={24} />
-                    </div>
-                  )}
-                </div>
-                <div className="cb-pfp-card-label">Custom</div>
-                {isUploadedPfp(activeCustomPfp) && <span className="cb-pfp-card-check"><Check size={12} /></span>}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
     </div>
   );
 };
