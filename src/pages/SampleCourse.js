@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
+import GeometricGrid from '../components/GeometricGrid';
 import { sampleEvent, generateSampleQuiz } from '../services/productService';
 import './SampleCourse.css';
 
@@ -59,7 +61,17 @@ export default function SampleCourse() {
 
   return (
     <div className="sc-root">
+      <div className="sc-bg-fx" aria-hidden="true">
+        <div className="sc-bg-wash" />
+        <div className="sc-bg-orb sc-bg-orb-1" />
+        <div className="sc-bg-orb sc-bg-orb-2" />
+        <GeometricGrid className="sc-bg-geo" linesClassName="sc-bg-geo-lines" numsClassName="sc-bg-geo-nums" />
+        <div className="sc-bg-grain" />
+        <div className="sc-bg-vignette" />
+      </div>
+
       <header className="sc-header">
+        <Link className="sc-back" to="/"><ChevronLeft size={16} aria-hidden="true" />Back</Link>
         <span className="sc-tag">Free sample &middot; No account needed</span>
       </header>
 
