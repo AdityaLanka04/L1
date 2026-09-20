@@ -2,7 +2,7 @@ import { isTopicExplanationRequest } from '../utils/chatStudyActions';
 import useFileDrop from '../hooks/useFileDrop';
 import AnswerFeedback from '../components/AnswerFeedback';
 import ToolNavigation from '../components/ToolNavigation';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   BarChart3,
@@ -888,6 +888,16 @@ const AIChat = ({ sharedMode = false }) => {
   const initialHandoffRef = useRef('');
   const chatLoadRequestRef = useRef(0);
   const chatLoadAbortRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = 'auto';
+    const contentHeight = textarea.scrollHeight;
+    textarea.style.height = `${Math.min(contentHeight, 300)}px`;
+    textarea.style.overflowY = contentHeight > 300 ? 'auto' : 'hidden';
+  }, [inputMessage, messages.length]);
   const creatingChatRef = useRef(false);
 
   const [showFolderCreation, setShowFolderCreation] = useState(false);
@@ -1514,9 +1524,6 @@ const AIChat = ({ sharedMode = false }) => {
     
     if (!useOverride) {
       setInputMessage('');
-      if (textareaRef.current) {
-        textareaRef.current.style.height = '24px';
-      }
     }
     
     if (!currentChatId) {
@@ -2400,29 +2407,6 @@ const AIChat = ({ sharedMode = false }) => {
 
   const handleInputChange = (e) => {
     setInputMessage(e.target.value);
-    
-    
-    if (textareaRef.current) {
-      
-      textareaRef.current.style.height = '24px';
-      
-      
-      const scrollHeight = textareaRef.current.scrollHeight;
-      
-      
-      const maxHeight = 300;
-      
-      
-      const newHeight = Math.min(scrollHeight, maxHeight);
-      textareaRef.current.style.height = newHeight + 'px';
-      
-      
-      if (scrollHeight > maxHeight) {
-        textareaRef.current.style.overflowY = 'auto';
-      } else {
-        textareaRef.current.style.overflowY = 'hidden';
-      }
-    }
   };
 
   const handleLogout = async () => {

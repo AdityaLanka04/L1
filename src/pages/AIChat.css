@@ -1286,12 +1286,12 @@ html:has(.ai-chat-page) {
   resize: none !important;
   min-height: 24px !important;
   max-height: 300px !important;
-  height: auto !important;
+  height: auto;
   outline: none !important;
   line-height: 1.55 !important;
   padding: 0 !important;
   margin: 0 !important;
-  overflow-y: auto !important;
+  overflow-y: auto;
   overflow-x: hidden;
   word-wrap: break-word !important;
   white-space: pre-wrap !important;
