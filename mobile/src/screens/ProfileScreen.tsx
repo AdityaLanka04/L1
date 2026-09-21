@@ -1,3 +1,4 @@
+import { subscribeInbox } from '../services/notificationEvents';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TextInput, Alert, ActivityIndicator, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -77,9 +78,12 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
   }, [loadProfile]);
 
   useEffect(() => {
-    getNotifications(user.username).then((data) => {
-      setUnreadNotifications((data.notifications ?? []).filter((n) => !n.is_read).length);
-    }).catch(() => {});
+    let active = true;
+    const refresh = () => getNotifications(user.username, 1).then(data => { if (active) setUnreadNotifications(data.unread_count); }).catch(() => {});
+    void refresh();
+    const unsubscribe = subscribeInbox(refresh);
+    const timer = setInterval(refresh, 30000);
+    return () => { active = false; unsubscribe(); clearInterval(timer); };
   }, [user.username]);
 
   const handleNotificationsToggle = async (value: boolean) => {
@@ -88,7 +92,8 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
     try {
       await updateComprehensiveProfile(user.username, { notificationsEnabled: value });
     } catch {
-      // silenced -- non-critical preference sync
+      setNotificationsEnabled(!value);
+      Alert.alert('Preference not saved', 'Please try again. Your notification preference is unchanged.');
     }
   };
 

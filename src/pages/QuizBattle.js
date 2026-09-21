@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { notificationsEnabled } from '../utils/notificationPresentation';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Swords, Users, Clock, X, Check, Zap, Trophy, Shield,
   Flame, Crown, Sparkles, ChevronRight, BookOpen, Database,
@@ -14,6 +15,7 @@ import { formatBattleMode, getBattleTimeLimit } from '../utils/battleRules';
 
 const QuizBattle = () => {
   const navigate = useNavigate();
+  const notificationLocation = useLocation();
   const token = localStorage.getItem('token');
 
   const [battles, setBattles] = useState([]);
@@ -21,7 +23,11 @@ const QuizBattle = () => {
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState('battles');
   const [statusFilter, setStatusFilter] = useState('active');
-  const [pendingBattle, setPendingBattle] = useState(null);
+  const [battleQueue, setBattleQueue] = useState([]);
+  const pendingBattle = battleQueue[0] || null;
+  const [battleBusy, setBattleBusy] = useState(false);
+  const battleActionRef = useRef(false);
+  const setPendingBattle = battle => setBattleQueue(prev => battle ? [...prev.filter(item => item.id !== battle.id), battle] : prev.slice(1));
   const [showNotification, setShowNotification] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState('');
   const [subject, setSubject] = useState('');
@@ -39,17 +45,19 @@ const QuizBattle = () => {
     }
 
     if (message.type === 'battle_challenge') {
+      if (!notificationsEnabled()) { fetchBattles(); return; }
       setPendingBattle(message.battle);
       setShowNotification(true);
       fetchBattles();
 
-      if ('Notification' in window && Notification.permission === 'granted') {
+      if (notificationsEnabled() && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('New Battle Challenge!', {
           body: `${message.battle.challenger?.first_name || 'Someone'} challenged you to a quiz battle!`,
-          icon: '/battle-icon.png'
+          icon: '/favicon.ico'
         });
       }
     } else if (message.type === 'battle_accepted') {
+      setBattleQueue(prev => prev.filter(battle => battle.id !== message.battle_id));
       setShowNotification(false);
       fetchBattles();
       if (message.battle_id) {
@@ -60,6 +68,7 @@ const QuizBattle = () => {
         navigate(`/quiz-battle/${message.battle_id}`);
       }
     } else if (message.type === 'battle_declined') {
+      setBattleQueue(prev => prev.filter(battle => battle.id !== message.battle_id));
       setShowNotification(false);
       fetchBattles();
     }
@@ -69,9 +78,6 @@ const QuizBattle = () => {
     fetchBattles();
     fetchFriends();
 
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
 
     const pollInterval = setInterval(() => {
       if (!isConnected) fetchBattles();
@@ -100,6 +106,26 @@ const QuizBattle = () => {
       setLoading(false);
     }
   }, [statusFilter, token]);
+
+  useEffect(() => {
+    const id = Number(new URLSearchParams(notificationLocation.search).get('battle'));
+    if (!id) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`${API_URL}/quiz_battle/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) throw new Error('This battle is no longer available.');
+        const payload = await response.json();
+        const data = payload.battle;
+        if (cancelled) return;
+        if (!data) throw new Error('This battle is no longer available.');
+        if (data.status === 'pending' && !data.is_challenger) setPendingBattle({ ...data, challenger: data.opponent, explicit: true });
+        else if (['active', 'completed'].includes(data.status)) navigate(`/quiz-battle/${id}`, { replace: true });
+        else setError('This challenge is no longer awaiting your response.');
+      } catch (error) { if (!cancelled) setError(error.message); }
+    })();
+    return () => { cancelled = true; };
+  }, [notificationLocation.search, token, navigate]);
 
   const fetchFriends = useCallback(async () => {
     try {
@@ -152,10 +178,10 @@ const QuizBattle = () => {
         setClassicTimeLimit(300);
         fetchBattles();
 
-        if ('Notification' in window && Notification.permission === 'granted') {
+        if (notificationsEnabled() && 'Notification' in window && Notification.permission === 'granted') {
           new Notification('Battle Challenge Sent!', {
             body: 'Your opponent has been notified.',
-            icon: '/battle-icon.png'
+            icon: '/favicon.ico'
           });
         }
       } else {
@@ -172,8 +198,8 @@ const QuizBattle = () => {
 
   const handleAcceptBattle = async (battleId = null) => {
     const id = battleId || pendingBattle?.id;
-    if (!id) return;
-
+    if (!id || battleActionRef.current) return;
+    battleActionRef.current = true; setBattleBusy(true); setError(null);
     try {
       const response = await fetch(`${API_URL}/accept_quiz_battle`, {
         method: 'POST',
@@ -194,12 +220,12 @@ const QuizBattle = () => {
     } catch (error) {
       console.error('Error accepting battle:', error);
       setError('Unable to accept battle. Please try again.');
-    }
+    } finally { battleActionRef.current = false; setBattleBusy(false); }
   };
 
   const handleDeclineBattle = async () => {
-    if (!pendingBattle) return;
-
+    if (!pendingBattle || battleActionRef.current) return;
+    battleActionRef.current = true; setBattleBusy(true); setError(null);
     try {
       const response = await fetch(`${API_URL}/decline_quiz_battle`, {
         method: 'POST',
@@ -218,8 +244,8 @@ const QuizBattle = () => {
         throw new Error('Failed to decline battle');
       }
     } catch (error) {
-      console.error('Error declining battle:', error);
-    }
+      setError('Unable to decline battle. Please try again.');
+    } finally { battleActionRef.current = false; setBattleBusy(false); }
   };
 
   const getBattleStatusColor = useCallback((status) => {
@@ -688,12 +714,14 @@ const QuizBattle = () => {
         </main>
       </SocialHubChrome>
 
-      {showNotification && pendingBattle && (
+      {pendingBattle && (notificationsEnabled() || pendingBattle.explicit) && (
         <BattleNotification
           battle={pendingBattle}
           onAccept={handleAcceptBattle}
           onDecline={handleDeclineBattle}
-          onClose={() => setShowNotification(false)}
+          busy={battleBusy}
+          error={error}
+          onClose={() => setPendingBattle(null)}
         />
       )}
 

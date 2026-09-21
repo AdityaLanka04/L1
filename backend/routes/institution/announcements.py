@@ -43,6 +43,7 @@ def create_announcement(
         announcement.title,
         f"{section.course.code}: {announcement.body}",
         "class_announcement",
+        action_url=f"/student/classes?section={section.id}", source_id=announcement.id,
     )
     db.commit()
     db.refresh(announcement)

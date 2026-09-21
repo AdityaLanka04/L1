@@ -93,69 +93,7 @@ const formatDateLong = (d) => {
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 };
 
-const routeForNotification = (notificationType) => {
-  switch (notificationType) {
-    case 'reminder':
-    case 'calendar_event':
-    case 'inactivity':
-      return '/activity-timeline';
-    case 'level_up':
-    case 'streak_milestone':
-    case 'streak_broken':
-    case 'achievement':
-      return '/profile';
-    case 'token_usage_warning':
-    case 'token_usage_critical':
-    case 'token_usage_exhausted':
-      return '/profile?upgrade=1';
-    case 'quiz_result':
-    case 'quiz_excellent':
-    case 'quiz_poor_performance':
-    case 'quiz_completed':
-    case 'quiz_milestone':
-      return '/quiz-hub';
-    case 'flashcard_excellent':
-    case 'flashcard_review':
-    case 'flashcard_reviewed':
-    case 'flashcard_mastered':
-    case 'flashcards_milestone':
-      return '/flashcards';
-    case 'proactive_ai':
-    case 'ai_chat_milestone':
-      return '/ai-chat';
-    case 'notes_milestone':
-      return '/notes';
-    case 'questions_milestone':
-      return '/question-bank';
-    case 'study_time_milestone':
-      return '/analytics';
-    case 'friend_request':
-      return '/friends?view=requests';
-    case 'friend_accepted':
-    case 'friend_rejected':
-    case 'friend_removed':
-      return '/friends';
-    case 'share_received':
-    case 'content_shared':
-      return '/social';
-    case 'battle_challenge':
-    case 'battle_result':
-    case 'battle_accepted':
-    case 'battle_declined':
-    case 'battle_started':
-    case 'battle_won':
-    case 'battle_lost':
-      return '/quiz-battles';
-    case 'challenge_completed':
-    case 'challenge_joined':
-      return '/challenges';
-    case 'study_insights':
-    case 'welcome_insights':
-      return '/study-insights';
-    default:
-      return '/dashboard-cerbyl';
-  }
-};
+
 
 const fetchJson = async (url) => {
   const token = localStorage.getItem('token');
@@ -480,6 +418,8 @@ const DashboardCerbyl = () => {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     deleteNotification,
+    totalCount, loading: notificationsLoading, error: notificationsError, nextCursor,
+    loadMoreNotifications, refreshNotifications, openNotification: showNotificationDetails,
   } = useNotifications();
   const [flashActiveSetId, setFlashActiveSetId] = useState('');
   const [isNotesAnimating, setIsNotesAnimating] = useState(false);
@@ -1460,7 +1400,7 @@ const DashboardCerbyl = () => {
       setShowNotifications(false);
     };
     const onKeyDown = (ev) => {
-      if (ev.key === 'Escape') setShowNotifications(false);
+      if (ev.key === 'Escape') { setShowNotifications(false); notifButtonRef.current?.focus(); }
     };
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('keydown', onKeyDown);
@@ -1470,10 +1410,9 @@ const DashboardCerbyl = () => {
     };
   }, [showNotifications]);
 
-  const openNotification = async (notification) => {
-    await markNotificationAsRead(notification.id);
+  const openNotification = (notification) => {
     setShowNotifications(false);
-    navigate(routeForNotification(notification.notification_type));
+    showNotificationDetails(notification);
   };
 
   const handleDashboardSignOut = async () => {
@@ -1568,9 +1507,9 @@ const DashboardCerbyl = () => {
                       <span>Notifications</span>
                       <p>
                         {unreadCount > 0
-                          ? `${unreadCount} unread · ${notifications.length} total`
+                          ? `${unreadCount} unread · ${totalCount} total`
                           : notifications.length > 0
-                            ? `${notifications.length} notification${notifications.length === 1 ? '' : 's'}`
+                            ? `${totalCount} notification${totalCount === 1 ? '' : 's'}`
                             : 'All caught up'}
                       </p>
                     </div>
@@ -1580,29 +1519,23 @@ const DashboardCerbyl = () => {
                   </button>
                 </div>
 
-                <div className="cb-notif-list">
-                  {notifications.length === 0 ? (
+                <div className="cb-notif-list" aria-busy={notificationsLoading}>
+                  {notificationsLoading && <p role="status">Loading notifications…</p>}
+                  {notificationsError && <p role="alert">{notificationsError} <button type="button" onClick={refreshNotifications}>Retry</button></p>}
+                  {notifications.length === 0 && !notificationsLoading && !notificationsError ? (
                     <div className="cb-notif-empty">
                       <Bell size={24} />
                       <p>No notifications yet</p>
                     </div>
                   ) : (
-                    notifications.slice(0, 12).map((notification, index) => (
+                    notifications.map((notification, index) => (
                       <div
                         key={notification.id}
                         className={`cb-notif-item ${notification.is_read ? '' : 'cb-notif-item--unread'}`}
-                        style={{ '--cb-notif-index': index }}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openNotification(notification)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            openNotification(notification);
-                          }
-                        }}
+                        style={{ '--cb-notif-index': Math.min(index, 6) }}
                       >
                         <div className="cb-tile-texture" aria-hidden="true" />
+                        <button type="button" className="cb-notif-open" onClick={() => openNotification(notification)}>
                         <span className="cb-notif-item-icon">
                           <Sparkles size={14} />
                         </span>
@@ -1611,6 +1544,7 @@ const DashboardCerbyl = () => {
                           <em>{notification.message}</em>
                           <small>{getRelativeTime(notification.created_at)}</small>
                         </span>
+                        </button>
                         <button
                           className="cb-notif-delete"
                           type="button"
@@ -1625,6 +1559,7 @@ const DashboardCerbyl = () => {
                       </div>
                     ))
                   )}
+                  {nextCursor && <button type="button" disabled={notificationsLoading} onClick={loadMoreNotifications}>Load older notifications</button>}
                 </div>
               </div>
             )}
@@ -1891,7 +1826,7 @@ const DashboardCerbyl = () => {
                           navigate(`/notes/editor/${n.id}`);
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
+                          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
                             e.preventDefault();
                             e.stopPropagation();
                             navigate(`/notes/editor/${n.id}`);
@@ -1924,7 +1859,7 @@ const DashboardCerbyl = () => {
                           navigate(`/notes/ai-media/${m.id}`);
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
+                          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
                             e.preventDefault();
                             e.stopPropagation();
                             navigate(`/notes/ai-media/${m.id}`);

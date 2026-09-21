@@ -118,6 +118,7 @@ from models.learning import (
 )
 
 from models.notifications import (
+    NotificationPushSubscription, NotificationPushDelivery,
     Notification,
     ReminderList,
     Reminder,

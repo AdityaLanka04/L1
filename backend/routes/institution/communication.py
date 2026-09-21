@@ -14,35 +14,18 @@ router = APIRouter()
 
 @router.get("/notifications")
 def list_classroom_notifications(
+    limit: int = Query(25, ge=1, le=100),
+    before_id: int | None = Query(None),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if normalize_account_role(current_user.account_role) not in {"student", "educator"}:
         raise HTTPException(status_code=403, detail="Class notifications are not available for this account.")
-    rows = (
-        db.query(models.Notification)
-        .filter(
-            models.Notification.user_id == current_user.id,
-            models.Notification.notification_type.like("class_%"),
-        )
-        .order_by(models.Notification.created_at.desc())
-        .limit(100)
-        .all()
-    )
-    return {
-        "unread_count": sum(not row.is_read for row in rows),
-        "notifications": [
-            {
-                "id": row.id,
-                "title": row.title,
-                "message": row.message,
-                "type": row.notification_type,
-                "is_read": row.is_read,
-                "created_at": row.created_at,
-            }
-            for row in rows
-        ],
-    }
+    from routes.notifications import notification_page
+    result = notification_page(db, current_user, limit, before_id, classroom=True)
+    for item in result['notifications']:
+        item['type'] = item['notification_type']
+    return result
 
 
 @router.patch("/notifications/{notification_id}/read")
@@ -149,6 +132,7 @@ def create_classroom_message(
         f"New message · {payload.subject.strip()}",
         f"{section.course.code}: {_display_name(current_user)} sent you a private message.",
         "class_message",
+        action_url=f"/{'educator' if payload.recipient_id == section.instructor_id else 'student'}/messages?section={section.id}", source_id=section.id,
     )
     db.commit()
     db.refresh(message)

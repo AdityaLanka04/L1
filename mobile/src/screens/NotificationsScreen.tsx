@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { WEB_URL } from '../services/api';
+import { useFocusEffect } from '@react-navigation/native';
+import { notifyInboxChanged } from '../services/notificationEvents';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold, Inter_900Black } from '@expo-google-fonts/inter';
@@ -51,57 +55,59 @@ export default function NotificationsScreen({ user, onBack }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loadError, setLoadError] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [selected, setSelected] = useState<AppNotification | null>(null);
+  const [saving, setSaving] = useState(false);
+  const version = useRef(0);
+  const busy = useRef(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (cursor?: number | null) => {
+    const requestVersion = ++version.current;
     try {
-      const data = await getNotifications(user.username);
-      setNotifications(data.notifications ?? []);
+      const data = await getNotifications(user.username, 25, cursor);
+      if (requestVersion !== version.current) return;
+      setNotifications(prev => cursor ? [...prev, ...data.notifications.filter(n => !prev.some(old => old.id === n.id))] : data.notifications);
+      setUnreadCount(data.unread_count);
+      setNextCursor(data.next_cursor);
       setLoadError(false);
     } catch {
-      setLoadError(true);
+      if (requestVersion === version.current) setLoadError(true);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestVersion === version.current) { setLoading(false); setRefreshing(false); }
     }
   }, [user.username]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => {
+    void load();
+    const timer = setInterval(() => { if (!busy.current) void load(); }, 30000);
+    return () => { version.current++; clearInterval(timer); };
+  }, [load]));
+
+  const update = async (operation: 'read' | 'delete' | 'all', n?: AppNotification) => {
+    if (busy.current) return;
+    busy.current = true; setSaving(true); version.current++;
+    try {
+      if (operation === 'all') await markAllNotificationsRead(user.username);
+      else if (operation === 'delete' && n) await deleteNotification(n.id);
+      else if (n && !n.is_read) await markNotificationRead(n.id);
+      notifyInboxChanged();
+      await load();
+    } catch {
+      Alert.alert('Notification not updated', 'Please try again. Your notification has not been changed.');
+    } finally { busy.current = false; setSaving(false); }
+  };
+  const openNotification = (n: AppNotification) => { setSelected(n); if (!n.is_read) void update('read', n); };
+  const removeNotification = (n: AppNotification) => void update('delete', n);
+  const markAllRead = () => void update('all');
+  const openRelatedActivity = async () => {
+    const path = selected?.action_url;
+    if (!path || !path.startsWith('/') || path.startsWith('//') || path.includes('\\')) return;
+    try { await WebBrowser.openBrowserAsync(`${WEB_URL}${path}`); }
+    catch { Alert.alert('Could not open activity', 'Please try again.'); }
+  };
 
   if (!fontsLoaded) return null;
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  const openNotification = async (n: AppNotification) => {
-    if (n.is_read) return;
-    setNotifications((current) => current.map((item) => (item.id === n.id ? { ...item, is_read: true } : item)));
-    triggerHaptic('light');
-    try {
-      await markNotificationRead(n.id);
-    } catch {
-      // silenced -- optimistic update stays, next refresh will reconcile
-    }
-  };
-
-  const removeNotification = async (n: AppNotification) => {
-    setNotifications((current) => current.filter((item) => item.id !== n.id));
-    triggerHaptic('light');
-    try {
-      await deleteNotification(n.id);
-    } catch {
-      // silenced
-    }
-  };
-
-  const markAllRead = async () => {
-    if (unreadCount === 0) return;
-    setNotifications((current) => current.map((item) => ({ ...item, is_read: true })));
-    triggerHaptic('medium');
-    try {
-      await markAllNotificationsRead(user.username);
-    } catch {
-      // silenced
-    }
-  };
 
   return (
     <View style={s.root}>
@@ -117,11 +123,11 @@ export default function NotificationsScreen({ user, onBack }: Props) {
             <Ionicons name="chevron-back" size={20} color={selectedTheme.accentHover} />
           </HapticTouchable>
           <View style={s.headerCopy}>
-            <Text style={s.kicker}>{unreadCount > 0 ? `${unreadCount} UNREAD` : 'ALL CAUGHT UP'}</Text>
+            <Text style={s.kicker}>{loading ? 'LOADING' : loadError ? 'UNAVAILABLE' : unreadCount > 0 ? `${unreadCount} UNREAD` : 'ALL CAUGHT UP'}</Text>
             <Text style={s.title}>notifications</Text>
           </View>
           {unreadCount > 0 ? (
-            <HapticTouchable onPress={markAllRead} haptic="selection">
+            <HapticTouchable disabled={saving} onPress={markAllRead} haptic="selection">
               <Text style={s.markAllText}>mark all read</Text>
             </HapticTouchable>
           ) : null}
@@ -130,7 +136,7 @@ export default function NotificationsScreen({ user, onBack }: Props) {
         {loading ? (
           <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
         ) : loadError ? (
-          <HapticTouchable onPress={load} haptic="light" style={s.errorBanner}>
+          <HapticTouchable onPress={() => load()} haptic="light" style={s.errorBanner}>
             <Ionicons name="alert-circle-outline" size={16} color={selectedTheme.danger} />
             <Text style={s.errorBannerText}>couldn't load notifications — tap to retry</Text>
           </HapticTouchable>
@@ -142,7 +148,7 @@ export default function NotificationsScreen({ user, onBack }: Props) {
         ) : (
           <View style={{ gap: 8 }}>
             {notifications.map((n) => (
-              <HapticTouchable key={n.id} style={[s.row, !n.is_read && s.rowUnread]} onPress={() => openNotification(n)} onLongPress={() => removeNotification(n)} haptic="none">
+              <HapticTouchable disabled={saving} key={n.id} style={[s.row, !n.is_read && s.rowUnread]} onPress={() => openNotification(n)} onLongPress={() => removeNotification(n)} haptic="none">
                 {!n.is_read ? <View style={s.unreadDot} /> : null}
                 <View style={s.rowIcon}>
                   <Ionicons name={TYPE_ICONS[n.notification_type] || 'notifications-outline'} size={16} color={selectedTheme.accent} />
@@ -154,10 +160,19 @@ export default function NotificationsScreen({ user, onBack }: Props) {
                 </View>
               </HapticTouchable>
             ))}
+            {nextCursor && <HapticTouchable disabled={refreshing || saving} onPress={() => { setRefreshing(true); void load(nextCursor); }}><Text style={s.markAllText}>Load older notifications</Text></HapticTouchable>}
             <Text style={s.hintFooter}>long-press a notification to dismiss it</Text>
           </View>
         )}
       </ScrollView>
+      <Modal visible={Boolean(selected)} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
+        <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.65)' }}>
+          <View accessibilityViewIsModal style={{ maxHeight: '85%', padding: 24, borderRadius: 16, backgroundColor: selectedTheme.panel }}>
+            <HapticTouchable onPress={() => setSelected(null)} accessibilityLabel="Close notification"><Text style={s.markAllText}>Close</Text></HapticTouchable>
+            <ScrollView><Text style={s.rowTitle}>{selected?.title}</Text><Text style={s.rowMessage}>{selected?.message}</Text>{selected?.reminder_due_at && <Text style={s.rowTime}>Due {new Date(selected.reminder_due_at).toLocaleString()}</Text>}{selected?.action_url && <HapticTouchable onPress={openRelatedActivity}><Text style={s.markAllText}>Open related activity</Text></HapticTouchable>}</ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

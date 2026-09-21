@@ -28,6 +28,8 @@ export async function signIn(username: string, password: string): Promise<AuthUs
 }
 
 export async function signOut() {
+  const { disableDevicePush } = await import("./notificationPush");
+  await disableDevicePush().catch(() => {});
   await removeToken();
   await AsyncStorage.removeItem('user');
 }

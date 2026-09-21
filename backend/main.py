@@ -432,6 +432,7 @@ async def lifespan(app: FastAPI):
     _scheduler = None
     _rl_scheduler_lock = None
     _kt_scheduler_lock = None
+    _notification_scheduler_lock = None
     try:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -540,6 +541,13 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"DKT artifact sync scheduler job init failed: {e}")
 
+        from services.notification_delivery import run_notification_scheduler
+        _scheduler.add_job(run_notification_scheduler, 'interval', seconds=15, id='notification_reminders', max_instances=1, coalesce=True)
+        _notification_scheduler_lock = _acquire_scheduler_lock(20260922, 'Notification push', 'ENABLE_NOTIFICATION_PUSH_SCHEDULER')
+        if _notification_scheduler_lock:
+            from services.notification_delivery import run_push_scheduler
+            _scheduler.add_job(run_push_scheduler, 'interval', seconds=15, id='notification_push', max_instances=1, coalesce=True)
+        _any_job_added = True
         if _any_job_added:
             _scheduler.start()
         else:
@@ -560,6 +568,7 @@ async def lifespan(app: FastAPI):
             pass
     _release_scheduler_lock(_rl_scheduler_lock)
     _release_scheduler_lock(_kt_scheduler_lock)
+    _release_scheduler_lock(_notification_scheduler_lock)
 
 _production_api = os.getenv("ENVIRONMENT", "development").strip().lower() == "production"
 app = FastAPI(

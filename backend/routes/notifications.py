@@ -1,483 +1,187 @@
 import logging
-import os
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+import re
+from datetime import timedelta
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field, StrictStr
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
-
 import models
 from database import get_db
 from deps import get_current_user
+from services.notification_delivery import generate_reminders, iso_utc, utcnow, configure_reminder
 
 logger = logging.getLogger(__name__)
+router = APIRouter(prefix='/api', tags=['notifications'])
 
-router = APIRouter(prefix="/api", tags=["notifications"])
+def _assert_user_matches_request(user_id, current_user):
+    if user_id and str(user_id).strip().lower() not in {str(current_user.id), (current_user.username or '').lower(), (current_user.email or '').lower()}:
+        raise HTTPException(403, 'Access denied')
 
-def _assert_user_matches_request(user_id: Optional[str], current_user: models.User) -> None:
-    if user_id is None:
-        return
-    requested = str(user_id).strip().lower()
-    allowed = {
-        str(current_user.id).strip().lower(),
-        (current_user.username or "").strip().lower(),
-        (current_user.email or "").strip().lower(),
-    }
-    if requested and requested not in allowed:
-        logger.warning(
-            "Access scope mismatch on notifications: token user_id=%s username=%r email=%r vs requested user_id=%r",
-            current_user.id, current_user.username, current_user.email, user_id,
-        )
-        raise HTTPException(status_code=403, detail="Access denied")
+def inbox(db, user):
+    return db.query(models.Notification).filter(models.Notification.user_id == user.id, models.Notification.cancelled == False)
 
-def _parse_hours_list(raw: str) -> List[float]:
-    hours = []
-    for part in (raw or "").split(","):
-        part = part.strip()
-        if not part:
-            continue
-        try:
-            hours.append(float(part))
-        except ValueError:
-            continue
-    return sorted(set(hours))
+def serialize_notification(n):
+    message = re.sub(r'\s*\[(?:reminder_id|reminder_due_at|login_return):[^\]]*\]', '', n.message or '').strip()
+    if n.notification_type in ('reminder', 'calendar_event'):
+        message = re.sub(r'\s*-\s*(?:Due at|Scheduled for) \d{1,2}:\d{2} [AP]M(?: \(in \d+ min\))?', '', message).strip()
+    return {'id': n.id, 'title': n.title, 'message': message,
+            'notification_type': n.notification_type, 'is_read': n.is_read,
+            'created_at': iso_utc(n.created_at), 'reminder_due_at': iso_utc(n.due_at),
+            'source_id': n.source_id, 'action_url': n.action_url}
 
-def _normalize_dt(dt: Optional[datetime]) -> Optional[datetime]:
-    if not dt:
-        return None
-    if dt.tzinfo is not None:
-        return dt.astimezone(timezone.utc).replace(tzinfo=None)
-    return dt
-
-def _safe_notify_before_minutes(reminder: models.Reminder, default: int = 15) -> int:
-    try:
-        value = reminder.notify_before_minutes
-        if value is None:
-            return default
-        return int(value)
-    except Exception:
-        return default
-
-def _format_offline_duration(hours: float) -> str:
-    if hours < 24:
-        rounded = max(1, int(hours))
-        return f"{rounded} hour{'s' if rounded != 1 else ''}"
-    days = int(hours // 24)
-    return f"{days} day{'s' if days != 1 else ''}"
-
-def _get_reminder_notif_meta(reminder: models.Reminder) -> tuple[str, str]:
-    notif_type = "calendar_event" if reminder.reminder_type in ("event", "calendar_event") else "reminder"
-    title_prefix = "Event" if notif_type == "calendar_event" else "Reminder"
-    return notif_type, title_prefix
-
-def _reminder_notification_marker(reminder_id: int) -> str:
-    return f"[reminder_id:{reminder_id}]"
-
-def _reminder_due_at_marker(reminder_dt: datetime) -> str:
-    return f"[reminder_due_at:{reminder_dt.isoformat()}]"
-
-@router.get("/get_notifications")
-async def get_notifications(
-    user_id: str = Query(...),
-    timezone_offset: int = Query(0),
-    limit: int = Query(50, ge=1, le=200),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        _assert_user_matches_request(user_id, current_user)
-        user = current_user
-
-        now = _normalize_dt(datetime.now(timezone.utc))
-        reminder_now = now - timedelta(minutes=timezone_offset)
-        try:
-            reminder_candidates = db.query(models.Reminder).filter(
-                models.Reminder.user_id == user.id,
-                models.Reminder.is_completed == False,
-                models.Reminder.reminder_date != None
-            ).all()
-
-            for reminder in reminder_candidates:
-                notif_type, title_prefix = _get_reminder_notif_meta(reminder)
-                reminder_dt = _normalize_dt(reminder.reminder_date)
-                if not reminder_dt:
-                    continue
-                time_until = reminder_dt - reminder_now
-                minutes_until = time_until.total_seconds() / 60
-                notify_before = _safe_notify_before_minutes(reminder)
-
-                if minutes_until <= notify_before:
-                    notification_title = f"{title_prefix}: {reminder.title}"
-                    notification_marker = _reminder_notification_marker(reminder.id)
-                    due_at_marker = _reminder_due_at_marker(reminder_dt)
-                    existing = db.query(models.Notification).filter(
-                        models.Notification.user_id == user.id,
-                        models.Notification.notification_type == notif_type,
-                        models.Notification.message.contains(notification_marker)
-                    ).first()
-
-                    if existing:
-                        if not reminder.is_notified:
-                            reminder.is_notified = True
-                            db.commit()
-                        continue
-
-                    claimed_reminder = False
-                    if not reminder.is_notified:
-                        claimed_reminder = db.query(models.Reminder).filter(
-                            models.Reminder.id == reminder.id,
-                            models.Reminder.user_id == user.id,
-                            models.Reminder.is_notified == False,
-                        ).update({"is_notified": True}, synchronize_session=False) == 1
-
-                    if claimed_reminder:
-                        reminder_time = reminder_dt.strftime("%I:%M %p")
-                        notification = models.Notification(
-                            user_id=user.id,
-                            title=notification_title,
-                            message=f"{reminder.description or 'Upcoming reminder'} - Due at {reminder_time} {notification_marker} {due_at_marker}",
-                            notification_type=notif_type
-                        )
-                        db.add(notification)
-                        logger.info(f"Created reminder notification for: {reminder.title}")
-                    db.commit()
-        except Exception as e:
-            logger.error(f"Error generating reminder notifications: {str(e)}", exc_info=True)
-
-        notifications = db.query(models.Notification).filter(
-            models.Notification.user_id == user.id
-        ).order_by(models.Notification.created_at.desc()).limit(limit).all()
-
-        return {
-            "notifications": [
-                {
-                    "id": n.id,
-                    "title": n.title,
-                    "message": n.message,
-                    "notification_type": n.notification_type,
-                    "is_read": n.is_read,
-                    "created_at": n.created_at.isoformat() + 'Z'
-                }
-                for n in notifications
-            ]
-        }
-    except HTTPException as he:
-        logger.error(f"HTTPException in get_notifications: {he.detail}")
-        raise
-    except Exception as e:
-        logger.error(f"Error getting notifications: {str(e)}", exc_info=True)
-        return {"notifications": []}
-
-@router.put("/mark_notification_read/{notification_id}")
-async def mark_notification_read(
-    notification_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        notification = db.query(models.Notification).filter(
-            models.Notification.id == notification_id,
-            models.Notification.user_id == current_user.id,
-        ).first()
-
-        if not notification:
-            raise HTTPException(status_code=404, detail="Notification not found")
-
-        notification.is_read = True
-        db.commit()
-
-        return {"status": "success", "message": "Notification marked as read"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error marking notification as read: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.put("/mark_all_notifications_read")
-async def mark_all_notifications_read(
-    user_id: str = Query(...),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        _assert_user_matches_request(user_id, current_user)
-        user = current_user
-
-        db.query(models.Notification).filter(
-            models.Notification.user_id == user.id,
-            models.Notification.is_read == False
-        ).update({"is_read": True})
-
-        db.commit()
-
-        return {"status": "success", "message": "All notifications marked as read"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error marking all notifications as read: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.post("/create_notification")
-async def create_notification(
-    payload: dict = Body(...),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        user_id = payload.get("user_id")
-        title = payload.get("title")
-        message = payload.get("message")
-        notification_type = payload.get("notification_type", "general")
-
-        _assert_user_matches_request(user_id, current_user)
-        user = current_user
-
-        notification = models.Notification(
-            user_id=user.id,
-            title=title,
-            message=message,
-            notification_type=notification_type
-        )
-
-        db.add(notification)
-        db.commit()
-        db.refresh(notification)
-
-        return {
-            "status": "success",
-            "notification_id": notification.id,
-            "message": "Notification created"
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error creating notification: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.get("/debug_notifications")
-async def debug_notifications(
-    user_id: str = Query(...),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        _assert_user_matches_request(user_id, current_user)
-        user = current_user
-
-        notifications = db.query(models.Notification).filter(
-            models.Notification.user_id == user.id
-        ).order_by(models.Notification.created_at.desc()).limit(200).all()
-
-        return {
-            "user_id": user.id,
-            "username": user.username,
-            "total_notifications": len(notifications),
-            "notifications": [
-                {
-                    "id": n.id,
-                    "title": n.title,
-                    "message": n.message[:100],
-                    "type": n.notification_type,
-                    "is_read": n.is_read,
-                    "created_at": str(n.created_at)
-                }
-                for n in notifications
-            ]
-        }
-    except Exception as e:
-        logger.error("notification error: %s", e, exc_info=True)
-        return {"error": "Internal server error"}
-
-@router.delete("/delete_notification/{notification_id}")
-async def delete_notification(
-    notification_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        notification = db.query(models.Notification).filter(
-            models.Notification.id == notification_id,
-            models.Notification.user_id == current_user.id,
-        ).first()
-
-        if not notification:
-            raise HTTPException(status_code=404, detail="Notification not found")
-
-        db.delete(notification)
-        db.commit()
-
-        return {"status": "success", "message": "Notification deleted"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error deleting notification: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.post("/clear_old_notifications")
-async def clear_old_notifications(
-    user_id: str = Query(...),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        _assert_user_matches_request(user_id, current_user)
-        user = current_user
-        logger.info(f"Clearing old notifications for user_id={user.id}")
-
-        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-        deleted = db.query(models.Notification).filter(
-            models.Notification.user_id == user.id,
-            models.Notification.created_at < thirty_days_ago,
-        ).delete()
-
-        db.commit()
-
-        logger.info(f"Cleared {deleted} old notifications for user_id={user.id}")
-        return {"status": "success", "cleared": deleted, "message": f"Cleared {deleted} old notifications"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Error clearing notifications: %s", e, exc_info=True)
-        return {"status": "error", "cleared": 0, "message": "Internal server error"}
-
-@router.delete("/clear_all_notifications")
-async def clear_all_notifications(
-    user_id: str = Query(...),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        _assert_user_matches_request(user_id, current_user)
-        user = current_user
-        logger.info(f"Clearing ALL notifications for user_id={user.id}")
-
-        deleted = db.query(models.Notification).filter(
-            models.Notification.user_id == user.id
-        ).delete()
-
-        db.commit()
-
-        logger.info(f"Cleared {deleted} notifications for user_id={user.id}")
-        return {"status": "success", "cleared": deleted, "message": f"Cleared {deleted} notifications"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Error clearing all notifications: %s", e, exc_info=True)
-        db.rollback()
-        return {"status": "error", "cleared": 0, "message": "Internal server error"}
-
-@router.get("/check_reminder_notifications")
-async def check_reminder_notifications(
-    user_id: str = Query(...),
-    current_time: str = Query(None),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    try:
-        _assert_user_matches_request(user_id, current_user)
-        user = current_user
-
-        if current_time:
-            try:
-                now = datetime.fromisoformat(current_time.replace('Z', '').replace('+00:00', ''))
-                logger.info(f"Using client time: {now}")
-            except Exception:
-                now = datetime.now(timezone.utc)
-                logger.info(f"Failed to parse client time, using server time: {now}")
+def notification_page(db, user, limit=25, before_id=None, classroom=False):
+    query = inbox(db, user)
+    if classroom:
+        query = query.filter(models.Notification.notification_type.startswith('class_'))
+    profile = db.query(models.ComprehensiveUserProfile).filter_by(user_id=user.id).first()
+    total = query.count()
+    unread = query.filter(models.Notification.is_read == False).count()
+    if before_id is not None:
+        anchor = db.query(models.Notification).filter(models.Notification.user_id == user.id, models.Notification.id == before_id).first()
+        if anchor:
+            query = query.filter(or_(models.Notification.created_at < anchor.created_at,
+                and_(models.Notification.created_at == anchor.created_at, models.Notification.id < anchor.id)))
         else:
-            now = datetime.now(timezone.utc)
-            logger.info(f"No client time provided, using server time: {now}")
-        now = _normalize_dt(now)
+            # Deleted cursor: IDs still give a stable continuation for ordinary inserts.
+            query = query.filter(models.Notification.id < before_id)
+    rows = query.order_by(models.Notification.created_at.desc(), models.Notification.id.desc()).limit(limit + 1).all()
+    more = len(rows) > limit
+    rows = rows[:limit]
+    return {'notifications': [serialize_notification(n) for n in rows], 'notifications_enabled': not profile or profile.notifications_enabled is not False, 'unread_count': unread,
+            'total_count': total, 'next_cursor': rows[-1].id if more else None}
 
-        notifications_created = []
-
-        pending_reminders = db.query(models.Reminder).filter(
-            models.Reminder.user_id == user.id,
-            models.Reminder.is_completed == False,
-            models.Reminder.is_notified == False,
-            models.Reminder.reminder_date != None
-        ).all()
-
-        logger.info(f"Found {len(pending_reminders)} pending reminders for user {user_id}")
-
-        for reminder in pending_reminders:
-            reminder_dt = _normalize_dt(reminder.reminder_date)
-            if not reminder_dt:
-                continue
-
-            time_until = reminder_dt - now
-            minutes_until = time_until.total_seconds() / 60
-
-            notify_before = _safe_notify_before_minutes(reminder)
-            logger.info(f"Reminder '{reminder.title}': scheduled={reminder_dt}, now={now}, minutes_until={minutes_until:.1f}, notify_before={notify_before}")
-
-            notify_window_start = notify_before
-            is_in_notify_window = minutes_until <= notify_window_start and minutes_until >= -30
-
-            if is_in_notify_window:
-                notif_type, title_prefix = _get_reminder_notif_meta(reminder)
-                existing_notification = db.query(models.Notification).filter(
-                    models.Notification.user_id == user.id,
-                    models.Notification.notification_type == notif_type,
-                    models.Notification.title.contains(reminder.title),
-                    models.Notification.created_at >= datetime.now(timezone.utc) - timedelta(hours=1)
-                ).first()
-
-                if existing_notification:
-                    logger.info(f"Skipping duplicate notification for: {reminder.title}")
-                    continue
-
-                reminder_time = reminder.reminder_date.strftime('%I:%M %p')
-                reminder_date_str = reminder.reminder_date.strftime('%B %d, %Y at %I:%M %p')
-
-                base_title = f"{title_prefix}: {reminder.title}"
-                if minutes_until <= 0:
-                    notification = models.Notification(
-                        user_id=user.id,
-                        title=f"{base_title} - NOW!",
-                        message=f"{reminder.description or 'Your event is happening now!'} - Scheduled for {reminder_time}",
-                        notification_type=notif_type
-                    )
-                elif minutes_until <= 5:
-                    notification = models.Notification(
-                        user_id=user.id,
-                        title=f"{base_title} - In {int(minutes_until)} min!",
-                        message=f"{reminder.description or 'Your reminder is coming up!'} - Due at {reminder_time}",
-                        notification_type=notif_type
-                    )
-                else:
-                    notification = models.Notification(
-                        user_id=user.id,
-                        title=f"{base_title}",
-                        message=f"{reminder.description or 'Your scheduled reminder'} - Due at {reminder_time} (in {int(minutes_until)} min)",
-                        notification_type=notif_type
-                    )
-
-                db.add(notification)
-                reminder.is_notified = True
-
-                notifications_created.append({
-                    "reminder_id": reminder.id,
-                    "title": reminder.title,
-                    "minutes_until": round(minutes_until),
-                    "reminder_time": reminder_date_str
-                })
-
-                logger.info(f"Created reminder notification for: {reminder.title} at {reminder_date_str}")
-
-        if notifications_created:
-            db.commit()
-            logger.info(f"Created {len(notifications_created)} reminder notifications")
-
-        return {
-            "status": "success",
-            "notifications_created": len(notifications_created),
-            "details": notifications_created,
-            "server_time": datetime.now(timezone.utc).isoformat(),
-            "client_time_received": current_time
-        }
-    except Exception as e:
-        logger.error(f"Error checking reminder notifications: {str(e)}")
-        logger.error("reminder notification check error: %s", e, exc_info=True)
+@router.get('/get_notifications')
+def get_notifications(user_id: Optional[str] = Query(None), timezone_offset: int = Query(0, ge=-840, le=840),
+    limit: int = Query(25, ge=1, le=200), before_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    _assert_user_matches_request(user_id, current_user)
+    # Assign a stable instant once to timezone-less legacy rows, never on every poll.
+    legacy = db.query(models.Reminder).filter(models.Reminder.user_id == current_user.id, models.Reminder.reminder_date != None, models.Reminder.due_at_utc == None).all()
+    for reminder in legacy:
+        configure_reminder(reminder, offset=timezone_offset)
+        previous = db.query(models.Notification).filter(
+            models.Notification.user_id == current_user.id,
+            models.Notification.notification_type.in_(['reminder', 'calendar_event']),
+            models.Notification.message.contains(f'[reminder_id:{reminder.id}]'),
+        ).order_by(models.Notification.id.desc()).all()
+        for index, notification in enumerate(previous):
+            notification.source_id = reminder.id
+            notification.due_at = reminder.due_at_utc
+            notification.action_url = f'/activity-timeline?reminder={reminder.id}'
+            if index == 0 and not notification.occurrence_key:
+                notification.occurrence_key = f'reminder:{reminder.id}:{iso_utc(reminder.due_at_utc)}'
+            if index or reminder.is_completed:
+                notification.cancelled = notification.is_read = True
+        if previous:
+            reminder.is_notified = True
+    if legacy:
+        db.commit()
+    try:
+        generate_reminders(db, current_user.id)
+    except Exception:
         db.rollback()
-        return {"status": "error", "message": "Internal server error", "notifications_created": 0}
+        logger.exception('Reminder generation failed; serving existing inbox')
+    return notification_page(db, current_user, limit, before_id)
+
+def owned_notification(db, user, notification_id):
+    row = db.query(models.Notification).filter(models.Notification.id == notification_id, models.Notification.user_id == user.id).first()
+    if not row:
+        raise HTTPException(404, 'Notification not found')
+    return row
+
+@router.put('/mark_notification_read/{notification_id}')
+def mark_notification_read(notification_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    owned_notification(db, current_user, notification_id).is_read = True
+    db.commit()
+    return {'status': 'success'}
+
+@router.put('/mark_all_notifications_read')
+def mark_all_notifications_read(user_id: Optional[str] = Query(None), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    _assert_user_matches_request(user_id, current_user)
+    inbox(db, current_user).filter(models.Notification.is_read == False).update({'is_read': True})
+    db.commit()
+    return {'status': 'success'}
+
+class NotificationCreate(BaseModel):
+    user_id: Optional[StrictStr] = None
+    title: StrictStr = Field(..., min_length=1, max_length=200)
+    message: StrictStr = Field(..., min_length=1, max_length=5000)
+    notification_type: StrictStr = Field('general', min_length=1, max_length=50, pattern=r'^[a-z][a-z0-9_]*$')
+
+@router.post('/create_notification')
+def create_notification(payload: NotificationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    _assert_user_matches_request(payload.user_id, current_user)
+    if not payload.title.strip() or not payload.message.strip():
+        raise HTTPException(422, 'Title and message cannot be blank')
+    # Public callers create general messages; product event types are server-owned.
+    if payload.notification_type != 'general':
+        raise HTTPException(422, 'Only general notifications can be created directly')
+    row = models.Notification(user_id=current_user.id, title=payload.title.strip(), message=payload.message.strip(), notification_type=payload.notification_type)
+    db.add(row); db.commit(); db.refresh(row)
+    return {'status': 'success', 'notification_id': row.id}
+
+@router.get('/debug_notifications')
+def debug_notifications(user_id: Optional[str] = Query(None), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    _assert_user_matches_request(user_id, current_user)
+    page = notification_page(db, current_user, 200)
+    return {**page, 'total_notifications': page['total_count'], 'user_id': current_user.id}
+
+@router.delete('/delete_notification/{notification_id}')
+def delete_notification(notification_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # Keep the occurrence tombstone so a deleted reminder cannot be regenerated.
+    row = owned_notification(db, current_user, notification_id)
+    row.cancelled = row.is_read = True
+    db.commit()
+    return {'status': 'success'}
+
+@router.post('/clear_old_notifications')
+def clear_old_notifications(user_id: Optional[str] = Query(None), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    _assert_user_matches_request(user_id, current_user)
+    count = inbox(db, current_user).filter(models.Notification.created_at < utcnow() - timedelta(days=30)).update({'cancelled': True, 'is_read': True})
+    db.commit()
+    return {'status': 'success', 'cleared': count}
+
+@router.delete('/clear_all_notifications')
+def clear_all_notifications(user_id: Optional[str] = Query(None), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    _assert_user_matches_request(user_id, current_user)
+    count = inbox(db, current_user).update({'cancelled': True, 'is_read': True})
+    db.commit()
+    return {'status': 'success', 'cleared': count}
+
+@router.get('/check_reminder_notifications')
+def check_reminder_notifications(user_id: Optional[str] = Query(None), current_time: Optional[str] = Query(None), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    _assert_user_matches_request(user_id, current_user)
+    # Client clock is intentionally ignored: every entry point uses the same UTC clock.
+    count = generate_reminders(db, current_user.id)
+    return {'status': 'success', 'notifications_created': count, 'server_time': iso_utc(utcnow())}
+
+class PushRegistration(BaseModel):
+    platform: StrictStr = Field(..., max_length=10)
+    subscription: dict
+
+@router.get('/notification_push/config')
+def notification_push_config(current_user: models.User = Depends(get_current_user)):
+    from services.notification_push import push_config
+    return push_config()
+
+@router.post('/notification_push/subscriptions')
+def subscribe_push(payload: PushRegistration, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    from services.notification_push import register_subscription, push_config
+    if len(str(payload.subscription)) > 5000:
+        raise HTTPException(422, 'Push subscription is too large')
+    if payload.platform not in ('web', 'expo') or not push_config().get(f'{payload.platform}_enabled'):
+        raise HTTPException(503, 'Push notifications are not configured for this platform yet')
+    try:
+        return {'id': register_subscription(db, current_user, payload.platform, payload.subscription)}
+    except ValueError as error:
+        raise HTTPException(422, str(error))
+
+@router.delete('/notification_push/subscriptions/{subscription_id}')
+def unsubscribe_push(subscription_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    owned = db.query(models.NotificationPushSubscription).filter_by(id=subscription_id, user_id=current_user.id).first()
+    if owned:
+        db.query(models.NotificationPushDelivery).filter_by(subscription_id=owned.id).delete()
+        db.delete(owned)
+    db.commit()
+    return {'status': 'success'}

@@ -307,6 +307,7 @@ def grade_submission(
         f"Feedback published · {submission.assignment.title}",
         f"Your work was graded {payload.score:g}/{submission.assignment.points_possible:g}. Open the assignment to read feedback.",
         "class_grade",
+        action_url=f"/student/assignments?assignment={submission.assignment_id}", source_id=submission.assignment_id,
     )
     _record_activity(
         db,
@@ -394,6 +395,7 @@ def create_assignment(
             f"{section.course.code} published new work"
             + (f" due {assignment.due_at.strftime('%d %b')}" if assignment.due_at else "."),
             "class_assignment",
+            action_url=f"/student/assignments?assignment={assignment.id}", source_id=assignment.id,
         )
     _refresh_class_progress(db, section)
     db.commit()
@@ -473,6 +475,7 @@ def update_assignment(
             f"Assignment updated · {assignment.title}",
             f"{section.course.code} coursework has changed.",
             "class_assignment",
+            action_url=f"/student/assignments?assignment={assignment.id}", source_id=assignment.id,
         )
     _refresh_class_progress(db, section)
     db.commit()

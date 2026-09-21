@@ -1,5 +1,7 @@
+import useNotificationDismiss from '../hooks/useNotificationDismiss';
+import { useNotifications } from '../contexts/NotificationContext';
+import { notificationTime, notificationMessage } from '../utils/notificationPresentation';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Bell, Calendar, Award, Flame, TrendingUp, X, Zap, BookOpen, UserPlus, Users, Share2, Swords, MessageSquare, FileText, Target, Clock, Trophy, ChevronRight } from 'lucide-react';
 import './SlideNotification.css';
 
@@ -42,146 +44,16 @@ const playNotificationSound = () => {
 
 const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) => {
   const [visible, setVisible] = useState(false);
-  const [isValid, setIsValid] = useState(true);
-  const navigate = useNavigate();
 
+  const { openNotification } = useNotifications();
+  const dismissEvents = useNotificationDismiss(onClose);
   useEffect(() => {
-    
-    if (!notification || !notification.id || (!notification.title && !notification.message)) {
-            setIsValid(false);
-      if (onClose) {
-        setTimeout(() => onClose(), 0);
-      }
-      return;
-    }
-
-    
     setVisible(true);
     playNotificationSound();
-
-    
-    const dismissTimer = setTimeout(() => {
-      handleClose(false);
-    }, 12000);
-
-    return () => {
-      clearTimeout(dismissTimer);
-    };
-  }, [notification]);
-
-  
-  if (!isValid || !notification || !notification.id) {
-    return null;
-  }
-
-  const handleClose = (markRead = false) => {
-    setVisible(false);
-    setTimeout(() => {
-      if (markRead && onMarkRead && notification.id) {
-        onMarkRead(notification.id);
-      }
-      onClose();
-    }, 300);
-  };
-
-  const handleClick = () => {
-    
-    if (notification.notification_type === 'study_insights' || notification.notification_type === 'welcome_insights') {
-      const profile = localStorage.getItem('userProfile');
-      let showStudyInsights = true;
-      if (profile) {
-        try {
-          const parsed = JSON.parse(profile);
-          showStudyInsights = parsed.showStudyInsights !== false;
-        } catch (e) { /* silenced */ }
-      }
-      
-      if (!showStudyInsights) {
-        
-        handleClose(false);
-        return;
-      }
-    }
-    
-    
-    switch (notification.notification_type) {
-      case 'reminder':
-      case 'calendar_event':
-      case 'inactivity':
-        navigate('/activity-timeline');
-        break;
-      case 'level_up':
-      case 'streak_milestone':
-      case 'streak_broken':
-      case 'achievement':
-        navigate('/profile');
-        break;
-      case 'quiz_result':
-      case 'quiz_excellent':
-      case 'quiz_poor_performance':
-      case 'quiz_completed':
-      case 'quiz_milestone':
-        navigate('/quiz-hub');
-        break;
-      case 'flashcard_excellent':
-      case 'flashcard_review':
-      case 'flashcard_reviewed':
-      case 'flashcard_mastered':
-      case 'flashcards_milestone':
-        navigate('/flashcards');
-        break;
-      case 'proactive_ai':
-        navigate('/ai-chat');
-        break;
-      case 'ai_chat_milestone':
-        navigate('/ai-chat');
-        break;
-      case 'notes_milestone':
-        navigate('/notes');
-        break;
-      case 'questions_milestone':
-        navigate('/question-bank');
-        break;
-      case 'study_time_milestone':
-        navigate('/analytics');
-        break;
-      case 'friend_request':
-        navigate('/friends?view=requests', { state: { activeView: 'requests' } });
-        break;
-      case 'friend_accepted':
-      case 'friend_rejected':
-      case 'friend_removed':
-        navigate('/friends');
-        break;
-      case 'share_received':
-      case 'content_shared':
-        navigate('/social');
-        break;
-      case 'battle_challenge':
-      case 'battle_result':
-      case 'battle_accepted':
-      case 'battle_declined':
-      case 'battle_started':
-      case 'battle_won':
-      case 'battle_lost':
-        navigate('/quiz-battles');
-        break;
-      case 'challenge_completed':
-      case 'challenge_joined':
-        navigate('/challenges');
-        break;
-      case 'study_insights':
-      case 'welcome_insights':
-        navigate('/study-insights');
-        break;
-      case 'welcome':
-        
-        break;
-      default:
-        navigate('/dashboard-cerbyl');
-    }
-    handleClose(true);
-  };
+  }, []);
+  if (!notification) return null;
+  const handleClose = () => onClose();
+  const handleClick = () => { openNotification(notification); onClose(); };
 
   const getIcon = () => {
     switch (notification.notification_type) {
@@ -237,6 +109,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       case 'battle_started':
       case 'battle_won':
       case 'battle_lost':
+      case 'battle_tied':
         return <Swords size={20} />;
       case 'challenge_completed':
       case 'challenge_joined':
@@ -254,6 +127,9 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
   const getIconColor = () => 'var(--accent)';
 
   const getTypeLabel = () => {
+    if (notification.notification_type?.startsWith('class_')) return 'Classroom update';
+    if (notification.notification_type === 'milestone') return 'Mastery milestone';
+    if (notification.notification_type === 'login_return') return 'Welcome back';
     switch (notification.notification_type) {
       case 'reminder':
         return 'Reminder';
@@ -316,6 +192,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       case 'battle_started':
       case 'battle_won':
       case 'battle_lost':
+      case 'battle_tied':
         return 'Battle Update';
       case 'challenge_completed':
         return 'Challenge Completed';
@@ -336,7 +213,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
     : 'View details';
 
   return (
-    <div className={`slide-notif ${visible ? 'show' : ''}`} style={style}>
+    <div className={`slide-notif ${visible ? 'show' : ''}`} style={style} {...dismissEvents}>
       <div className="slide-notif-card">
         <button
           className="slide-notif-hitarea"
@@ -350,7 +227,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
           </div>
           <div className="slide-notif-title">
             <span className="slide-notif-type">{getTypeLabel()}</span>
-            <span className="slide-notif-time">Just now</span>
+            <span className="slide-notif-time">{notificationTime(notification.created_at)}</span>
           </div>
           <button 
             className="slide-notif-close" 
@@ -363,7 +240,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         </div>
         <div className="slide-notif-body">
           <h4 className="slide-notif-heading">{notification.title}</h4>
-          <p className="slide-notif-message">{notification.message}</p>
+          <p className="slide-notif-message">{notificationMessage(notification)}</p>
         </div>
         <div className="slide-notif-footer">
           <span className="slide-notif-action">{actionLabel}</span>

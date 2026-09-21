@@ -1,359 +1,218 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
+import { cleanNotificationMessage, notificationsEnabled } from '../utils/notificationPresentation';
 
 const NotificationContext = createContext(null);
-const NOTIFICATION_FETCH_LIMIT = 12;
-const INITIAL_NOTIFICATION_DELAY_MS = 3500;
-const NOTIFICATION_POLL_INTERVAL_MS = 30000;
-
 export const useNotifications = () => {
-  const context = useContext(NotificationContext);
-  if (!context) {
-    throw new Error('useNotifications must be used within NotificationProvider');
-  }
-  return context;
+  const value = useContext(NotificationContext);
+  if (!value) throw new Error('useNotifications must be used within NotificationProvider');
+  return value;
 };
-
-const getAuthFromStorage = () => {
-  const token = localStorage.getItem('token');
-  let userName = localStorage.getItem('username');
-
-  if (!userName) {
-    const rawProfile = localStorage.getItem('userProfile');
-    if (rawProfile) {
-      try {
-        const parsed = JSON.parse(rawProfile);
-        userName = parsed.username || parsed.email || '';
-      } catch (e) { /* silenced */ }
-    }
-  }
-
-  return { token, userName };
-};
-
-const getNotificationsEnabled = () => {
-  const raw = localStorage.getItem('userProfile');
-  if (!raw) return true;
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed.notificationsEnabled !== false;
-  } catch (e) {
-    return true;
-  }
-};
-
-const formatNotificationMessage = (message = '') => (
-  String(message)
-    .replace(/\s*\[reminder_id:\d+\]\s*/g, ' ')
-    .replace(/\s*\[reminder_due_at:[^\]]+\]\s*/g, ' ')
-    .replace(/\s*\[login_return:\d{4}-\d{2}-\d{2}\]\s*/g, ' ')
-    .replace(/\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?)\b/g, (match) => {
-      const parsed = new Date(match);
-      if (Number.isNaN(parsed.getTime())) return match;
-      return parsed.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-      });
-    })
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-);
-
-const extractReminderDueAt = (message = '') => {
-  const match = String(message).match(/\[reminder_due_at:([^\]]+)\]/);
-  if (!match) return null;
-  const parsed = new Date(match[1]);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
-};
-
-const getNotificationQueueKey = (notification = {}) => (
-  `${notification.id || 'unknown'}:${notification.created_at || ''}`
-);
-
-const getDueSlideTitle = (title = '') => {
-  const baseTitle = String(title)
-    .replace(/\s+-\s+In\s+\d+\s+min!?/gi, '')
-    .replace(/\s+-\s+NOW!?/gi, '')
-    .trim();
-  return `${baseTitle || 'Reminder'} - NOW!`;
-};
+const auth = () => ({ token: localStorage.getItem('token') || '', user: localStorage.getItem('username') || '' });
+const identity = ({ token, user }) => `${user}:${token}`;
+const keyFor = n => `${n.id}:${n.created_at}`;
+const empty = { notifications: [], unreadCount: 0, totalCount: 0, nextCursor: null, loading: true, error: '', slideQueue: [], selectedNotification: null };
 
 export const NotificationProvider = ({ children }) => {
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [slideQueue, setSlideQueue] = useState([]);
+  const [state, setState] = useState(empty);
+  const location = useLocation();
+  const scope = useRef('');
+  const generation = useRef(0);
+  const request = useRef(null);
+  const backoff = useRef(0);
+  const pending = useRef(new Map());
+  const stateRef = useRef(state); stateRef.current = state;
+  const presented = useRef(new Map());
+  const firstLoad = useRef(true);
+  const accountStarted = useRef(Date.now());
+  const enabled = useRef(notificationsEnabled());
+  const preferenceChangedAt = useRef(0);
+  const timers = useRef(new Map());
+  const mounted = useRef(true);
+  const storageKey = useRef('');
 
-  const pollRef = useRef(null);
-  const lastCheckRef = useRef(0);
-  const nextAllowedPollAtRef = useRef(0);
-  const seenNotificationIdsRef = useRef(new Set());
-  const queuedSlideIdsRef = useRef(new Set());
-  const dueSlideTimeoutsRef = useRef(new Map());
-  const queuedDueSlideKeysRef = useRef(new Set());
-  const hasLoadedNotificationsRef = useRef(false);
-  const providerStartedAtRef = useRef(Date.now());
-
-  const pollNotifications = useCallback(async (force = false) => {
-    try {
-      const { token, userName } = getAuthFromStorage();
-      if (!token || !userName) {
-        setNotifications([]);
-        setUnreadCount(0);
-        setSlideQueue([]);
-        seenNotificationIdsRef.current = new Set();
-        queuedSlideIdsRef.current = new Set();
-        dueSlideTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
-        dueSlideTimeoutsRef.current.clear();
-        queuedDueSlideKeysRef.current = new Set();
-        hasLoadedNotificationsRef.current = false;
-        return;
-      }
-      if (!getNotificationsEnabled()) {
-        setNotifications([]);
-        setUnreadCount(0);
-        setSlideQueue([]);
-        seenNotificationIdsRef.current = new Set();
-        queuedSlideIdsRef.current = new Set();
-        dueSlideTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
-        dueSlideTimeoutsRef.current.clear();
-        queuedDueSlideKeysRef.current = new Set();
-        hasLoadedNotificationsRef.current = false;
-        return;
-      }
-
-      const now = Date.now();
-      if (!force && now < nextAllowedPollAtRef.current) {
-        return;
-      }
-      if (!force && now - lastCheckRef.current < 5000) {
-        return;
-      }
-      lastCheckRef.current = now;
-
-      const timezoneOffset = new Date().getTimezoneOffset();
-      const response = await fetch(`${API_URL}/get_notifications?user_id=${encodeURIComponent(userName)}&timezone_offset=${timezoneOffset}&limit=${NOTIFICATION_FETCH_LIMIT}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.status === 429) {
-        const retryAfter = Number(response.headers.get('Retry-After'));
-        const retryDelayMs = Number.isFinite(retryAfter) && retryAfter > 0
-          ? retryAfter * 1000
-          : 60000;
-        nextAllowedPollAtRef.current = Date.now() + retryDelayMs;
-        return;
-      }
-
-      if (!response.ok) {
-        return;
-      }
-
-      nextAllowedPollAtRef.current = 0;
-
-      const data = await response.json();
-      const notifs = (data.notifications || []).map(notif => ({
-        ...notif,
-        reminder_due_at: extractReminderDueAt(notif.message),
-        message: formatNotificationMessage(notif.message)
-      }));
-
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.is_read).length);
-
-      const firstLoad = !hasLoadedNotificationsRef.current;
-      const recentFirstLoadCutoff = providerStartedAtRef.current - 120000;
-      const newNotifs = notifs.filter(notif => {
-        const queueKey = getNotificationQueueKey(notif);
-        if (notif.is_read || queuedSlideIdsRef.current.has(queueKey)) return false;
-
-        const createdAt = Date.parse(notif.created_at || '');
-        const isRecentFirstLoadNotif = firstLoad && Number.isFinite(createdAt) && createdAt >= recentFirstLoadCutoff;
-        const isNewlySeenNotif = !firstLoad && !seenNotificationIdsRef.current.has(queueKey);
-
-        return isRecentFirstLoadNotif || isNewlySeenNotif;
-      });
-
-      if (newNotifs.length > 0) {
-        const newSlideNotifs = newNotifs.map(notif => ({
-          id: notif.id,
-          title: notif.title,
-          message: notif.message,
-          notification_type: notif.notification_type || 'general',
-          created_at: notif.created_at,
-          reminder_due_at: notif.reminder_due_at
-        }));
-
-        setSlideQueue(prev => [...prev, ...newSlideNotifs]);
-
-        newNotifs.forEach(n => queuedSlideIdsRef.current.add(getNotificationQueueKey(n)));
-      }
-
-      seenNotificationIdsRef.current = new Set(notifs.map(getNotificationQueueKey));
-      hasLoadedNotificationsRef.current = true;
-
-      notifs.forEach(notif => {
-        if (!notif.reminder_due_at || notif.is_read) return;
-        if (!['reminder', 'calendar_event'].includes(notif.notification_type || '')) return;
-
-        const queueKey = `due:${getNotificationQueueKey(notif)}`;
-        if (queuedDueSlideKeysRef.current.has(queueKey) || dueSlideTimeoutsRef.current.has(queueKey)) return;
-
-        const dueTime = Date.parse(notif.reminder_due_at);
-        if (!Number.isFinite(dueTime)) return;
-
-        const delay = dueTime - Date.now();
-        if (delay < -120000 || delay > 24 * 60 * 60 * 1000) return;
-
-        const showDueSlide = () => {
-          dueSlideTimeoutsRef.current.delete(queueKey);
-          if (queuedDueSlideKeysRef.current.has(queueKey)) return;
-          queuedDueSlideKeysRef.current.add(queueKey);
-          setSlideQueue(prev => [...prev, {
-            id: notif.id,
-            title: getDueSlideTitle(notif.title),
-            message: notif.message,
-            notification_type: notif.notification_type || 'reminder',
-            created_at: new Date().toISOString(),
-            reminder_due_at: notif.reminder_due_at
-          }]);
-        };
-
-        if (delay <= 0) {
-          showDueSlide();
-          return;
-        }
-
-        dueSlideTimeoutsRef.current.set(queueKey, setTimeout(showDueSlide, delay));
-      });
-    } catch (error) { /* silenced */ }
+  const remember = useCallback(key => {
+    presented.current.set(key, Date.now());
+    const cutoff = Date.now() - 86400000;
+    presented.current = new Map([...presented.current].filter(([, t]) => t >= cutoff).slice(-500));
+    try { sessionStorage.setItem(storageKey.current, JSON.stringify([...presented.current])); } catch { /* in-memory fallback */ }
   }, []);
-
-  const startPolling = useCallback(() => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
+  const stopTimers = useCallback(() => { timers.current.forEach(clearTimeout); timers.current.clear(); }, []);
+  const syncScope = useCallback(() => {
+    const current = identity(auth());
+    const changed = current !== scope.current;
+    const setting = notificationsEnabled();
+    if (changed) {
+      generation.current += 1;
+      request.current?.controller.abort(); request.current = null;
+      stopTimers(); pending.current.clear(); backoff.current = 0;
+      scope.current = current;
+      storageKey.current = `cerbyl.notification.presented:${auth().user}`;
+      try { presented.current = new Map(JSON.parse(sessionStorage.getItem(storageKey.current) || '[]')); } catch { presented.current = new Map(); }
+      firstLoad.current = true; accountStarted.current = Date.now();
+      setState({ ...empty, loading: Boolean(auth().token) });
     }
-    pollRef.current = setTimeout(() => {
-      pollNotifications(true);
-      pollRef.current = setInterval(() => pollNotifications(false), NOTIFICATION_POLL_INTERVAL_MS);
-    }, INITIAL_NOTIFICATION_DELAY_MS);
-  }, [pollNotifications]);
+    if (enabled.current !== setting) {
+      generation.current += 1;
+      request.current?.controller.abort(); request.current = null;
+      stopTimers(); enabled.current = setting; preferenceChangedAt.current = Date.now();
+      setState(prev => ({ ...prev, slideQueue: [] }));
+    }
+    return changed;
+  }, [stopTimers]);
 
-  useEffect(() => {
-    startPolling();
-
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      dueSlideTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
-      dueSlideTimeoutsRef.current.clear();
-    };
-  }, [startPolling]);
-
-  useEffect(() => {
-    const handleSettingsChange = () => {
-      pollNotifications(true);
-    };
-
-    window.addEventListener('notification-settings-changed', handleSettingsChange);
-    return () => {
-      window.removeEventListener('notification-settings-changed', handleSettingsChange);
-    };
-  }, [pollNotifications]);
-
-  const refreshNotifications = useCallback(() => {
-    pollNotifications(true);
-  }, [pollNotifications]);
-
-  const removeSlideNotification = useCallback((notifId) => {
-    setSlideQueue(prev => prev.filter(n => n.id !== notifId));
-  }, []);
-
-  const markNotificationAsRead = useCallback(async (notifId) => {
-    try {
-      const { token } = getAuthFromStorage();
-      if (!token) return;
-
-      const response = await fetch(`${API_URL}/mark_notification_read/${notifId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
+  const fetchPage = useCallback(async (append = false) => {
+    syncScope();
+    const credentials = auth(), session = identity(credentials);
+    if (!credentials.token || !credentials.user) return false;
+    if (Date.now() < backoff.current || pending.current.size) return false;
+    if (request.current) return request.current.promise;
+    const version = generation.current;
+    const cursor = append ? stateRef.current.nextCursor : null;
+    if (append && !cursor) return true;
+    const controller = new AbortController();
+    const live = () => mounted.current && version === generation.current && session === identity(auth());
+    const run = async () => {
+      setState(prev => ({ ...prev, loading: true, error: '' }));
+      try {
+        const count = append ? 25 : Math.max(25, stateRef.current.notifications.length);
+        const response = await fetch(`${API_URL}/get_notifications?user_id=${encodeURIComponent(credentials.user)}&timezone_offset=${new Date().getTimezoneOffset()}&limit=${Math.min(200, count)}${cursor ? `&before_id=${cursor}` : ''}`, { headers: { Authorization: `Bearer ${credentials.token}` }, signal: controller.signal });
+        if (!live()) return false;
+        if (response.status === 429) {
+          const value = response.headers.get('Retry-After');
+          const seconds = Number(value);
+          backoff.current = Date.now() + (Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : Math.max(60000, Date.parse(value) - Date.now() || 0));
         }
-      });
-
-      if (response.ok) {
-        setNotifications(prev => prev.map(n =>
-          n.id === notifId ? { ...n, is_read: true } : n
-        ));
-        setUnreadCount(prev => Math.max(0, prev - 1));
-        setSlideQueue(prev => prev.filter(n => n.id !== notifId));
-        queuedSlideIdsRef.current.add(notifId);
-      }
-    } catch (error) { /* silenced */ }
-  }, []);
-
-  const markAllNotificationsAsRead = useCallback(async () => {
-    try {
-      const { token, userName } = getAuthFromStorage();
-      if (!token || !userName) return;
-
-      const response = await fetch(`${API_URL}/mark_all_notifications_read?user_id=${encodeURIComponent(userName)}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
+        if (!response.ok) throw new Error(response.status === 429 ? 'Notifications are temporarily busy. Please retry shortly.' : 'Could not load notifications. Please retry.');
+        const data = await response.json();
+        if (!live()) return false;
+        // Refresh all loaded history, not just the API's maximum first page.
+        while (!append && data.next_cursor && data.notifications.length < count) {
+          const next = await fetch(`${API_URL}/get_notifications?user_id=${encodeURIComponent(credentials.user)}&limit=${Math.min(200, count - data.notifications.length)}&before_id=${data.next_cursor}`, { headers: { Authorization: `Bearer ${credentials.token}` }, signal: controller.signal });
+          if (!live()) return false;
+          if (next.status === 429) backoff.current = Date.now() + Math.max(60000, Number(next.headers.get('Retry-After')) * 1000 || 0);
+          if (!next.ok) throw new Error('Could not refresh older notifications. Please retry.');
+          const page = await next.json();
+          data.notifications.push(...page.notifications);
+          data.next_cursor = page.next_cursor;
         }
-      });
-
-      if (response.ok) {
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-        setUnreadCount(0);
-        setSlideQueue([]);
-      }
-    } catch (error) { /* silenced */ }
-  }, []);
-
-  const deleteNotification = useCallback(async (notifId) => {
-    try {
-      const { token } = getAuthFromStorage();
-      if (!token) return;
-
-      const response = await fetch(`${API_URL}/delete_notification/${notifId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
+        if (typeof data.notifications_enabled === 'boolean' && Date.now() - preferenceChangedAt.current > 5000) {
+          enabled.current = data.notifications_enabled;
+          try {
+            const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+            localStorage.setItem('userProfile', JSON.stringify({ ...profile, notificationsEnabled: enabled.current }));
+          } catch { /* keep current in-memory preference */ }
         }
-      });
-
-      if (response.ok) {
-        setNotifications(prev => {
-          const target = prev.find(n => n.id === notifId);
-          const wasUnread = target ? !target.is_read : false;
-          if (wasUnread) {
-            setUnreadCount(count => Math.max(0, count - 1));
-          }
-          return prev.filter(n => n.id !== notifId);
+        const rows = (data.notifications || []).map(n => ({ ...n, message: cleanNotificationMessage(n.message) }));
+        const slides = [];
+        if (!append && enabled.current) for (const n of rows) {
+          const key = keyFor(n);
+          if (n.is_read || presented.current.has(key) || (firstLoad.current && Date.parse(n.created_at) < accountStarted.current - 120000)) continue;
+          // The due timer owns an immediately due alert, avoiding duplicate popups.
+          const due = Date.parse(n.reminder_due_at);
+          if (!(due <= Date.now() && due >= Date.now() - 120000)) slides.push({ ...n, queueKey: key });
+          remember(key);
+        }
+        firstLoad.current = false;
+        setState(prev => {
+          const notifications = append ? [...prev.notifications, ...rows.filter(n => !prev.notifications.some(old => old.id === n.id))] : rows;
+          const active = new Set(notifications.filter(n => !n.is_read).map(n => n.id));
+          return { ...prev, notifications, unreadCount: data.unread_count ?? rows.filter(n => !n.is_read).length,
+            totalCount: data.total_count ?? rows.length, nextCursor: data.next_cursor ?? null,
+            slideQueue: enabled.current ? [...prev.slideQueue.filter(n => active.has(n.id)), ...slides] : [], loading: false, error: '' };
         });
-        seenNotificationIdsRef.current.add(notifId);
-        queuedSlideIdsRef.current.add(notifId);
-        setSlideQueue(prev => prev.filter(n => n.id !== notifId));
+        return true;
+      } catch (error) {
+        if (live() && error.name !== 'AbortError') setState(prev => ({ ...prev, loading: false, error: error.message }));
+        return false;
+      } finally {
+        if (request.current?.controller === controller) request.current = null;
       }
-    } catch (error) { /* silenced */ }
-  }, []);
+    };
+    const promise = run(); request.current = { controller, promise };
+    return promise;
+  }, [remember, syncScope]);
 
-  return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        slideQueue,
-        refreshNotifications,
-        removeSlideNotification,
-        markNotificationAsRead,
-        markAllNotificationsAsRead,
-        deleteNotification
-      }}
-    >
-      {children}
-    </NotificationContext.Provider>
-  );
+  useEffect(() => {
+    mounted.current = true;
+    const refresh = () => { syncScope(); void fetchPage(); };
+    refresh();
+    const interval = setInterval(refresh, 30000);
+    window.addEventListener('storage', refresh);
+    window.addEventListener('auth-session-changed', refresh);
+    window.addEventListener('notification-settings-changed', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      mounted.current = false; generation.current += 1; request.current?.controller.abort(); request.current = null;
+      clearInterval(interval); stopTimers();
+      window.removeEventListener('storage', refresh);
+      window.removeEventListener('auth-session-changed', refresh);
+      window.removeEventListener('notification-settings-changed', refresh);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [fetchPage, stopTimers, syncScope]);
+  useEffect(() => { if (syncScope()) void fetchPage(); }, [location.key, fetchPage, syncScope]);
+
+  useEffect(() => {
+    stopTimers();
+    if (!enabled.current || !auth().token) return;
+    const session = scope.current;
+    for (const n of state.notifications) {
+      const due = Date.parse(n.reminder_due_at), key = `due:${keyFor(n)}`;
+      if (n.is_read || !Number.isFinite(due) || due < Date.now() - 120000 || due > Date.now() + 86400000 || presented.current.has(key)) continue;
+      const show = () => {
+        if (session !== identity(auth()) || !notificationsEnabled()) return;
+        if (!stateRef.current.notifications.some(item => item.id === n.id && !item.is_read)) return;
+        remember(key);
+        setState(prev => ({ ...prev, slideQueue: [...prev.slideQueue.filter(item => item.id !== n.id), { ...n, dueNow: true, queueKey: key, title: `${n.title.replace(/ - (NOW!|In \d+ min!)/g, '')} — Due now` }] }));
+      };
+      timers.current.set(key, setTimeout(show, Math.max(0, due - Date.now())));
+    }
+    return stopTimers;
+  }, [state.notifications, remember, stopTimers]);
+
+  const mutate = useCallback(async (operation, id) => {
+    syncScope();
+    const credentials = auth(), session = identity(credentials);
+    if (!credentials.token) return false;
+    const operationKey = `${operation}:${id ?? 'all'}`;
+    if (pending.current.has(operationKey)) return pending.current.get(operationKey);
+    // Retire any read snapshot captured before this write.
+    generation.current += 1; request.current?.controller.abort(); request.current = null;
+    stopTimers();
+    const task = (async () => {
+      try {
+        const path = operation === 'all' ? `mark_all_notifications_read?user_id=${encodeURIComponent(credentials.user)}` : operation === 'delete' ? `delete_notification/${id}` : `mark_notification_read/${id}`;
+        const response = await fetch(`${API_URL}/${path}`, { method: operation === 'delete' ? 'DELETE' : 'PUT', headers: { Authorization: `Bearer ${credentials.token}` } });
+        if (session !== identity(auth()) || !mounted.current) return false;
+        if (!response.ok) throw new Error('Could not update this notification. Please retry.');
+        setState(prev => {
+          const item = prev.notifications.find(n => n.id === id);
+          const notifications = operation === 'delete' ? prev.notifications.filter(n => n.id !== id) : prev.notifications.map(n => operation === 'all' || n.id === id ? { ...n, is_read: true } : n);
+          return { ...prev, notifications, loading: false, error: '',
+            unreadCount: operation === 'all' ? 0 : Math.max(0, prev.unreadCount - (item && !item.is_read ? 1 : 0)),
+            totalCount: operation === 'delete' ? Math.max(0, prev.totalCount - (item ? 1 : 0)) : prev.totalCount,
+            slideQueue: operation === 'all' ? [] : prev.slideQueue.filter(n => n.id !== id) };
+        });
+        return true;
+      } catch (error) {
+        if (session === identity(auth()) && mounted.current) setState(prev => ({ ...prev, loading: false, error: error.message, notifications: [...prev.notifications] }));
+        return false;
+      } finally { pending.current.delete(operationKey); }
+    })();
+    pending.current.set(operationKey, task);
+    return task;
+  }, [stopTimers, syncScope]);
+
+  const removeSlideNotification = useCallback(queueKey => setState(prev => ({ ...prev, slideQueue: prev.slideQueue.filter(n => n.queueKey !== queueKey) })), []);
+  const openNotification = useCallback(n => { setState(prev => ({ ...prev, selectedNotification: n })); void mutate('read', n.id); }, [mutate]);
+  const closeNotification = useCallback(() => setState(prev => ({ ...prev, selectedNotification: null })), []);
+  return <NotificationContext.Provider value={{ ...state,
+    refreshNotifications: (invalidate = false) => {
+      if (invalidate === true) { generation.current += 1; request.current?.controller.abort(); request.current = null; stopTimers(); }
+      return fetchPage();
+    }, loadMoreNotifications: () => fetchPage(true),
+    markNotificationAsRead: id => mutate('read', id), markAllNotificationsAsRead: () => mutate('all'), deleteNotification: id => mutate('delete', id),
+    removeSlideNotification, openNotification, closeNotification }} >{children}</NotificationContext.Provider>;
 };

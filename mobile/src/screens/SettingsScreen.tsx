@@ -1,3 +1,4 @@
+import DevicePushSettings from '../components/DevicePushSettings';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, Alert, Linking, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -214,6 +215,7 @@ export default function SettingsScreen({ user, onBack }: Props) {
           )}
         </View>
 
+        <DevicePushSettings alertsEnabled={pushEnabled} />
         <Text style={styles.sectionLabel}>preferences</Text>
         <View style={styles.card}>
           <LinearGradient colors={cbCardGradient.colors} start={cbCardGradient.start} end={cbCardGradient.end} style={StyleSheet.absoluteFillObject} />
@@ -222,7 +224,7 @@ export default function SettingsScreen({ user, onBack }: Props) {
             <View style={styles.iconWrap}>
               <Ionicons name="notifications-outline" size={17} color={selectedTheme.accent} />
             </View>
-            <Text style={styles.prefLabel}>Push Notifications</Text>
+            <Text style={styles.prefLabel}>Notification alerts</Text>
             <Switch
               value={pushEnabled}
               onValueChange={handlePushToggle}

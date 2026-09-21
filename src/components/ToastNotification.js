@@ -1,3 +1,4 @@
+import useNotificationDismiss from '../hooks/useNotificationDismiss';
 import { useEffect, useState } from 'react';
 import './ToastNotification.css';
 import { Bell, CheckCircle, AlertCircle, Award, TrendingUp, Zap, X } from 'lucide-react';
@@ -6,24 +7,9 @@ const ToastNotification = ({ notification, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
-  useEffect(() => {
-    
-    setTimeout(() => setIsVisible(true), 100);
-
-    
-    const timer = setTimeout(() => {
-      handleClose();
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleClose = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
+  const dismissEvents = useNotificationDismiss(onClose, 12000);
+  useEffect(() => { setIsVisible(true); }, []);
+  const handleClose = () => onClose();
 
   const getIcon = () => {
     switch (notification.notification_type) {
@@ -46,7 +32,7 @@ const ToastNotification = ({ notification, onClose }) => {
   };
 
   return (
-    <div className={`toast-notification ${isVisible ? 'visible' : ''} ${isExiting ? 'exiting' : ''}`}>
+    <div className={`toast-notification ${isVisible ? 'visible' : ''} ${isExiting ? 'exiting' : ''}`} {...dismissEvents}>
       <div className="toast-icon">
         {getIcon()}
       </div>

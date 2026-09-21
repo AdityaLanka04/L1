@@ -130,3 +130,6 @@ psutil>=5.9.0
 python-dateutil>=2.8.0
 argon2-cffi>=23.1.0
 boto3>=1.34.0
+
+# Encrypted browser push delivery (configured with VAPID keys).
+pywebpush>=2.0.3,<3

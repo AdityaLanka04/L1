@@ -1430,16 +1430,20 @@ export type AppNotification = {
   notification_type: string;
   is_read: boolean;
   created_at: string;
+  reminder_due_at?: string | null;
+  action_url?: string | null;
 };
 
-export async function getNotifications(userId: string, limit = 50): Promise<{ notifications: AppNotification[] }> {
+export async function getNotifications(userId: string, limit = 25, beforeId?: number | null): Promise<{ notifications: AppNotification[]; unread_count: number; total_count: number; next_cursor: number | null }> {
   const headers = await authHeaders();
   const res = await fetch(
-    `${API_URL}/get_notifications?user_id=${encodeURIComponent(userId)}&timezone_offset=${new Date().getTimezoneOffset()}&limit=${limit}`,
+    `${API_URL}/get_notifications?user_id=${encodeURIComponent(userId)}&timezone_offset=${new Date().getTimezoneOffset()}&limit=${limit}${beforeId ? `&before_id=${beforeId}` : ""}`,
     { headers }
   );
-  if (!res.ok) return { notifications: [] };
-  return res.json();
+  if (!res.ok) await readApiError(res, 'Could not load notifications');
+  const data = await res.json();
+  data.notifications = (data.notifications || []).map((n: AppNotification) => ({ ...n, message: n.message.replace(/\s*\[(?:reminder_id|reminder_due_at|login_return):[^\]]*\]/g, '').trim() }));
+  return data;
 }
 
 export async function markNotificationRead(notificationId: number) {
@@ -1569,6 +1573,7 @@ export async function createReminder(payload: {
   body.append('priority', payload.priority ?? 'none');
   body.append('color', payload.color ?? '#D7B38C');
   body.append('timezone_offset', String(new Date().getTimezoneOffset()));
+  body.append('user_timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
   const res = await fetch(`${API_URL}/create_reminder`, { method: 'POST', headers, body });
   if (!res.ok) await readApiError(res, 'Could not create reminder');
   return res.json();

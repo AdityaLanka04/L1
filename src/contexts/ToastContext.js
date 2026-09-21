@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback } from 'react';
 import ToastNotification from '../components/ToastNotification';
 
 const ToastContext = createContext();
+let toastSequence = 0;
 
 export const useToast = () => {
   const context = useContext(ToastContext);
@@ -15,15 +16,12 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const showToast = useCallback((notification) => {
-    const id = Date.now();
+    const id = ++toastSequence;
     const toastWithId = { ...notification, id };
     
     setToasts(prev => [...prev, toastWithId]);
     
     
-    setTimeout(() => {
-      removeToast(id);
-    }, 5500);
   }, []);
 
   const removeToast = useCallback((id) => {
@@ -33,8 +31,8 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="toast-container">
-        {toasts.map(toast => (
+      <div className="toast-container" role="status" aria-live="polite" aria-relevant="additions">
+        {toasts.slice(0, 1).map(toast => (
           <ToastNotification
             key={toast.id}
             notification={toast}

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime, timezone
 from database import Base
@@ -14,6 +14,11 @@ class Notification(Base):
     message = Column(Text, nullable=False)
     notification_type = Column(String(50))
     is_read = Column(Boolean, default=False)
+    source_id = Column(Integer, nullable=True, index=True)
+    occurrence_key = Column(String(160), nullable=True, unique=True)
+    due_at = Column(DateTime, nullable=True)
+    action_url = Column(String(500), nullable=True)
+    cancelled = Column(Boolean, default=False, nullable=False, server_default="0")
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -55,6 +60,9 @@ class Reminder(Base):
 
     reminder_date = Column(DateTime, nullable=True)
     due_date = Column(DateTime, nullable=True)
+    timezone_name = Column(String(64), nullable=True)
+    due_at_utc = Column(DateTime, nullable=True)
+    notify_at_utc = Column(DateTime, nullable=True, index=True)
     reminder_type = Column(String(50), default="reminder")
     priority = Column(String(20), default="none")
     color = Column(String(20), default="#3b82f6")
@@ -83,3 +91,26 @@ class Reminder(Base):
     user = relationship("User")
     list = relationship("ReminderList", back_populates="reminders")
     subtasks = relationship("Reminder", backref=backref("parent", remote_side=[id]), cascade="all, delete-orphan")
+
+
+class NotificationPushSubscription(Base):
+    __tablename__ = 'notification_push_subscriptions'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), index=True, nullable=False)
+    endpoint_hash = Column(String(64), unique=True, nullable=False)
+    platform = Column(String(10), nullable=False)
+    subscription = Column(Text, nullable=False)
+    last_notification_id = Column(Integer, default=0, nullable=False)
+    failures = Column(Integer, default=0, nullable=False)
+    retry_at = Column(DateTime, nullable=True)
+    receipt_id = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class NotificationPushDelivery(Base):
+    __tablename__ = 'notification_push_deliveries'
+    __table_args__ = (UniqueConstraint('subscription_id', 'notification_id', name='uq_push_delivery'),)
+    id = Column(Integer, primary_key=True)
+    subscription_id = Column(Integer, ForeignKey('notification_push_subscriptions.id', ondelete='CASCADE'), nullable=False)
+    notification_id = Column(Integer, ForeignKey('notifications.id', ondelete='CASCADE'), nullable=False)
+    delivered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

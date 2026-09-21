@@ -196,12 +196,15 @@ def _notify(
     title: str,
     message: str,
     notification_type: str,
+    action_url: str = None,
+    source_id: int = None,
 ) -> None:
     db.add(models.Notification(
         user_id=user_id,
         title=title[:200],
         message=message,
         notification_type=notification_type,
+        action_url=action_url, source_id=source_id,
         is_read=False,
     ))
 
@@ -212,10 +215,12 @@ def _notify_section_students(
     title: str,
     message: str,
     notification_type: str,
+    action_url: str = None,
+    source_id: int = None,
 ) -> None:
     for enrollment in section.enrollments:
         if enrollment.status == "active":
-            _notify(db, enrollment.student_id, title, message, notification_type)
+            _notify(db, enrollment.student_id, title, message, notification_type, action_url, source_id)
 
 
 def _safe_filename(value: str | None) -> str:

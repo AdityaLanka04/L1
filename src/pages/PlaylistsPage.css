@@ -3289,3 +3289,115 @@
     background: transparent;
   }
 }
+
+/* Keep actions outside the field scroller, including when the color picker expands. */
+.playlist-create-backdrop .playlist-create-dialog {
+  max-height: calc(100dvh - 40px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.playlist-create-dialog .playlist-create-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.playlist-create-dialog .playlist-create-fields {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px 28px;
+  scroll-padding-block: 24px;
+}
+
+.playlist-create-dialog .playlist-create-footer {
+  position: static;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 18px 28px;
+  background: var(--lp-bg-secondary);
+}
+
+.playlist-create-dialog .tag-input-row input {
+  min-width: 0;
+  width: 0;
+}
+
+.playlist-create-dialog .tag-input-row .add-btn {
+  flex: 0 0 44px;
+  padding: 10px;
+}
+
+.playlist-create-dialog .tag-item {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.playlist-create-dialog .tag-item button,
+.playlist-create-dialog .close-btn,
+.playlist-create-dialog input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+@media (max-width: 500px) {
+  .modal-backdrop.playlist-create-backdrop {
+    padding: 10px;
+  }
+
+  .playlist-create-backdrop .playlist-create-dialog {
+    max-height: calc(100dvh - 20px);
+  }
+
+  .playlist-create-dialog .modal-header {
+    padding: 18px;
+    gap: 12px;
+  }
+
+  .playlist-create-dialog .modal-header h2 {
+    font-size: 20px;
+  }
+
+  .playlist-create-dialog .playlist-create-fields {
+    padding: 20px 18px;
+  }
+
+  .playlist-create-dialog .playlist-create-footer {
+    padding: 14px 18px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .playlist-create-dialog .playlist-create-footer button {
+    flex: 1 1 auto;
+    padding-inline: 12px;
+    letter-spacing: 1px;
+  }
+}
+
+.playlist-create-dialog .playlist-create-footer .btn-primary {
+  background: var(--lp-accent);
+  color: var(--lp-bg-primary);
+}
+
+/* Text-field padding and backgrounds must not cover the range tracks. */
+.playlist-create-dialog .form-field input[type="range"] {
+  display: block;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.playlist-create-dialog .slider-container:focus-within {
+  outline: 2px solid var(--lp-accent);
+  outline-offset: 3px;
+}

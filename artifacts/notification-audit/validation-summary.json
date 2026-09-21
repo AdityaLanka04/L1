@@ -1,0 +1,23 @@
+{
+  "frontend_tests": 46,
+  "backend_tests": 27,
+  "backend_unrelated_tests_excluded": {
+    "count": 2,
+    "reason": "Minimal test environment lacks langgraph for tutor-only tests"
+  },
+  "production_build": "passed",
+  "mobile_typecheck": "passed",
+  "browser_checks": {
+    "email_headings": 0,
+    "nan_progress": false,
+    "details_dialog": "passed",
+    "keyboard_delete": "passed",
+    "battle_deep_link": "passed",
+    "escape": "passed",
+    "mobile_horizontal_overflow": false,
+    "uncaught_errors": []
+  },
+  "live_push_sent": false,
+  "existing_databases_migrated": false,
+  "deployed": false
+}

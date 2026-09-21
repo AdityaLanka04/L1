@@ -194,6 +194,7 @@ async def create_quiz_battle(
             title="Quiz Battle Challenge",
             message=f"{current_user.username} has challenged you to a quiz battle on {subject}!",
             notification_type="battle_challenge",
+                    source_id=battle.id, action_url=f"/quiz-battles?battle={battle.id}",
             is_read=False
         )
         db.add(battle_notification)
@@ -391,7 +392,8 @@ async def complete_quiz_battle(
                         user_id=participant.id,
                         title="Battle Tied",
                         message=f"It's a tie against {opponent.username}! You both scored {battle.challenger_score}/{total_questions} ({tie_percentage}%).",
-                        notification_type="battle_tied"
+                        notification_type="battle_tied",
+                    source_id=battle.id, action_url=f"/quiz-battle/{battle.id}"
                     ))
             else:
                 winner = battle.challenger if winner_id == battle.challenger_id else battle.opponent
@@ -421,7 +423,8 @@ async def complete_quiz_battle(
                     user_id=winner_id,
                     title="Battle Victory",
                     message=f"You won the quiz battle against {loser.username}! Score: {winner_score}/{total_questions} ({winner_percentage}%)",
-                    notification_type="battle_won"
+                    notification_type="battle_won",
+                    source_id=battle.id, action_url=f"/quiz-battle/{battle.id}"
                 )
                 db.add(winner_notification)
 
@@ -429,7 +432,8 @@ async def complete_quiz_battle(
                     user_id=loser.id,
                     title="Battle Complete",
                     message=f"Good effort! You scored {loser_score}/{total_questions} ({loser_percentage}%) against {winner.username}. Practice and challenge them again!",
-                    notification_type="battle_lost"
+                    notification_type="battle_lost",
+                    source_id=battle.id, action_url=f"/quiz-battle/{battle.id}"
                 )
                 db.add(loser_notification)
         elif battle.status == "pending":
@@ -614,6 +618,7 @@ async def join_challenge(
                     title="Challenge Joined",
                     message=f"{current_user.username} joined your challenge '{challenge.title}'.",
                     notification_type="challenge_joined",
+                    source_id=challenge.id, action_url=f"/challenge/{challenge.id}",
                     is_read=False
                 )
                 db.add(join_notification)
@@ -1192,6 +1197,7 @@ async def update_challenge_progress(
                 title="Challenge Completed",
                 message=f"Congratulations! You've completed the challenge '{challenge.title}' with {progress:.0f}% progress!",
                 notification_type="challenge_completed",
+                    source_id=challenge.id, action_url=f"/challenge/{challenge.id}",
                 is_read=False
             )
             db.add(notification)
@@ -1202,6 +1208,7 @@ async def update_challenge_progress(
                     title="Challenge Completed",
                     message=f"{current_user.username} completed your challenge '{challenge.title}'.",
                     notification_type="challenge_completed",
+                    source_id=challenge.id, action_url=f"/challenge/{challenge.id}",
                     is_read=False
                 )
                 db.add(creator_notification)
@@ -1264,6 +1271,7 @@ async def accept_quiz_battle(
             title="Battle Accepted",
             message=f"{opponent_name} accepted your quiz battle challenge. It's on!",
             notification_type="battle_accepted",
+                    source_id=battle.id, action_url=f"/quiz-battle/{battle.id}",
             is_read=False
         )
         db.add(notification)
@@ -1273,6 +1281,7 @@ async def accept_quiz_battle(
             title="Battle Started",
             message=f"You're now in a live quiz battle against {challenger_name}. Good luck!",
             notification_type="battle_started",
+                    source_id=battle.id, action_url=f"/quiz-battle/{battle.id}",
             is_read=False
         )
         db.add(start_notification)
@@ -1337,6 +1346,7 @@ async def decline_quiz_battle(
             title="Battle Declined",
             message=f"{opponent_name} declined your quiz battle challenge.",
             notification_type="battle_declined",
+                    source_id=battle.id, action_url=f"/quiz-battles?battle={battle.id}",
             is_read=False
         )
         db.add(decline_notification)

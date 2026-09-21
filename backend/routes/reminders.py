@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
+from services.notification_delivery import configure_reminder, invalidate_reminder, generate_reminders, iso_utc
 from deps import get_current_user, get_user_by_email, get_user_by_username
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,8 @@ def serialize_reminder(r):
         "description": r.description,
         "notes": r.notes,
         "url": r.url,
-        "reminder_date": r.reminder_date.isoformat() if r.reminder_date else None,
+        "reminder_date": iso_utc(r.due_at_utc) if r.due_at_utc else (r.reminder_date.isoformat() if r.reminder_date else None),
+        "timezone_name": r.timezone_name,
         "due_date": r.due_date.isoformat() if r.due_date else None,
         "reminder_type": r.reminder_type,
         "priority": r.priority,
@@ -55,92 +57,13 @@ def serialize_reminder(r):
         "subtasks": [serialize_reminder(s) for s in r.subtasks] if r.subtasks else [],
     }
 
-def _get_reminder_notif_meta(reminder: models.Reminder) -> tuple[str, str]:
-    notif_type = "calendar_event" if reminder.reminder_type in ("event", "calendar_event") else "reminder"
-    title_prefix = "Event" if notif_type == "calendar_event" else "Reminder"
-    return notif_type, title_prefix
-
-def _reminder_notification_marker(reminder_id: int) -> str:
-    return f"[reminder_id:{reminder_id}]"
-
-def _reminder_due_at_marker(reminder_dt: datetime) -> str:
-    return f"[reminder_due_at:{reminder_dt.isoformat()}]"
-
-def _safe_notify_before_minutes(reminder: models.Reminder, default: int = 15) -> int:
+def _create_due_reminder_notification(db, user, reminder, timezone_offset=0):
     try:
-        return int(reminder.notify_before_minutes if reminder.notify_before_minutes is not None else default)
+        return generate_reminders(db, user.id)
     except Exception:
-        return default
-
-def _local_now_from_offset(timezone_offset: int = 0) -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=timezone_offset or 0)
-
-def _create_due_reminder_notification(
-    db: Session,
-    user: models.User,
-    reminder: models.Reminder,
-    timezone_offset: int = 0,
-) -> bool:
-    if not reminder.reminder_date or reminder.is_completed:
-        return False
-
-    reminder_dt = reminder.reminder_date
-    if reminder_dt.tzinfo is not None:
-        reminder_dt = reminder_dt.astimezone(timezone.utc).replace(tzinfo=None)
-
-    minutes_until = (reminder_dt - _local_now_from_offset(timezone_offset)).total_seconds() / 60
-    if minutes_until > _safe_notify_before_minutes(reminder):
-        return False
-
-    notif_type, title_prefix = _get_reminder_notif_meta(reminder)
-    notification_title = f"{title_prefix}: {reminder.title}"
-    notification_marker = _reminder_notification_marker(reminder.id)
-    due_at_marker = _reminder_due_at_marker(reminder_dt)
-    existing = db.query(models.Notification).filter(
-        models.Notification.user_id == user.id,
-        models.Notification.notification_type == notif_type,
-        models.Notification.message.contains(notification_marker),
-    ).first()
-    if existing:
-        if not reminder.is_notified:
-            reminder.is_notified = True
-            db.commit()
-        return False
-
-    claimed_reminder = False
-    if not reminder.is_notified:
-        claimed_reminder = db.query(models.Reminder).filter(
-            models.Reminder.id == reminder.id,
-            models.Reminder.user_id == user.id,
-            models.Reminder.is_notified == False,
-        ).update({"is_notified": True}, synchronize_session=False) == 1
-
-    if not claimed_reminder:
-        return False
-
-    reminder_time = reminder_dt.strftime("%I:%M %p")
-    base_title = notification_title
-    if minutes_until <= 0:
-        title = f"{base_title} - NOW!"
-        message = f"{reminder.description or 'Your reminder is due now.'} - Scheduled for {reminder_time}"
-    elif minutes_until <= 5:
-        title = f"{base_title} - In {max(1, int(minutes_until))} min!"
-        message = f"{reminder.description or 'Your reminder is coming up.'} - Due at {reminder_time}"
-    else:
-        title = base_title
-        message = f"{reminder.description or 'Your scheduled reminder'} - Due at {reminder_time} (in {int(minutes_until)} min)"
-    message = f"{message} {notification_marker} {due_at_marker}"
-
-    notification = models.Notification(
-        user_id=user.id,
-        title=title,
-        message=message,
-        notification_type=notif_type,
-    )
-    db.add(notification)
-    db.commit()
-    logger.info(f"Created reminder notification for: {reminder.title}")
-    return True
+        db.rollback()
+        logger.exception('Reminder saved; notification will be retried by the scheduler')
+        return 0
 
 async def create_next_recurring_reminder(db: Session, original: models.Reminder):
     if not original.reminder_date or original.recurring == "none":
@@ -189,8 +112,9 @@ async def create_next_recurring_reminder(db: Session, original: models.Reminder)
         tags=original.tags,
     )
 
+    configure_reminder(new_reminder, original.timezone_name)
     db.add(new_reminder)
-    db.commit()
+    db.flush()
 
 @router.post("/create_reminder_list")
 async def create_reminder_list(
@@ -232,6 +156,9 @@ async def create_reminder_list(
             "sort_order": reminder_list.sort_order,
             "reminder_count": 0,
         }
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error creating reminder list: {str(e)}")
         db.rollback()
@@ -341,6 +268,9 @@ async def get_reminder_lists(
         }
 
         return {"lists": result, "smart_lists": smart_lists}
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error getting reminder lists: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -375,6 +305,9 @@ async def update_reminder_list(
         db.commit()
 
         return {"status": "success", "message": "List updated"}
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error updating reminder list: {str(e)}")
         db.rollback()
@@ -396,10 +329,15 @@ async def delete_reminder_list(
         if not reminder_list:
             raise HTTPException(status_code=404, detail="List not found")
 
+        for item in reminder_list.reminders:
+            invalidate_reminder(db, item)
         db.delete(reminder_list)
         db.commit()
 
         return {"status": "success", "message": "List deleted"}
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error deleting reminder list: {str(e)}")
         db.rollback()
@@ -418,7 +356,7 @@ async def create_reminder(
     priority: str = Form("none"),
     color: str = Form("#3b82f6"),
     is_flagged: bool = Form(False),
-    notify_before_minutes: int = Form(15),
+    notify_before_minutes: int = Form(15, ge=0, le=10080),
     list_id: int = Form(None),
     parent_id: int = Form(None),
     recurring: str = Form("none"),
@@ -427,7 +365,7 @@ async def create_reminder(
     location: str = Form(None),
     tags: str = Form(None),
     user_timezone: str = Form("UTC"),
-    timezone_offset: int = Form(0),
+    timezone_offset: int = Form(0, ge=-840, le=840),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -456,9 +394,7 @@ async def create_reminder(
         parsed_recurring_end = None
 
         if reminder_date:
-            parsed_reminder_date = datetime.fromisoformat(
-                reminder_date.replace("Z", "").replace("+00:00", "")
-            )
+            parsed_reminder_date = datetime.fromisoformat(reminder_date.replace("Z", "+00:00"))
             logger.info(f"Raw input: {reminder_date}")
             logger.info(f"Parsed as: {parsed_reminder_date} (treated as local time)")
             logger.info(f"User timezone: {user_timezone}")
@@ -507,6 +443,7 @@ async def create_reminder(
             sort_order=max_order + 1,
         )
 
+        configure_reminder(reminder, user_timezone if user_timezone != "UTC" or timezone_offset == 0 else None, timezone_offset)
         db.add(reminder)
         db.commit()
         db.refresh(reminder)
@@ -515,6 +452,12 @@ async def create_reminder(
         logger.info(f"Created reminder {reminder.id} for user {user.email}")
 
         return serialize_reminder(reminder)
+    except HTTPException:
+        db.rollback()
+        raise
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error(f"Error creating reminder: {str(e)}")
         db.rollback()
@@ -589,6 +532,9 @@ async def get_reminders(
         ).limit(2000).all()
 
         return [serialize_reminder(r) for r in reminders]
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error getting reminders: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -607,14 +553,15 @@ async def update_reminder(
     color: str = Form(None),
     is_completed: bool = Form(None),
     is_flagged: bool = Form(None),
-    notify_before_minutes: int = Form(None),
+    notify_before_minutes: int = Form(None, ge=0, le=10080),
     list_id: int = Form(None),
     recurring: str = Form(None),
     recurring_interval: int = Form(None),
     recurring_end_date: str = Form(None),
     location: str = Form(None),
     tags: str = Form(None),
-    timezone_offset: int = Form(0),
+    timezone_offset: int = Form(0, ge=-840, le=840),
+    user_timezone: str = Form(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -623,11 +570,14 @@ async def update_reminder(
             db.query(models.Reminder).filter(
                 models.Reminder.id == reminder_id,
                 models.Reminder.user_id == current_user.id,
-            ).first()
+            ).with_for_update().first()
         )
         if not reminder:
             raise HTTPException(status_code=404, detail="Reminder not found")
+        was_completed = reminder.is_completed
+        previous_schedule = (reminder.due_at_utc, reminder.notify_at_utc, reminder.is_completed, reminder.reminder_type)
         reminder_date_changed = reminder_date is not None
+        scheduling_fields_present = reminder_date_changed or notify_before_minutes is not None or is_completed is not None or reminder_type is not None
 
         if title is not None:
             reminder.title = title
@@ -641,10 +591,7 @@ async def update_reminder(
             if reminder_date == "":
                 reminder.reminder_date = None
             else:
-                reminder.reminder_date = datetime.fromisoformat(
-                    reminder_date.replace("Z", "").replace("+00:00", "")
-                )
-            reminder.is_notified = False
+                reminder.reminder_date = datetime.fromisoformat(reminder_date.replace("Z", "+00:00"))
         if due_date is not None:
             if due_date == "":
                 reminder.due_date = None
@@ -662,8 +609,6 @@ async def update_reminder(
             reminder.is_completed = is_completed
             if is_completed:
                 reminder.completed_at = datetime.now(timezone.utc)
-                if reminder.recurring != "none" and reminder.recurring:
-                    await create_next_recurring_reminder(db, reminder)
             else:
                 reminder.completed_at = None
         if is_flagged is not None:
@@ -695,7 +640,18 @@ async def update_reminder(
         if tags is not None:
             reminder.tags = tags
 
+        if title is not None or description is not None:
+            kind = 'Event' if reminder.reminder_type in ('event', 'calendar_event') else 'Reminder'
+            db.query(models.Notification).filter(models.Notification.source_id == reminder.id, models.Notification.user_id == reminder.user_id, models.Notification.notification_type.in_(['reminder', 'calendar_event']), models.Notification.cancelled == False).update({'title': f'{kind}: {reminder.title}', 'message': reminder.description or 'Your scheduled reminder'}, synchronize_session=False)
         reminder.updated_at = datetime.now(timezone.utc)
+        if scheduling_fields_present:
+            configure_reminder(reminder, user_timezone, timezone_offset)
+        occurrence_changed = previous_schedule != (reminder.due_at_utc, reminder.notify_at_utc, reminder.is_completed, reminder.reminder_type)
+        if occurrence_changed:
+            invalidate_reminder(db, reminder)
+            reminder.is_notified = False
+        if is_completed and not was_completed and reminder.recurring and reminder.recurring != 'none':
+            await create_next_recurring_reminder(db, reminder)
         db.commit()
         db.refresh(reminder)
         if reminder_date_changed or notify_before_minutes is not None or is_completed is False:
@@ -706,6 +662,12 @@ async def update_reminder(
             "message": "Reminder updated",
             "reminder": serialize_reminder(reminder),
         }
+    except HTTPException:
+        db.rollback()
+        raise
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error(f"Error updating reminder: {str(e)}")
         db.rollback()
@@ -727,10 +689,14 @@ async def delete_reminder(
         if not reminder:
             raise HTTPException(status_code=404, detail="Reminder not found")
 
+        invalidate_reminder(db, reminder, descendants=True)
         db.delete(reminder)
         db.commit()
 
         return {"status": "success", "message": "Reminder deleted"}
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error deleting reminder: {str(e)}")
         db.rollback()
@@ -764,6 +730,9 @@ async def add_subtask(
         db.refresh(subtask)
 
         return serialize_reminder(subtask)
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error adding subtask: {str(e)}")
         db.rollback()
@@ -790,6 +759,9 @@ async def toggle_reminder_flag(
         db.commit()
 
         return {"status": "success", "is_flagged": reminder.is_flagged}
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error toggling flag: {str(e)}")
         db.rollback()
@@ -824,6 +796,9 @@ async def get_upcoming_reminders(
         )
 
         return [serialize_reminder(r) for r in reminders]
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error getting upcoming reminders: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -854,6 +829,9 @@ async def search_reminders(
         )
 
         return [serialize_reminder(r) for r in reminders]
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         logger.error(f"Error searching reminders: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")

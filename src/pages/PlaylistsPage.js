@@ -945,10 +945,10 @@ const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties }) =>
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop playlist-create-backdrop" onClick={onClose}>
       <div
         ref={dialogRef}
-        className="modal-container"
+        className="modal-container playlist-create-dialog"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -960,185 +960,187 @@ const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties }) =>
           <button className="close-btn" onClick={onClose} type="button" aria-label="Close create playlist dialog">×</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
-          <div className="form-field">
-            <label htmlFor="create-playlist-name">Title</label>
-            <input
-              id="create-playlist-name"
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              placeholder="Enter playlist title"
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="modal-form playlist-create-form">
+          <div className="playlist-create-fields">
+            <div className="form-field">
+              <label htmlFor="create-playlist-name">Title</label>
+              <input
+                id="create-playlist-name"
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter playlist title"
+                required
+              />
+            </div>
 
-          <div className="form-field">
-            <label htmlFor="create-playlist-description">Description</label>
-            <textarea
-              id="create-playlist-description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="What's this playlist about?"
-              rows={3}
-            />
-          </div>
+            <div className="form-field">
+              <label htmlFor="create-playlist-description">Description</label>
+              <textarea
+                id="create-playlist-description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="What's this playlist about?"
+                rows={3}
+              />
+            </div>
 
-          <div className="form-field">
-            <label htmlFor="create-playlist-category">Category</label>
-            <select
-              id="create-playlist-category"
-              value={formData.category}
-              onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-            >
-              <option value="">Select category</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="create-playlist-difficulty">Difficulty</label>
-            <select id="create-playlist-difficulty" value={formData.difficulty_level} onChange={(e) => setFormData(prev => ({ ...prev, difficulty_level: e.target.value }))}>
-              {difficulties.map(level => <option key={level} value={level}>{level[0].toUpperCase() + level.slice(1)}</option>)}
-            </select>
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="create-playlist-hours">Estimated hours</label>
-            <input id="create-playlist-hours" type="number" min="0" step="0.5" value={formData.estimated_hours} onChange={(e) => setFormData(prev => ({ ...prev, estimated_hours: e.target.value }))} placeholder="e.g. 6" />
-          </div>
-
-          <div className="form-field">
-            <label>Cover Color</label>
-            <div className="color-picker-container">
-              <button
-                type="button"
-                className="color-preview"
-                style={{ backgroundColor: formData.cover_color }}
-                onClick={() => setIsPickingColor(!isPickingColor)}
-                aria-expanded={isPickingColor}
-                aria-label={`Choose cover color, current color ${formData.cover_color}`}
+            <div className="form-field">
+              <label htmlFor="create-playlist-category">Category</label>
+              <select
+                id="create-playlist-category"
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
               >
-                <span className="color-hex">{formData.cover_color}</span>
-              </button>
-              {isPickingColor && (
-                <div className="gradient-picker-sliders">
-                  <div className="slider-group">
-                    <label className="slider-label" htmlFor="cover-hue">Hue</label>
-                    <div className="slider-container hue-slider">
-                      <input
-                        id="cover-hue"
-                        type="range"
-                        min="0"
-                        max="360"
-                        value={hue}
-                        onChange={handleHueChange}
-                        className="color-slider"
-                      />
-                      <div className="slider-track hue-track"></div>
+                <option value="">Select category</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="create-playlist-difficulty">Difficulty</label>
+              <select id="create-playlist-difficulty" value={formData.difficulty_level} onChange={(e) => setFormData(prev => ({ ...prev, difficulty_level: e.target.value }))}>
+                {difficulties.map(level => <option key={level} value={level}>{level[0].toUpperCase() + level.slice(1)}</option>)}
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="create-playlist-hours">Estimated hours</label>
+              <input id="create-playlist-hours" type="number" min="0" step="0.5" value={formData.estimated_hours} onChange={(e) => setFormData(prev => ({ ...prev, estimated_hours: e.target.value }))} placeholder="e.g. 6" />
+            </div>
+
+            <div className="form-field">
+              <label>Cover Color</label>
+              <div className="color-picker-container">
+                <button
+                  type="button"
+                  className="color-preview"
+                  style={{ backgroundColor: formData.cover_color }}
+                  onClick={() => setIsPickingColor(!isPickingColor)}
+                  aria-expanded={isPickingColor}
+                  aria-label={`Choose cover color, current color ${formData.cover_color}`}
+                >
+                  <span className="color-hex">{formData.cover_color}</span>
+                </button>
+                {isPickingColor && (
+                  <div className="gradient-picker-sliders">
+                    <div className="slider-group">
+                      <label className="slider-label" htmlFor="cover-hue">Hue</label>
+                      <div className="slider-container hue-slider">
+                        <input
+                          id="cover-hue"
+                          type="range"
+                          min="0"
+                          max="360"
+                          value={hue}
+                          onChange={handleHueChange}
+                          className="color-slider"
+                        />
+                        <div className="slider-track hue-track"></div>
+                      </div>
+                    </div>
+                    <div className="slider-group">
+                      <label className="slider-label" htmlFor="cover-saturation">Saturation</label>
+                      <div className="slider-container sat-slider">
+                        <input
+                          id="cover-saturation"
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={saturation}
+                          onChange={handleSaturationChange}
+                          className="color-slider"
+                        />
+                        <div
+                          className="slider-track sat-track"
+                          style={{
+                            background: `linear-gradient(to right,
+                              hsl(${hue}, 0%, ${brightness}%),
+                              hsl(${hue}, 100%, ${brightness}%))`
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="slider-group">
+                      <label className="slider-label" htmlFor="cover-brightness">Brightness</label>
+                      <div className="slider-container bright-slider">
+                        <input
+                          id="cover-brightness"
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={brightness}
+                          onChange={handleBrightnessChange}
+                          className="color-slider"
+                        />
+                        <div
+                          className="slider-track bright-track"
+                          style={{
+                            background: `linear-gradient(to right,
+                              hsl(${hue}, ${saturation}%, 0%),
+                              hsl(${hue}, ${saturation}%, 50%),
+                              hsl(${hue}, ${saturation}%, 100%))`
+                          }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
-                  <div className="slider-group">
-                    <label className="slider-label" htmlFor="cover-saturation">Saturation</label>
-                    <div className="slider-container sat-slider">
-                      <input
-                        id="cover-saturation"
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={saturation}
-                        onChange={handleSaturationChange}
-                        className="color-slider"
-                      />
-                      <div
-                        className="slider-track sat-track"
-                        style={{
-                          background: `linear-gradient(to right,
-                            hsl(${hue}, 0%, ${brightness}%),
-                            hsl(${hue}, 100%, ${brightness}%))`
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="slider-group">
-                    <label className="slider-label" htmlFor="cover-brightness">Brightness</label>
-                    <div className="slider-container bright-slider">
-                      <input
-                        id="cover-brightness"
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={brightness}
-                        onChange={handleBrightnessChange}
-                        className="color-slider"
-                      />
-                      <div
-                        className="slider-track bright-track"
-                        style={{
-                          background: `linear-gradient(to right,
-                            hsl(${hue}, ${saturation}%, 0%),
-                            hsl(${hue}, ${saturation}%, 50%),
-                            hsl(${hue}, ${saturation}%, 100%))`
-                        }}
-                      ></div>
-                    </div>
-                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="create-playlist-tags">Tags</label>
+              <div className="tag-input-row">
+                <input
+                  id="create-playlist-tags"
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                  placeholder="Add tags..."
+                />
+                <button type="button" onClick={addTag} className="add-btn" aria-label="Add tag">
+                  <Plus size={16} />
+                </button>
+              </div>
+              {formData.tags.length > 0 && (
+                <div className="tags-display">
+                  {formData.tags.map(tag => (
+                    <span key={tag} className="tag-item">
+                      {tag}
+                      <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove ${tag} tag`}>×</button>
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
-          </div>
 
-          <div className="form-field">
-            <label htmlFor="create-playlist-tags">Tags</label>
-            <div className="tag-input-row">
-              <input
-                id="create-playlist-tags"
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                placeholder="Add tags..."
-              />
-              <button type="button" onClick={addTag} className="add-btn" aria-label="Add tag">
-                <Plus size={16} />
-              </button>
+            <div className="form-checkboxes">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={formData.is_public}
+                  onChange={(e) => setFormData(prev => ({ ...prev, is_public: e.target.checked }))}
+                />
+                <span>Make playlist public</span>
+              </label>
+
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={formData.is_collaborative}
+                  onChange={(e) => setFormData(prev => ({ ...prev, is_collaborative: e.target.checked }))}
+                />
+                <span>Allow collaborators</span>
+              </label>
             </div>
-            {formData.tags.length > 0 && (
-              <div className="tags-display">
-                {formData.tags.map(tag => (
-                  <span key={tag} className="tag-item">
-                    {tag}
-                    <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove ${tag} tag`}>×</button>
-                  </span>
-                ))}
-              </div>
-            )}
+
+            {submitError && <p className="modal-form-error" role="alert">{submitError} Check the fields and try again.</p>}
           </div>
-
-          <div className="form-checkboxes">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={formData.is_public}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_public: e.target.checked }))}
-              />
-              <span>Make playlist public</span>
-            </label>
-
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={formData.is_collaborative}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_collaborative: e.target.checked }))}
-              />
-              <span>Allow collaborators</span>
-            </label>
-          </div>
-
-          {submitError && <p className="modal-form-error" role="alert">{submitError} Check the fields and try again.</p>}
-          <div className="modal-footer">
+          <div className="modal-footer playlist-create-footer">
             <button type="button" className="btn-secondary" onClick={onClose}>
               Cancel
             </button>

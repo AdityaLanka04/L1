@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { signOutAppSession } from '../utils/authSession';
 import {
   Award,
@@ -127,6 +127,8 @@ const ActivityTimeline = () => {
 
   const [activities, setActivities] = useState([]);
   const [reminders, setReminders] = useState([]);
+  const notificationLocation = useLocation();
+  const openedReminderLink = useRef(null);
   const [reminderLists, setReminderLists] = useState([]);
   const [smartListCounts, setSmartListCounts] = useState({});
 
@@ -286,6 +288,7 @@ const ActivityTimeline = () => {
         created_at: item.created_at || null,
       }));
       setReminders(normalized);
+      refreshNotifications(true);
     } catch (e) {
       console.error('Reminders load failed', e);
     }
@@ -633,6 +636,13 @@ const ActivityTimeline = () => {
     setShowReminderModal(true);
   };
 
+  useEffect(() => {
+    const id = Number(new URLSearchParams(notificationLocation.search).get('reminder'));
+    if (!id || openedReminderLink.current === notificationLocation.key) return;
+    const reminder = reminders.find(item => item.id === id);
+    if (reminder) { openedReminderLink.current = notificationLocation.key; openReminderEdit(reminder); }
+  }, [reminders, notificationLocation.key, notificationLocation.search]);
+
   const persistReminder = async () => {
     const title = reminderForm.title.trim();
     if (!title) return;
@@ -672,7 +682,7 @@ const ActivityTimeline = () => {
       setShowReminderModal(false);
       setEditingReminder(null);
       setReminderForm(emptyReminderForm(selectedListId));
-      refreshNotifications();
+      refreshNotifications(true);
     } catch (e) {
       setError('Could not save reminder.');
     }

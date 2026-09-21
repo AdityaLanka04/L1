@@ -1,3 +1,4 @@
+import BrowserPushSettings from '../components/BrowserPushSettings';
 import { productRequest } from '../services/productService';
 import { readDraft, writeDraft, clearDraft } from '../utils/draftStorage';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -1313,9 +1314,10 @@ const ProfileNew = () => {
                 </div>
                 <div>
                   <span className="pnw-setting-icon"><Bell size={16} /></span>
-                  <span><strong>Notifications</strong><small>Allow updates and unread indicators across Cerbyl.</small></span>
+                  <span><strong>Notifications</strong><small>Allow popups and push alerts. Your inbox history stays available.</small></span>
                   <button type="button" className={`pnw-switch ${profileData.notificationsEnabled ? 'is-on' : ''}`} onClick={() => setField('notificationsEnabled', !profileData.notificationsEnabled)} role="switch" aria-checked={profileData.notificationsEnabled} aria-label="Notifications"><i /></button>
                 </div>
+                <BrowserPushSettings alertsEnabled={profileData.notificationsEnabled} />
               </div>
 
               {Object.keys(quizAnswers).length > 0 && (

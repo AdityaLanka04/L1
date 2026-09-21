@@ -127,6 +127,8 @@ async def share_content(
                     title="New Shared Content",
                     message=f"{current_user.username} shared a {share_data.content_type} with you: {content_title}",
                     notification_type="content_shared",
+                    source_id=share_data.content_id,
+                    action_url=f"/shared/{share_data.content_type}/{share_data.content_id}",
                     is_read=False
                 )
                 db.add(share_notification)

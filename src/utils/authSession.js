@@ -63,14 +63,16 @@ export const hasUsableBackendSession = () => {
 
 export const storeGoogleBackendSession = (accessToken, user) => {
   localStorage.setItem('token', accessToken);
-  localStorage.setItem('username', user.email);
+  localStorage.setItem('username', user.username || user.email);
   localStorage.setItem('userProfile', JSON.stringify({
     firstName: user.first_name,
     lastName: user.last_name,
     email: user.email,
     picture: user.picture_url,
     googleUser: true,
+    username: user.username,
   }));
+  window.dispatchEvent(new Event("auth-session-changed"));
 };
 
 export const restoreGoogleBackendSession = async () => {

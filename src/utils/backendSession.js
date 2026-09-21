@@ -1,3 +1,4 @@
+import { disableBrowserPush } from './notificationPush';
 import { LEARN_DESTINATION_KEY, WORKSPACE_KEY } from './workspace';
 import { clearAccountSession } from './institutionSession';
 
@@ -43,7 +44,9 @@ export const ACCOUNT_SESSION_STORAGE_KEYS = [
 ];
 
 export const clearBackendSession = () => {
+  if (localStorage.getItem("cerbyl.pushSubscription")) void disableBrowserPush().catch(() => {});
   ACCOUNT_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
   ACCOUNT_SESSION_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
   clearAccountSession();
+  window.dispatchEvent(new Event("auth-session-changed"));
 };

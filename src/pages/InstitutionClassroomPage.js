@@ -1,3 +1,4 @@
+import { useLocation, useNavigate } from 'react-router-dom';
 import { institutionDate } from '../utils/institutionDate';
 import TeacherClassDialog from '../components/TeacherClassDialog';
 import InstitutionPortalShell from '../components/InstitutionPortalShell';
@@ -36,10 +37,14 @@ const formatDate = (value) => value
   : 'No deadline';
 
 function InstitutionClassroomPage({ role, view }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const openedLink = useRef(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const isEducator = role === 'educator';
   const [dashboard, setDashboard] = useState({ status: 'loading', data: null, error: '' });
   const [resourceState, setResource] = useState({ status: 'idle', data: null, error: '', key: null });
-  const [selectedSectionId, setSelectedSectionId] = useState(null);
+  const [selectedSectionId, setSelectedSectionId] = useState(() => Number(new URLSearchParams(location.search).get('section')) || null);
   // React reuses this component between classroom routes. Never interpret the
   // previous page/class response using the next page's data contract.
   const resourceKey = `${role}:${view}:${selectedSectionId ?? 'all'}`;
@@ -187,6 +192,27 @@ function InstitutionClassroomPage({ role, view }) {
       && (statusFilter === 'all' || (isEducator ? row.published_status : row.status) === statusFilter)
     ));
   }, [dashboard.data, resource.data, isEducator, query, statusFilter]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('section')) setSelectedSectionId(Number(params.get('section')));
+    const id = Number(params.get('assignment'));
+    const assignment = assignments.find(item => item.id === id);
+    if (assignment && openedLink.current !== location.key) {
+      openedLink.current = location.key;
+      if (isEducator) setReviewAssignment(assignment); else setSelectedAssignment(assignment);
+    }
+  }, [location.key, location.search, assignments, isEducator]);
+  const loadOlderNotifications = async () => {
+    if (loadingOlder || !resource.data?.next_cursor) return;
+    setLoadingOlder(true);
+    const version = resourceVersion.current;
+    try {
+      const data = await apiRequest(`/institution/notifications?before_id=${resource.data.next_cursor}`);
+      if (version === resourceVersion.current) setResource(prev => ({ ...prev, data: { ...data, notifications: [...prev.data.notifications, ...data.notifications] } }));
+    } catch (error) { if (version === resourceVersion.current) setResource(prev => ({ ...prev, error: error.message })); }
+    finally { setLoadingOlder(false); }
+  };
 
   const refresh = async () => {
     await loadDashboard();
@@ -410,8 +436,10 @@ function InstitutionClassroomPage({ role, view }) {
         {view === 'notifications' && (
           <section className="icp-notification-list">
             <div className="icp-notification-summary"><Bell size={18} /><strong>{resource.data?.unread_count || 0} unread classroom updates</strong></div>
-            {(resource.data?.notifications || []).map((item) => <article className={item.is_read ? '' : 'is-unread'} key={item.id}><div className="ci-tile-texture" aria-hidden="true"/><span><Bell size={14} /></span><div><strong>{item.title}</strong><p>{item.message}</p><small>{formatDate(item.created_at)}</small></div>{!item.is_read && <button className="ci-action" type="button" onClick={() => markRead(item.id)}><Check size={14} /> Mark read</button>}</article>)}
+            {(resource.data?.notifications || []).map((item) => <article className={item.is_read ? '' : 'is-unread'} key={item.id}><div className="ci-tile-texture" aria-hidden="true"/><span><Bell size={14} /></span><div><strong>{item.title}</strong><p>{item.message}</p><small>{formatDate(item.created_at)}</small></div>{item.action_url && <button className="ci-action" type="button" onClick={() => navigate(item.action_url)}>Open activity</button>}{!item.is_read && <button className="ci-action" type="button" onClick={() => markRead(item.id)}><Check size={14} /> Mark read</button>}</article>)}
             {resource.status === 'loading' && <div className="icp-empty" role="status">Loading classroom updates…</div>}
+            {resource.data?.next_cursor && <button className="ci-action" type="button" disabled={loadingOlder} onClick={loadOlderNotifications}>Load older notifications</button>}
+            {resource.error && <p role="alert">{resource.error}</p>}
             {resource.status === 'ready' && !resource.data?.notifications?.length && <div className="icp-empty">No classroom notifications yet.</div>}
           </section>
         )}

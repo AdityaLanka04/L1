@@ -1,9 +1,11 @@
+import * as Notifications from 'expo-notifications';
+import { notifyInboxChanged } from '../services/notificationEvents';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, Text, ViewStyle, Animated, Keyboard, Platform } from 'react-native';
 import PagerView, { AppPagerHandle } from '../components/AppPager';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
+import { NavigationContainer, useFocusEffect, useNavigationContainerRef } from '@react-navigation/native';
 import { NavigationIndependentTree } from '@react-navigation/core';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -226,9 +228,25 @@ function MainTabs({ user, onLogout, onUserUpdate, onRetakeQuiz, onNavigate, requ
 
 export default function TabNavigator({ user, onLogout, onUserUpdate, onRetakeQuiz }: Props) {
   const { selectedTheme } = useAppTheme();
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  const pendingPush = useRef(false);
+  useEffect(() => {
+    let active = true;
+    const openInbox = () => {
+      if (!active) return;
+      if (navigationRef.isReady()) navigationRef.navigate('Notifications');
+      else pendingPush.current = true;
+    };
+    const received = Notifications.addNotificationReceivedListener(() => notifyInboxChanged());
+    const opened = Notifications.addNotificationResponseReceivedListener(openInbox);
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response && active) { openInbox(); void Notifications.clearLastNotificationResponseAsync(); }
+    }).catch(() => {});
+    return () => { active = false; received.remove(); opened.remove(); };
+  }, [navigationRef, user.username]);
   return (
     <NavigationIndependentTree>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef} onReady={() => { if (pendingPush.current) { pendingPush.current = false; navigationRef.navigate('Notifications'); } }}>
         <Stack.Navigator
           screenOptions={{
             headerShown: false,

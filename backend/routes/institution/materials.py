@@ -54,6 +54,7 @@ def create_course_material(
         f"New class material · {material.title}",
         f"{section.course.code} has a new {material.material_type}.",
         "class_material",
+        action_url=f"/student/library?section={section.id}", source_id=material.id,
     )
     db.commit()
     db.refresh(material)
@@ -102,7 +103,7 @@ async def upload_course_material(
     db.add(material)
     db.flush()
     material.source_url = str(request.url_for("download_course_material", section_id=section.id, material_id=material.id))
-    _notify_section_students(db, section, f"New class material · {material.title}", f"{section.course.code} has a new file.", "class_material")
+    _notify_section_students(db, section, f"New class material · {material.title}", f"{section.course.code} has a new file.", "class_material", action_url=f"/student/library?section={section.id}", source_id=material.id)
     db.commit()
     return {"id": material.id, "title": material.title, "source_url": material.source_url, "file_size": material.file_size}
 

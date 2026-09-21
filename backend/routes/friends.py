@@ -397,6 +397,10 @@ async def get_friends(
                     "notes": gam_stats.total_notes_created if gam_stats else 0,
                     "quizzes": gam_stats.total_quizzes_completed if gam_stats else 0
                 },
+                "experience": gam_stats.experience or 0 if gam_stats else 0,
+                "level": gam_stats.level or 1 if gam_stats else 1,
+                "total_points": gam_stats.total_points or 0 if gam_stats else 0,
+                "current_streak": gam_stats.current_streak or 0 if gam_stats else 0,
                 "friends_since": friendship.created_at.isoformat() + "Z"
             })
 

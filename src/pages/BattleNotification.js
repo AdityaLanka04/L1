@@ -1,11 +1,14 @@
+import useModalFocus from '../hooks/useModalFocus';
+import { displayName as getDisplayName } from '../utils/displayName';
 import { Swords, Clock, Target, Users, X } from 'lucide-react';
 import './BattleNotification.css';
 
-const BattleNotification = ({ battle, onAccept, onDecline, onClose }) => {
+const BattleNotification = ({ battle, onAccept, onDecline, onClose, busy = false, error = null }) => {
+  const dialogRef = useModalFocus(true, onClose);
   return (
     <div className="battle-notification-overlay">
-      <div className="battle-notification-modal">
-        <button className="notification-close" onClick={onClose}>
+      <div className="battle-notification-modal" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="battle-notification-title" tabIndex={-1}>
+        <button type="button" aria-label="Close battle challenge" className="notification-close" onClick={onClose}>
           <X size={20} />
         </button>
 
@@ -13,7 +16,7 @@ const BattleNotification = ({ battle, onAccept, onDecline, onClose }) => {
           <div className="notification-icon">
             <Swords size={48} />
           </div>
-          <h2>Battle Challenge!</h2>
+          <h2 id="battle-notification-title">Battle Challenge!</h2>
         </div>
 
         <div className="notification-body">
@@ -21,7 +24,7 @@ const BattleNotification = ({ battle, onAccept, onDecline, onClose }) => {
             <div className="challenger-avatar">
               {(() => {
                 const profilePicture = battle.challenger.picture_url || battle.challenger.picture || battle.challenger.profile_picture;
-                const displayName = battle.challenger.username || battle.challenger.email || 'U';
+                const displayName = getDisplayName(battle.challenger);
                 const initial = (battle.challenger.first_name?.[0] || displayName.charAt(0)).toUpperCase();
                 
                 if (profilePicture) {
@@ -115,12 +118,13 @@ const BattleNotification = ({ battle, onAccept, onDecline, onClose }) => {
           </div>
         </div>
 
+        {error && <p role="alert">{error}</p>}
         <div className="notification-actions">
-          <button className="decline-btn" onClick={onDecline}>
+          <button type="button" disabled={busy} className="decline-btn" onClick={onDecline}>
             <X size={16} />
             <span>Decline</span>
           </button>
-          <button className="accept-btn" onClick={() => onAccept(battle.id)}>
+          <button type="button" disabled={busy} className="accept-btn" onClick={() => onAccept(battle.id)}>
             <Swords size={16} />
             <span>Accept Challenge</span>
           </button>

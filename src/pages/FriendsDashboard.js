@@ -1,3 +1,4 @@
+import { displayName, experienceProgress } from '../utils/displayName';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
@@ -135,7 +136,7 @@ const FriendsDashboard = () => {
       if (res.ok) {
         const data = await res.json();
         const list = (data.users || [])
-          .sort((a, b) => (a.username || a.email).localeCompare(b.username || b.email))
+          .sort((a, b) => displayName(a).localeCompare(displayName(b)))
           .map(u => ({ ...u, ...statsMap[u.id] }));
         setAllUsers(list);
       }
@@ -155,7 +156,7 @@ const FriendsDashboard = () => {
       if (res.ok) {
         const data = await res.json();
         const list = (data.users || [])
-          .sort((a, b) => (a.username || a.email).localeCompare(b.username || b.email))
+          .sort((a, b) => displayName(a).localeCompare(displayName(b)))
           .map(u => ({ ...u, ...statsMap[u.id] }));
         setSearchResults(list);
       }
@@ -279,7 +280,7 @@ const FriendsDashboard = () => {
 
   const renderAvatar = (user, size = 'md') => {
     const pic = user.picture_url || user.picture || user.profile_picture;
-    const name = user.username || user.email || 'U';
+    const name = displayName(user);
     const initial = name.charAt(0).toUpperCase();
     return (
       <div className={`fd-avatar fd-avatar--${size}`}>
@@ -299,7 +300,7 @@ const FriendsDashboard = () => {
   };
 
   const renderFriendCard = (friend, index) => {
-    const progress = Math.min(100, ((friend.experience % 1000) / 1000) * 100);
+    const progress = experienceProgress(friend.experience);
     return (
     <article key={friend.id} className="fd-friend-card" style={{ '--fd-index': `"${String(index + 1).padStart(2, '0')}"` }}>
       <div className="fd-card-spine" aria-hidden="true">
@@ -310,7 +311,7 @@ const FriendsDashboard = () => {
         {renderAvatar(friend, 'lg')}
         <div className="fd-friend-identity">
           <div className="fd-friend-level-badge">{getLevelLabel(friend.level)} · LVL {friend.level || 1}</div>
-          <h3 className="fd-friend-name">{friend.username || friend.email}</h3>
+          <h3 className="fd-friend-name">{displayName(friend)}</h3>
           <p className="fd-friend-role">
             {(friend.current_streak || 0) > 0 ? `${friend.current_streak} day learning rhythm` : 'Ready for a fresh learning rhythm'}
           </p>
@@ -318,7 +319,7 @@ const FriendsDashboard = () => {
         <details className="fd-card-menu" onToggle={event => {
           if (!event.currentTarget.open && confirmRemoveId === friend.id) setConfirmRemoveId(null);
         }}>
-          <summary aria-label={`Actions for ${friend.username || friend.email}`}>
+          <summary aria-label={`Actions for ${displayName(friend)}`}>
             <MoreHorizontal size={16} />
           </summary>
           <div className="fd-card-menu-popover">
@@ -386,7 +387,7 @@ const FriendsDashboard = () => {
       <div key={user.id} className="fd-user-row">
         {renderAvatar(user, 'md')}
         <div className="fd-user-row-info">
-          <h4 className="fd-user-row-name">{user.username || user.email}</h4>
+          <h4 className="fd-user-row-name">{displayName(user)}</h4>
           <div className="fd-user-row-meta">
             <span className="fd-user-row-pill fd-pill--level">LVL {user.level || 1}</span>
             {(user.current_streak || 0) > 0 && (
@@ -443,12 +444,12 @@ const FriendsDashboard = () => {
   const visibleFriends = useMemo(() => {
     const query = friendQuery.trim().toLowerCase();
     const filtered = query
-      ? friends.filter(friend => `${friend.username || ''} ${friend.email || ''}`.toLowerCase().includes(query))
+      ? friends.filter(friend => `${displayName(friend)} ${friend.username || ''} ${friend.email || ''}`.toLowerCase().includes(query))
       : [...friends];
 
     return filtered.sort((a, b) => {
       if (friendSort === 'name') {
-        return (a.username || a.email || '').localeCompare(b.username || b.email || '');
+        return displayName(a).localeCompare(displayName(b));
       }
       if (friendSort === 'level') {
         return (b.level || 1) - (a.level || 1) || (b.experience || 0) - (a.experience || 0);
@@ -614,7 +615,7 @@ const FriendsDashboard = () => {
                         <article key={req.request_id} className="fd-user-row fd-request-row">
                           {renderAvatar(req, 'md')}
                           <div className="fd-user-row-info">
-                            <h3 className="fd-user-row-name">{req.username || req.email}</h3>
+                            <h3 className="fd-user-row-name">{displayName(req)}</h3>
                             <p className="fd-user-row-email">{req.email}</p>
                           </div>
                           <div className="fd-user-row-action fd-request-btns">
@@ -653,7 +654,7 @@ const FriendsDashboard = () => {
                         <article key={req.request_id} className="fd-user-row fd-request-row">
                           {renderAvatar(req, 'md')}
                           <div className="fd-user-row-info">
-                            <h3 className="fd-user-row-name">{req.username || req.email}</h3>
+                            <h3 className="fd-user-row-name">{displayName(req)}</h3>
                             <p className="fd-user-row-email">{req.email}</p>
                           </div>
                           <div className="fd-user-row-action">
@@ -796,7 +797,7 @@ const FriendsDashboard = () => {
                       <div key={req.request_id} className="fd-user-row">
                         {renderAvatar(req, 'md')}
                         <div className="fd-user-row-info">
-                          <h4 className="fd-user-row-name">{req.username || req.email}</h4>
+                          <h4 className="fd-user-row-name">{displayName(req)}</h4>
                           <p className="fd-user-row-email">{req.email}</p>
                         </div>
                         <div className="fd-user-row-action fd-request-btns">
@@ -821,7 +822,7 @@ const FriendsDashboard = () => {
                       <div key={req.request_id} className="fd-user-row">
                         {renderAvatar(req, 'md')}
                         <div className="fd-user-row-info">
-                          <h4 className="fd-user-row-name">{req.username || req.email}</h4>
+                          <h4 className="fd-user-row-name">{displayName(req)}</h4>
                           <p className="fd-user-row-email">{req.email}</p>
                         </div>
                         <div className="fd-user-row-action">
