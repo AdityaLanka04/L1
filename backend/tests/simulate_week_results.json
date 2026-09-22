@@ -1,0 +1,291 @@
+{
+  "scratch_db": "D:\\Temp\\brainwave_bandit_tests\\week_sim_b30288f9.db",
+  "students": [
+    {
+      "name": "simstudent0_70f620@test.local",
+      "archetype": "Kinetiq",
+      "power_user": false,
+      "true_best_strategy": "WORKED_EXAMPLE"
+    },
+    {
+      "name": "simstudent1_2f877b@test.local",
+      "archetype": "Logicor",
+      "power_user": false,
+      "true_best_strategy": "SCAFFOLDED"
+    },
+    {
+      "name": "simstudent2_560738@test.local",
+      "archetype": "Flowist",
+      "power_user": false,
+      "true_best_strategy": "METACOGNITIVE"
+    },
+    {
+      "name": "simstudent3_7c97ab@test.local",
+      "archetype": "default",
+      "power_user": false,
+      "true_best_strategy": "GUIDED_DISCOVERY"
+    },
+    {
+      "name": "simstudent4_840f26@test.local",
+      "archetype": "Kinetiq",
+      "power_user": false,
+      "true_best_strategy": "WORKED_EXAMPLE"
+    },
+    {
+      "name": "simstudent5_040bfd@test.local",
+      "archetype": "Logicor",
+      "power_user": false,
+      "true_best_strategy": "REANCHOR"
+    },
+    {
+      "name": "simstudent6_2485b6@test.local",
+      "archetype": "Flowist",
+      "power_user": false,
+      "true_best_strategy": "REANCHOR"
+    },
+    {
+      "name": "simstudent7_1a0a0a@test.local",
+      "archetype": "default",
+      "power_user": false,
+      "true_best_strategy": "GUIDED_DISCOVERY"
+    },
+    {
+      "name": "simstudent8_92af95@test.local",
+      "archetype": "Kinetiq",
+      "power_user": true,
+      "true_best_strategy": "WORKED_EXAMPLE"
+    },
+    {
+      "name": "simstudent9_a2aa64@test.local",
+      "archetype": "Logicor",
+      "power_user": true,
+      "true_best_strategy": "SCAFFOLDED"
+    }
+  ],
+  "chat_daily": [
+    {
+      "day": 1,
+      "turns": 78,
+      "match_hidden_best_rate": 0.41,
+      "selection_methods": {
+        "rule": 78
+      },
+      "episodes_resolved_cumulative": 41,
+      "episodes_total_cumulative": 78
+    },
+    {
+      "day": 2,
+      "turns": 74,
+      "match_hidden_best_rate": 0.338,
+      "selection_methods": {
+        "rule": 43,
+        "blend_rule": 31
+      },
+      "episodes_resolved_cumulative": 78,
+      "episodes_total_cumulative": 152
+    },
+    {
+      "day": 3,
+      "turns": 83,
+      "match_hidden_best_rate": 0.289,
+      "selection_methods": {
+        "rule": 43,
+        "blend_rule": 30,
+        "blend_bandit": 10
+      },
+      "episodes_resolved_cumulative": 130,
+      "episodes_total_cumulative": 235
+    },
+    {
+      "day": 4,
+      "turns": 78,
+      "match_hidden_best_rate": 0.269,
+      "selection_methods": {
+        "rule": 25,
+        "blend_rule": 34,
+        "blend_bandit": 19
+      },
+      "episodes_resolved_cumulative": 184,
+      "episodes_total_cumulative": 313
+    },
+    {
+      "day": 5,
+      "turns": 82,
+      "match_hidden_best_rate": 0.232,
+      "selection_methods": {
+        "rule": 10,
+        "blend_rule": 39,
+        "blend_bandit": 31,
+        "bandit": 2
+      },
+      "episodes_resolved_cumulative": 244,
+      "episodes_total_cumulative": 395
+    },
+    {
+      "day": 6,
+      "turns": 85,
+      "match_hidden_best_rate": 0.188,
+      "selection_methods": {
+        "blend_rule": 38,
+        "rule": 1,
+        "blend_bandit": 13,
+        "bandit": 31,
+        "explore": 2
+      },
+      "episodes_resolved_cumulative": 300,
+      "episodes_total_cumulative": 480
+    },
+    {
+      "day": 7,
+      "turns": 81,
+      "match_hidden_best_rate": 0.173,
+      "selection_methods": {
+        "blend_rule": 39,
+        "blend_bandit": 7,
+        "bandit": 33,
+        "explore": 2
+      },
+      "episodes_resolved_cumulative": 358,
+      "episodes_total_cumulative": 561
+    }
+  ],
+  "content_daily": [
+    {
+      "day": 1,
+      "selection_methods": {
+        "rule": 16
+      },
+      "avg_regret": 0.25
+    },
+    {
+      "day": 2,
+      "selection_methods": {
+        "rule": 14
+      },
+      "avg_regret": 0.25
+    },
+    {
+      "day": 3,
+      "selection_methods": {
+        "rule": 13
+      },
+      "avg_regret": 0.25
+    },
+    {
+      "day": 4,
+      "selection_methods": {
+        "rule": 16
+      },
+      "avg_regret": 0.25
+    },
+    {
+      "day": 5,
+      "selection_methods": {
+        "rule": 13
+      },
+      "avg_regret": 0.25
+    },
+    {
+      "day": 6,
+      "selection_methods": {
+        "rule": 14
+      },
+      "avg_regret": 0.25
+    },
+    {
+      "day": 7,
+      "selection_methods": {
+        "rule": 13,
+        "bandit": 1
+      },
+      "avg_regret": 0.25
+    }
+  ],
+  "state_space_sparsity": [
+    {
+      "student": "simstudent0_70f620@test.local",
+      "power_user": false,
+      "total_interactions": 43,
+      "unique_state_hashes": 15,
+      "avg_pulls_per_exact_state": 2.87
+    },
+    {
+      "student": "simstudent1_2f877b@test.local",
+      "power_user": false,
+      "total_interactions": 42,
+      "unique_state_hashes": 10,
+      "avg_pulls_per_exact_state": 4.2
+    },
+    {
+      "student": "simstudent2_560738@test.local",
+      "power_user": false,
+      "total_interactions": 45,
+      "unique_state_hashes": 14,
+      "avg_pulls_per_exact_state": 3.21
+    },
+    {
+      "student": "simstudent3_7c97ab@test.local",
+      "power_user": false,
+      "total_interactions": 40,
+      "unique_state_hashes": 9,
+      "avg_pulls_per_exact_state": 4.44
+    },
+    {
+      "student": "simstudent4_840f26@test.local",
+      "power_user": false,
+      "total_interactions": 49,
+      "unique_state_hashes": 20,
+      "avg_pulls_per_exact_state": 2.45
+    },
+    {
+      "student": "simstudent5_040bfd@test.local",
+      "power_user": false,
+      "total_interactions": 44,
+      "unique_state_hashes": 11,
+      "avg_pulls_per_exact_state": 4.0
+    },
+    {
+      "student": "simstudent6_2485b6@test.local",
+      "power_user": false,
+      "total_interactions": 38,
+      "unique_state_hashes": 9,
+      "avg_pulls_per_exact_state": 4.22
+    },
+    {
+      "student": "simstudent7_1a0a0a@test.local",
+      "power_user": false,
+      "total_interactions": 46,
+      "unique_state_hashes": 14,
+      "avg_pulls_per_exact_state": 3.29
+    },
+    {
+      "student": "simstudent8_92af95@test.local",
+      "power_user": true,
+      "total_interactions": 155,
+      "unique_state_hashes": 23,
+      "avg_pulls_per_exact_state": 6.74
+    },
+    {
+      "student": "simstudent9_a2aa64@test.local",
+      "power_user": true,
+      "total_interactions": 159,
+      "unique_state_hashes": 17,
+      "avg_pulls_per_exact_state": 9.35
+    }
+  ],
+  "latency_comparison": {
+    "n_samples": 561,
+    "pipeline_overhead_ms": {
+      "p50": 42.09,
+      "p90": 49.83,
+      "p99": 117.81,
+      "max": 250.63
+    },
+    "system_prompt_addendum": {
+      "plain_call_words": 0,
+      "ml_embedded_avg_words": 72.8,
+      "ml_embedded_avg_chars": 534.1
+    },
+    "note": "pipeline_overhead_ms is backend compute added BEFORE the LLM call even starts (intent+concept embedding, BKT update, affect scoring, Thompson sampling, memory retrieval, 2x DB commits). It does NOT include the LLM generation call itself. The system-prompt addendum adds ~73 words / ~534 chars to EVERY chat request sent to the LLM, which the LLM must additionally process and pay for on every single turn regardless of whether the strategy/mastery info changes the reply."
+  }
+}

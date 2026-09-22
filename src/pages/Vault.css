@@ -2118,10 +2118,38 @@
 .vlt-qb-shell .sb-sidebar,
 .vlt-stat { overflow: hidden; }
 
+/* Same tile-texture treatment, extended to every remaining ContextHub
+   surface (library card, doc cards, recent items, upload card, curriculum
+   cards, workspace sidebar) so the whole page reads as one material. */
+.vlt-docs-sidebar,
+.vlt-recent-item,
+.vlt-upload-form-card,
+.vlt-curr-book-card,
+.vlt-doccard {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* .vlt-docs-main and .vlt-workspace-sidebar scroll internally
+   (overflow-y: auto) — no overflow:hidden here, and their grain layer
+   below skips the -20% bleed so it can't add phantom scroll height. */
+.vlt-docs-main,
+.vlt-workspace-sidebar {
+  position: relative;
+  isolation: isolate;
+}
+
 .vlt-qb-shell .sb-sidebar::before,
 .vlt-deck-panel::before,
 .vlt-deck-browser::before,
-.vlt-stat::before {
+.vlt-stat::before,
+.vlt-docs-sidebar::before,
+.vlt-docs-main::before,
+.vlt-recent-item::before,
+.vlt-upload-form-card::before,
+.vlt-curr-book-card::before,
+.vlt-workspace-sidebar::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -2137,7 +2165,11 @@
 .vlt-qb-shell .sb-sidebar::after,
 .vlt-deck-panel::after,
 .vlt-deck-browser::after,
-.vlt-stat::after {
+.vlt-stat::after,
+.vlt-docs-sidebar::after,
+.vlt-recent-item::after,
+.vlt-upload-form-card::after,
+.vlt-curr-book-card::after {
   content: '';
   position: absolute;
   inset: -20%;
@@ -2151,10 +2183,56 @@
   background-size: 160px 160px;
 }
 
+/* Scrollable panes: same grain, but inset 0 (no -20% bleed) so it can't
+   inflate scrollHeight or peek past the scroll clip. */
+.vlt-docs-main::after,
+.vlt-workspace-sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  background-attachment: local;
+}
+
+/* .vlt-doccard already owns ::before for its hover glow, so it gets the
+   texture stacked into the same background-image list instead of the
+   shared ::before/::after pseudo pair above. */
+.vlt-doccard::before {
+  background-image:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 70%),
+    repeating-linear-gradient(115deg, transparent 0 22px, rgba(216, 179, 141, 0.05) 22px 23px),
+    repeating-linear-gradient(25deg, transparent 0 26px, rgba(216, 179, 141, 0.032) 26px 27px);
+}
+.vlt-doccard::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  width: 140%;
+  height: 140%;
+  pointer-events: none;
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
 .vlt-qb-shell .sb-sidebar > *,
 .vlt-deck-panel > *,
 .vlt-deck-browser > *,
-.vlt-stat > * {
+.vlt-stat > *,
+.vlt-docs-sidebar > *,
+.vlt-docs-main > *,
+.vlt-recent-item > *,
+.vlt-upload-form-card > *,
+.vlt-curr-book-card > *,
+.vlt-workspace-sidebar > *,
+.vlt-doccard > * {
   position: relative;
   z-index: 1;
 }

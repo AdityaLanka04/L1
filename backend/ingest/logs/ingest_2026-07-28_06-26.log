@@ -1,0 +1,42 @@
+01:26:21 INFO     ============================================================
+01:26:21 INFO       Brainwave Curriculum Ingest — LIVE
+01:26:21 INFO       Source:  oer
+01:26:21 INFO       Docs:    1 entries
+01:26:21 INFO       Mode:    resume=no (fresh run)
+01:26:21 INFO       Log:     D:\Brainwave\L1\backend\ingest\logs\ingest_2026-07-28_06-26.log
+01:26:21 INFO     ============================================================
+01:26:22 INFO     Using SQLite database (WAL mode)
+01:26:22 INFO     Initializing vector_store + embedding model...
+01:26:49 INFO     Use pytorch device_name: cpu
+01:26:49 INFO     Load pretrained SentenceTransformer: BAAI/bge-small-en-v1.5
+01:26:53 INFO     vector_store initialized (sqlite fallback)
+01:26:53 INFO     vector_store (pgvector) initialized.
+01:26:53 INFO     Redis unavailable (No module named 'redis') — using in-memory fallback cache
+01:26:53 INFO     [1/1] Ingesting: CLP-1 Differential Calculus
+01:26:53 INFO       Downloading: CLP-1 Differential Calculus
+01:26:56 INFO     HTTP Request: GET https://personal.math.ubc.ca/~CLP/CLP1/combined_clp_1.pdf "HTTP/1.1 200 OK"
+01:27:32 INFO       Downloaded 7879 KB from https://personal.math.ubc.ca/~CLP/CLP1/combined_clp_1.pdf
+01:27:32 INFO       Processing: CLP-1 Differential Calculus
+01:29:12 INFO     Per-page extraction selected parser=pypdf2 pages=1014 score=230627.7
+01:29:13 INFO       Extracted 1597 chunks from 1014 pages
+01:29:13 INFO       Embedding + storing: CLP-1 Differential Calculus
+01:29:14 INFO     Created system ingest user with id=8
+01:39:54 INFO       Stored 1597 chunks for CLP-1 Differential Calculus
+01:39:54 INFO     [1/1] OK: CLP-1 Differential Calculus — 1597 chunks in 781.2s
+01:39:54 INFO     
+--- Final spot-check on remaining 1 docs ---
+01:39:54 INFO       Spot checking: CLP-1 Differential Calculus
+01:39:54 INFO       Spot check [SKIP] CLP-1 Differential Calculus: 0/0 samples passed — Import failed: No module named 'context_store'
+01:39:54 INFO     
+01:39:54 INFO     ============================================================
+01:39:54 INFO       INGEST COMPLETE
+01:39:54 INFO       Total:     1
+01:39:54 INFO       Succeeded: 1
+01:39:54 INFO       Failed:    0
+01:39:54 INFO       Skipped:   0 (already ingested)
+01:39:54 INFO       Duration:  781s (13.0 min)
+01:39:54 INFO     
+01:39:54 INFO       Spot checks: 1 run
+01:39:54 INFO         Passed: 0
+01:39:54 INFO         Failed: 0
+01:39:54 INFO     ============================================================

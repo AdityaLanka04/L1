@@ -1,0 +1,73 @@
+[
+  {
+    "scenario": "A_sustained_confident",
+    "concept": "photosynthesis",
+    "mastery_trace": [
+      0.3,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.99
+    ],
+    "passed": true
+  },
+  {
+    "scenario": "B_sustained_confused",
+    "concept": "integration_by_parts",
+    "mastery_trace": [
+      0.6,
+      0.10290425414971968,
+      0.10286303006992045,
+      0.10286303006992045,
+      0.10286303006992045,
+      0.10286303006992045,
+      0.10286303006992045,
+      0.10286303006992045
+    ],
+    "passed": true
+  },
+  {
+    "scenario": "C_reversal",
+    "concept": "thermodynamics",
+    "mastery_trace": [
+      0.4,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.10672893240593122,
+      0.10286303006992045,
+      0.10286303006992045,
+      0.10286303006992045
+    ],
+    "passed": true
+  },
+  {
+    "scenario": "D_off_topic_immunity",
+    "concept": "cell_biology",
+    "with_off_topic_trace": [
+      0.5,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.99
+    ],
+    "control_trace_no_off_topic": [
+      0.5,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.99,
+      0.99
+    ],
+    "passed": true
+  }
+]

@@ -174,6 +174,14 @@
   min-width: 0;
 }
 
+.cb-usage-row {
+  /* "-row" suffix is matched globally by neumorphism.css and would
+     otherwise get a stray soft box-shadow with nothing to anchor it. */
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 .cb-usage-label {
   color: var(--cb-mute);
   font-size: 10px;
@@ -1775,6 +1783,14 @@
   align-items: stretch;
   gap: 10px;
   margin-top: 6px;
+  /* "cb-stat-row" ends in "-row", which neumorphism.css's global
+     .app-neumorphic-root :where([class$="-row"], ...) selector matches and
+     gives a soft raised box-shadow with no background to anchor it — the
+     "invisible box" look. Must stay !important (same fix as the login page
+     and Flashcards.css phantom-box bugs). */
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .cb-stat {
@@ -1788,9 +1804,14 @@
   gap: 2px;
   overflow: hidden;
   cursor: pointer;
-  /* Flat, no boxed-card look for these small number tiles — overrides the
-     shared card recipe from CerbylCardSurface.css, whose two-selector
-     specificity a single class can't beat otherwise. */
+}
+
+/* Flat, no boxed-card look for these small number tiles — overrides the
+   shared card recipe from CerbylCardSurface.css. That recipe now carries
+   !important of its own (to beat neumorphism.css's ID-specificity button/
+   panel rules), so this reset needs the matching two-selector specificity
+   (.cbd-root .cb-stat) to still win the tie, not just !important alone. */
+.cbd-root .cb-stat {
   background: none !important;
   border: none !important;
   box-shadow: none !important;
@@ -1841,9 +1862,13 @@
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: color .15s, background .15s, border-color .15s, transform .15s, box-shadow .15s;
+  /* These are real <button> elements, so neumorphism.css's global
+     #root :where(button, [role="button"]) rule (ID specificity) would
+     otherwise silently win over this box-shadow and replace it with the
+     generic control shadow — !important keeps the intended gold glow. */
   box-shadow:
     0 8px 22px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 248, 238, 0.07);
+    inset 0 1px 0 rgba(255, 248, 238, 0.07) !important;
 }
 
 .cb-ai-cta:first-of-type {
@@ -1861,7 +1886,7 @@
   transform: translateY(-2px);
   box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.52),
-    inset 0 1px 0 rgba(255, 248, 238, 0.1);
+    inset 0 1px 0 rgba(255, 248, 238, 0.1) !important;
 }
 
 .cb-ai-cta:focus-visible {
@@ -1873,14 +1898,14 @@
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent);
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  box-shadow: inset 0 0 0 1px transparent;
+  box-shadow: inset 0 0 0 1px transparent !important;
 }
 
 .cb-ai-cta--ghost:hover {
   filter: none;
   background: color-mix(in srgb, var(--accent) 20%, transparent);
   border-color: color-mix(in srgb, var(--accent) 75%, transparent);
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 20%, transparent) !important;
 }
 
 .cb-xp-track {
@@ -2041,6 +2066,9 @@
   min-height: 34px;
   display: flex;
   align-items: center;
+  /* "-row" suffix is matched globally by neumorphism.css; it never declared
+     its own box-shadow so the global soft shadow was winning unopposed. */
+  box-shadow: none !important;
 }
 
 .cb-typing-dots {
@@ -2776,6 +2804,11 @@
 .cb-heat-month-row {
   display: flex;
   gap: 3px;
+  /* "-row" suffix is matched globally by neumorphism.css and would
+     otherwise get a stray soft box-shadow with nothing to anchor it. */
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .cb-heat-month-slot {

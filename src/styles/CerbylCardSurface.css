@@ -68,9 +68,14 @@
   --mx: 50%;
   --my: 50%;
   position: relative;
-  background: var(--cb-neo-surface);
-  border: 1px solid rgba(216, 179, 141, 0.085);
-  box-shadow: var(--cb-neo-raised);
+  /* neumorphism.css matches these same classes globally (button/[role=button]
+     is ID-specificity via "#root :where(...)"; -panel/-card/-tile suffixes
+     too), which silently wins over a plain class selector regardless of
+     source order. !important keeps this shared card recipe authoritative
+     instead of the generic neumorphism shadow quietly replacing it. */
+  background: var(--cb-neo-surface) !important;
+  border: 1px solid rgba(216, 179, 141, 0.085) !important;
+  box-shadow: var(--cb-neo-raised) !important;
   transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
 }
@@ -107,20 +112,20 @@
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   :is(.cbd-root, .ci-root) :is(.cb-stat, .cb-feat, .cb-mod, .cb-panel, .ci-feature, .ci-module, .ci-metric, .ci-lower-panel, .ci-focus-panel, .ci-leaderboard-panel, .b2b-panel, :where(.icp-class-list > button), :where(.icp-notification-list > article), .ci-workspace-brief)[data-cerbyl-hover="true"] {
     transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-3px);
-    box-shadow: var(--cb-neo-hover);
+    box-shadow: var(--cb-neo-hover) !important;
   }
   :is(.cbd-root, .ci-root) :is(.cb-stat, .cb-feat, .cb-mod, .cb-panel, .ci-feature, .ci-module, .ci-metric, .ci-lower-panel, .ci-focus-panel, .ci-leaderboard-panel, .b2b-panel, :where(.icp-class-list > button), :where(.icp-notification-list > article), .ci-workspace-brief)[data-cerbyl-hover="true"]::before { transform: scaleX(1); }
   :is(.cbd-root, .ci-root) :is(.cb-stat, .cb-feat, .cb-mod, .cb-panel, .ci-feature, .ci-module, .ci-metric, .ci-lower-panel, .ci-focus-panel, .ci-leaderboard-panel, .b2b-panel, :where(.icp-class-list > button), :where(.icp-notification-list > article), .ci-workspace-brief)[data-cerbyl-hover="true"]::after { opacity: 1; }
   :is(.cbd-root, .ci-root) :is(.cb-stat, .cb-feat, .cb-mod, .cb-panel, .ci-feature, .ci-module, .ci-metric, .ci-lower-panel, .ci-focus-panel, .ci-leaderboard-panel, .b2b-panel, :where(.icp-class-list > button), :where(.icp-notification-list > article), .ci-workspace-brief):active:not(:disabled) {
     transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(0) scale(0.985);
-    box-shadow: var(--cb-neo-pressed);
+    box-shadow: var(--cb-neo-pressed) !important;
   }
 }
 
 :is(.cbd-root, .ci-root) :is(.cb-stat, .cb-feat, .cb-mod, .cb-panel, .ci-feature, .ci-module, .ci-metric, .ci-lower-panel, .ci-focus-panel, .ci-leaderboard-panel, .b2b-panel, :where(.icp-class-list > button), :where(.icp-notification-list > article), .ci-workspace-brief):focus-visible {
   outline: 2px solid color-mix(in srgb, var(--cb-accent) 72%, white 28%);
   outline-offset: 3px;
-  box-shadow: var(--cb-neo-hover);
+  box-shadow: var(--cb-neo-hover) !important;
 }
 :is(.cbd-root, .ci-root) :is(.cb-stat, .cb-feat, .cb-mod, .cb-panel, .ci-feature, .ci-module, .ci-metric, .ci-lower-panel, .ci-focus-panel, .ci-leaderboard-panel, .b2b-panel, :where(.icp-class-list > button), :where(.icp-notification-list > article), .ci-workspace-brief):focus-visible::before { transform: scaleX(1); }
 :is(.cbd-root, .ci-root) :is(.cb-stat, .cb-feat, .cb-mod, .cb-panel, .ci-feature, .ci-module, .ci-metric, .ci-lower-panel, .ci-focus-panel, .ci-leaderboard-panel, .b2b-panel, :where(.icp-class-list > button), :where(.icp-notification-list > article), .ci-workspace-brief):focus-visible::after { opacity: 1; }
