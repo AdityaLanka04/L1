@@ -893,10 +893,15 @@ const AIChat = ({ sharedMode = false }) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    textarea.style.height = 'auto';
-    const contentHeight = textarea.scrollHeight;
-    textarea.style.height = `${Math.min(contentHeight, 300)}px`;
-    textarea.style.overflowY = contentHeight > 300 ? 'auto' : 'hidden';
+    const resizeTextarea = () => {
+      textarea.style.height = 'auto';
+      const contentHeight = textarea.scrollHeight;
+      textarea.style.height = `${Math.min(contentHeight, 300)}px`;
+      textarea.style.overflowY = contentHeight > 300 ? 'auto' : 'hidden';
+    };
+    resizeTextarea();
+    window.addEventListener('resize', resizeTextarea);
+    return () => window.removeEventListener('resize', resizeTextarea);
   }, [inputMessage, messages.length]);
   const creatingChatRef = useRef(false);
 
@@ -2955,6 +2960,7 @@ const AIChat = ({ sharedMode = false }) => {
                 type="button"
                 className={`ac-tutor-mode-btn ${tutorReplyMode === mode.id ? 'active' : ''}`}
                 onClick={() => handleTutorReplyModeChange(mode.id)}
+                aria-pressed={tutorReplyMode === mode.id}
               >
                 {mode.label}
               </button>
@@ -3429,6 +3435,7 @@ const AIChat = ({ sharedMode = false }) => {
                       onPaste={handlePaste}
                       placeholder={selectedFiles.length > 0 ? 'Add a message or send as-is...' : 'Type your message or drag files here...'}
                       className="ac-textarea"
+                  aria-label="Message the AI tutor"
                       disabled={loading}
                       rows="1"
                     />
@@ -3846,7 +3853,7 @@ const AIChat = ({ sharedMode = false }) => {
             </button>
           )}
 
-          {/* Input Box - Fixed at bottom when there are messages */}
+          {/* Composer stays below the scrollable conversation. */}
           {messages.length > 0 && (
             <div
               className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''} ${selectedFiles.length > 0 ? 'has-attachments' : ''}`}
@@ -3881,6 +3888,7 @@ const AIChat = ({ sharedMode = false }) => {
                   onPaste={handlePaste}
                   placeholder={selectedFiles.length > 0 ? 'Add a message or send as-is…' : 'Message or paste an image…'}
                   className="ac-textarea"
+                  aria-label="Message the AI tutor"
                   disabled={loading}
                   rows="1"
                 />
