@@ -13,6 +13,7 @@ import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
 import SocialHubChrome from '../components/SocialHubChrome';
+import StudyQueuePanel from '../components/StudyQueuePanel';
 import {
   BarChart3,
   FileText,
@@ -654,25 +655,60 @@ const Flashcards = () => {
       });
 
       if (!response.ok) throw new Error('Could not save your review');
-      if (response.ok) {
-        setSrSessionStats(prev => ({ ...prev, [grade]: prev[grade] + 1 }));
+      const result = await response.json().catch(() => ({}));
+      setSrSessionStats(prev => ({ ...prev, [grade]: prev[grade] + 1 }));
 
-        if (srCurrentCard < cards.length - 1) {
-          setSrCurrentCard(srCurrentCard + 1);
-          setSrFlipped(false);
-        } else {
-          setShowSrResults(true);
-        }
+      // A missed card comes back at the end of this same session, the way the
+      // scheduler's short "again" step intends, instead of waiting for a reload.
+      if (grade === 'again') {
+        setDueCards(prev => ({
+          ...prev,
+          cards: [
+            ...prev.cards,
+            {
+              ...card,
+              sr_state: result.new_state || card.sr_state,
+              interval_preview: result.interval_preview || card.interval_preview,
+            },
+          ],
+        }));
+      }
+
+      if (srCurrentCard < cards.length - 1 || grade === 'again') {
+        setSrCurrentCard(srCurrentCard + 1);
+        setSrFlipped(false);
+      } else {
+        setShowSrResults(true);
       }
     } catch (error) {
       setSrError('Your review was not saved. Check your connection, then choose the grade again.');
     } finally { srSavingRef.current = false; setSrSaving(false); }
   };
 
-  const startSrStudy = () => {
+  const startSrStudy = async (setId) => {
+    let session = dueCards;
+    if (setId !== undefined && setId !== null) {
+      setDueStatus('loading');
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(
+          `${API_URL}/flashcards/due?user_id=${encodeURIComponent(userName)}&limit=100&set_id=${setId}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (!response.ok) throw new Error('Could not load this set');
+        session = await response.json();
+        setDueCards(session);
+        setDueStatus('ready');
+      } catch (error) {
+        setDueStatus('error');
+        return;
+      }
+    }
+    if (!session.cards || session.cards.length === 0) return;
     setSrStudyMode(true);
     setSrCurrentCard(0);
     setSrFlipped(false);
+    setSrError('');
     setSrSessionStats({ again: 0, hard: 0, good: 0, easy: 0 });
     setShowSrResults(false);
   };
@@ -685,6 +721,31 @@ const Flashcards = () => {
     loadDueCards();
     loadSrStats();
   };
+
+  const srKeyHandlerRef = useRef(null);
+  srKeyHandlerRef.current = (event) => {
+    if (!srStudyMode || showSrResults) return;
+    const tag = (event.target?.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || event.target?.isContentEditable) return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (!srFlipped) {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        setSrFlipped(true);
+      }
+      return;
+    }
+    const grade = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' }[event.key];
+    if (grade) {
+      event.preventDefault();
+      handleSrReview(grade);
+    }
+  };
+  useEffect(() => {
+    const listener = (event) => srKeyHandlerRef.current?.(event);
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, []);
 
   const markCardForReview = async (flashcardId, marked = true) => {
     try {
@@ -2938,7 +2999,7 @@ const Flashcards = () => {
                       <div className="fc-sr-card-badge">{card.sr_state === 'new' ? 'NEW' : card.sr_state?.toUpperCase()}</div>
                       <div className="fc-sr-card-set">{card.set_title}</div>
                       <MathRenderer content={card.question || ''} className="fc-sr-card-content" />
-                      <div className="fc-sr-tap-hint">Tap to reveal answer</div>
+                      <div className="fc-sr-tap-hint">Recall the answer first, then tap to reveal</div>
                     </div>
                     <div className="fc-sr-card-back">
                       <div className="fc-sr-card-label">Answer</div>
@@ -2973,22 +3034,9 @@ const Flashcards = () => {
               </div>
             )}
 
-            <div className="fc-sr-nav-row">
-              <button
-                className="fc-sr-nav-btn"
-                onClick={() => { setSrCurrentCard(Math.max(0, srCurrentCard - 1)); setSrFlipped(false); }}
-                disabled={srCurrentCard === 0}
-              >
-                ← Prev
-              </button>
-              <button
-                className="fc-sr-nav-btn"
-                onClick={() => { setSrCurrentCard(Math.min(cards.length - 1, srCurrentCard + 1)); setSrFlipped(false); }}
-                disabled={srCurrentCard === cards.length - 1}
-              >
-                Next →
-              </button>
-            </div>
+            <p className="fc-sr-key-hint">
+              {srFlipped ? 'Press 1 Again · 2 Hard · 3 Good · 4 Easy' : 'Press Space to reveal the answer'}
+            </p>
           </div>
           {renderAskAiPanel(card)}
         </div>
@@ -4184,216 +4232,20 @@ const Flashcards = () => {
           )}
 
           {activePanel === 'sr_study' && (
-            <div className="fc-content fc-sr-panel">
-              <div className="fc-view-header">
-                <span className="fc-view-kicker">Spaced Repetition Algorithm</span>
-                <h2 className="fc-view-title">Study Queue</h2>
-                <p className="fc-view-sub">
-                  {dueCards.due_count > 0
-                    ? `${dueCards.due_count} card${dueCards.due_count !== 1 ? 's' : ''} due today`
-                    : "You're all caught up — no cards due right now"}
-                </p>
-              </div>
-
-              <div className="fc-sr-queue-row">
-                <div className="fc-sr-summary-item">
-                  <span className="fc-sr-dot fc-sr-dot-new"></span>
-                  <span className="fc-sr-count">{dueCards.new_count || 0}</span>
-                  <span className="fc-sr-label">New</span>
-                </div>
-                <div className="fc-sr-summary-item">
-                  <span className="fc-sr-dot fc-sr-dot-review"></span>
-                  <span className="fc-sr-count">{dueCards.review_count || 0}</span>
-                  <span className="fc-sr-label">Review</span>
-                </div>
-                <div className="fc-sr-summary-item">
-                  <span className="fc-sr-dot fc-sr-dot-learning"></span>
-                  <span className="fc-sr-count">{dueCards.learning_count || 0}</span>
-                  <span className="fc-sr-label">Learning</span>
-                </div>
-                <div className="fc-sr-summary-item">
-                  <span className="fc-sr-dot fc-sr-dot-relearning"></span>
-                  <span className="fc-sr-count">{dueCards.relearning_count || 0}</span>
-                  <span className="fc-sr-label">Relearning</span>
-                </div>
-
-                {dueStatus === 'ready' && dueCards.due_count > 0 && (
-                  <button className="fc-btn fc-btn-primary fc-sr-start-btn-inline" onClick={startSrStudy}>
-                    {FC_ICONS.bolt} Start Review ({dueCards.due_count})
-                  </button>
-                )}
-              </div>
-
-              {dueStatus === 'loading' && <p role="status">Loading your review queue…</p>}
-              {dueStatus === 'error' && <div role="alert"><p>Your review queue is unavailable. No completion status could be checked.</p><button type="button" onClick={loadDueCards}>Retry review queue</button></div>}
-              {dueStatus === 'ready' && dueCards.due_count === 0 && (
-                <div className="fc-sr-empty">
-                  <div className="fc-sr-empty-icon">{FC_ICONS.check}</div>
-                  <h3>You're all caught up!</h3>
-                  <p>No cards due for review right now. Great job!</p>
-                </div>
-              )}
-
-              {/* SR Stats Section */}
-              {srStats && (
-                <div className="fc-sr-stats-panel">
-                  <div className="cb-tile-texture" aria-hidden />
-                  <div className="fc-sr-stats-heading">
-                    <span className="fc-view-kicker" style={{opacity:1}}>Algorithm Data</span>
-                    <h3 className="fc-sr-stats-title">Your Learning Stats</h3>
-                  </div>
-
-                  <div className="fc-sr-stats-grid">
-                    <div className="fc-sr-stat-card">
-                      <span className="fc-sr-stat-value">{srStats.retention_rate || 0}%</span>
-                      <span className="fc-sr-stat-label">Retention Rate</span>
-                    </div>
-                    <div className="fc-sr-stat-card">
-                      <span className="fc-sr-stat-value">{srStats.total_reviews || 0}</span>
-                      <span className="fc-sr-stat-label">Total Reviews</span>
-                    </div>
-                    <div className="fc-sr-stat-card">
-                      <span className="fc-sr-stat-value">{srStats.maturity?.mature_count || 0}</span>
-                      <span className="fc-sr-stat-label">Mature Cards</span>
-                    </div>
-                    <div className="fc-sr-stat-card">
-                      <span className="fc-sr-stat-value">{srStats.maturity?.average_interval ? `${Math.round(srStats.maturity.average_interval)}d` : '0d'}</span>
-                      <span className="fc-sr-stat-label">Avg Interval</span>
-                    </div>
-                  </div>
-
-                  {/* Card State Distribution */}
-                  {srStats.state_distribution && (
-                    <div className="fc-sr-state-dist">
-                      <h4>Card States</h4>
-                      <div className="fc-sr-state-bars">
-                        {Object.entries(srStats.state_distribution).map(([state, count]) => (
-                          <div key={state} className="fc-sr-state-bar-row">
-                            <span className="fc-sr-state-bar-label">{state}</span>
-                            <div className="fc-sr-state-bar-track">
-                              <div
-                                className={`fc-sr-state-bar-fill fc-sr-bar-${state}`}
-                                style={{ width: `${srStats.total_cards > 0 ? (count / srStats.total_cards * 100) : 0}%` }}
-                              ></div>
-                            </div>
-                            <span className="fc-sr-state-bar-count">{count}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Review Forecast */}
-                  {srStats.review_forecast && srStats.review_forecast.length > 0 && (
-                    <div className="fc-sr-forecast">
-                      <h4>14-Day Review Forecast</h4>
-                      <div className="fc-sr-forecast-chart">
-                        {srStats.review_forecast.map((day, idx) => {
-                          const maxCount = Math.max(...srStats.review_forecast.map(d => d.count), 1);
-                          const height = Math.max(4, (day.count / maxCount) * 80);
-                          return (
-                            <div key={idx} className="fc-sr-forecast-bar-wrapper">
-                              <div className="fc-sr-forecast-bar" style={{ height: `${height}px` }}>
-                                {day.count > 0 && <span className="fc-sr-forecast-count">{day.count}</span>}
-                              </div>
-                              <span className="fc-sr-forecast-label">{day.day_label}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Ease Distribution */}
-                  {srStats.ease_distribution && (
-                    <div className="fc-sr-ease-dist">
-                      <h4>Ease Distribution</h4>
-                      <div className="fc-sr-ease-bars">
-                        {srStats.ease_distribution.map((bucket, idx) => (
-                          <div key={idx} className="fc-sr-ease-bar-row">
-                            <span className="fc-sr-ease-label">{bucket.label}</span>
-                            <div className="fc-sr-ease-bar-track">
-                              <div
-                                className="fc-sr-ease-bar-fill"
-                                style={{ width: `${srStats.total_cards > 0 ? (bucket.count / srStats.total_cards * 100) : 0}%` }}
-                              ></div>
-                            </div>
-                            <span className="fc-sr-ease-count">{bucket.count}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* AI Suggestions Section */}
-              <div className="fc-sr-ai-section">
-                <div className="cb-tile-texture" aria-hidden />
-                <div className="fc-sr-stats-heading">
-                  <span className="fc-view-kicker" style={{opacity:1}}>Personalized</span>
-                  <h3 className="fc-sr-stats-title">AI Study Coach</h3>
-                </div>
-                <button
-                  className="fc-btn fc-btn-secondary fc-sr-ai-btn"
-                  onClick={loadAiSuggestions}
-                  disabled={loadingSuggestions}
-                >
-                  {loadingSuggestions ? 'Analyzing...' : 'Get AI Study Suggestions'}
-                </button>
-
-                {aiSuggestions && (
-                  <div className="fc-sr-suggestions">
-                    {aiSuggestions.encouragement && (
-                      <div className="fc-sr-suggestion-card fc-sr-encouragement">
-                        <p>{aiSuggestions.encouragement}</p>
-                      </div>
-                    )}
-
-                    <div className="fc-sr-suggestion-stats">
-                      {aiSuggestions.daily_target && (
-                        <div className="fc-sr-suggestion-stat">
-                          <span className="fc-sr-suggestion-stat-value">{aiSuggestions.daily_target}</span>
-                          <span className="fc-sr-suggestion-stat-label">Daily Target</span>
-                        </div>
-                      )}
-                      {aiSuggestions.optimal_new_cards_per_day !== undefined && (
-                        <div className="fc-sr-suggestion-stat">
-                          <span className="fc-sr-suggestion-stat-value">{aiSuggestions.optimal_new_cards_per_day}</span>
-                          <span className="fc-sr-suggestion-stat-label">New Cards/Day</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {aiSuggestions.study_tips && aiSuggestions.study_tips.length > 0 && (
-                      <div className="fc-sr-tips">
-                        <h4>Study Tips</h4>
-                        <ul>
-                          {aiSuggestions.study_tips.map((tip, idx) => (
-                            <li key={idx}>{tip}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {aiSuggestions.problem_areas && aiSuggestions.problem_areas.length > 0 && (
-                      <div className="fc-sr-problem-areas">
-                        <h4>Problem Areas</h4>
-                        {aiSuggestions.problem_areas.map((area, idx) => (
-                          <div key={idx} className={`fc-sr-problem-card fc-sr-priority-${area.priority}`}>
-                            <div className="fc-sr-problem-header">
-                              <span className="fc-sr-problem-topic">{area.topic}</span>
-                              <span className={`fc-sr-priority-badge`}>{area.priority}</span>
-                            </div>
-                            <p>{area.suggestion}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <StudyQueuePanel
+              dueCards={dueCards}
+              dueStatus={dueStatus}
+              srStats={srStats}
+              needsReviewCount={reviewCards.total_cards || 0}
+              onStart={startSrStudy}
+              onRetry={loadDueCards}
+              onGenerate={() => setActivePanel('generator')}
+              onBrowse={() => setActivePanel('cards')}
+              onNeedsReview={() => setActivePanel('review')}
+              aiSuggestions={aiSuggestions}
+              loadingSuggestions={loadingSuggestions}
+              onLoadSuggestions={loadAiSuggestions}
+            />
           )}
 
           {/* Statistics Panel */}

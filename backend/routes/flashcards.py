@@ -1139,87 +1139,104 @@ class SRReviewRequest(BaseModel):
 def get_due_flashcards(
     user_id: str = Query(...),
     limit: int = Query(50, ge=1, le=500),
+    set_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
 ):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    from services.spaced_repetition import preview_intervals
+    # Interval previews must come from the same scheduler sr_review applies (FSRS),
+    # otherwise the grade buttons promise intervals the card will not actually get.
+    from services.fsrs_scheduler import preview_intervals
 
     now = datetime.now(timezone.utc)
+    Card = models.Flashcard
 
+    owned = db.query(Card).join(models.FlashcardSet).filter(models.FlashcardSet.user_id == user.id)
+    total_cards = owned.count()
+
+    # A card is due once its date has passed, or if it has never been scheduled.
+    is_due = or_(Card.next_review_date == None, Card.next_review_date <= now)
+    due_query = owned.filter(is_due)
+    if set_id is not None:
+        due_query = due_query.filter(Card.set_id == set_id)
+
+    is_new = or_(Card.sr_state == None, Card.sr_state == "new")
+
+    # Counts are taken over every due card, not just the `limit` slice we send back.
+    state_rows = (
+        due_query.with_entities(case((is_new, "new"), else_=Card.sr_state), func.count(Card.id))
+        .group_by(case((is_new, "new"), else_=Card.sr_state))
+        .all()
+    )
+    state_counts = {state: count for state, count in state_rows}
+    due_total = sum(state_counts.values())
+
+    # Cards you already know and are about to forget come first; brand-new cards last.
     due_cards = (
-        db.query(models.Flashcard)
-        .join(models.FlashcardSet)
-        .filter(
-            models.FlashcardSet.user_id == user.id,
-            or_(
-                models.Flashcard.next_review_date <= now,
-                and_(
-                    models.Flashcard.next_review_date == None,
-                    or_(
-                        models.Flashcard.sr_state == "new",
-                        models.Flashcard.sr_state == None,
-                    ),
-                ),
-                and_(
-                    models.Flashcard.sr_state.in_(["learning", "relearning"]),
-                    models.Flashcard.next_review_date <= now,
-                ),
-            ),
+        due_query.order_by(
+            case((is_new, 1), else_=0),
+            Card.next_review_date.asc().nullsfirst(),
+            Card.id.asc(),
         )
-        .order_by(models.Flashcard.next_review_date.asc().nullsfirst())
         .limit(limit)
         .all()
     )
 
-    new_count = sum(1 for c in due_cards if (c.sr_state or "new") == "new")
-    review_count = sum(1 for c in due_cards if c.sr_state == "review")
-    learning_count = sum(1 for c in due_cards if c.sr_state == "learning")
-    relearning_count = sum(1 for c in due_cards if c.sr_state == "relearning")
+    set_rows = (
+        owned.filter(is_due)
+        .with_entities(Card.set_id, func.count(Card.id), func.sum(case((is_new, 1), else_=0)))
+        .group_by(Card.set_id)
+        .all()
+    )
+    titles = {
+        fs.id: fs.title
+        for fs in db.query(models.FlashcardSet).filter(models.FlashcardSet.id.in_([r[0] for r in set_rows])).all()
+    } if set_rows else {}
+    set_breakdown = sorted(
+        (
+            {"set_id": sid, "title": titles.get(sid, "Untitled set"), "due_count": int(cnt), "new_count": int(new or 0)}
+            for sid, cnt, new in set_rows
+        ),
+        key=lambda row: row["due_count"],
+        reverse=True,
+    )
 
-    due_set_ids = {c.set_id for c in due_cards}
-    due_set_titles_by_id = {
-        fs.id: fs.title for fs in db.query(models.FlashcardSet).filter(models.FlashcardSet.id.in_(due_set_ids)).all()
-    } if due_set_ids else {}
+    next_due = (
+        owned.filter(Card.next_review_date > now)
+        .with_entities(func.min(Card.next_review_date))
+        .scalar()
+    )
+    if next_due is not None and next_due.tzinfo is None:
+        next_due = next_due.replace(tzinfo=timezone.utc)
 
     cards_data = []
     for c in due_cards:
-        set_title = due_set_titles_by_id.get(c.set_id, "")
-
-        card_state = c.sr_state or "new"
-        card_ease = c.ease_factor if c.ease_factor else 2.5
-        card_interval = c.interval if c.interval else 0
-        card_reps = c.repetitions if c.repetitions else 0
-        card_lapses = c.lapses if c.lapses else 0
-        card_step = c.learning_step if c.learning_step else 0
-
-        interval_preview = preview_intervals(
-            card_state, card_ease, card_interval, card_reps, card_lapses, card_step
-        )
-
         cards_data.append({
             "id": c.id,
             "set_id": c.set_id,
-            "set_title": set_title,
+            "set_title": titles.get(c.set_id, ""),
             "question": c.question,
             "answer": c.answer,
             "difficulty": c.difficulty or "medium",
-            "sr_state": card_state,
-            "ease_factor": card_ease,
-            "interval": card_interval,
-            "repetitions": card_reps,
-            "lapses": card_lapses,
-            "interval_preview": interval_preview,
+            "sr_state": c.sr_state or "new",
+            "ease_factor": c.ease_factor or 2.5,
+            "interval": c.interval or 0,
+            "repetitions": c.repetitions or 0,
+            "lapses": c.lapses or 0,
+            "interval_preview": preview_intervals(c),
         })
 
     return {
-        "due_count": len(due_cards),
-        "new_count": new_count,
-        "review_count": review_count,
-        "learning_count": learning_count,
-        "relearning_count": relearning_count,
+        "due_count": due_total,
+        "new_count": state_counts.get("new", 0),
+        "review_count": state_counts.get("review", 0),
+        "learning_count": state_counts.get("learning", 0),
+        "relearning_count": state_counts.get("relearning", 0),
+        "total_cards": total_cards,
+        "set_breakdown": set_breakdown,
+        "next_due_date": next_due.isoformat() if next_due else None,
         "cards": cards_data,
     }
 
@@ -1410,25 +1427,22 @@ def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
     total_correct = sum(c.correct_count or 0 for c in all_cards)
     retention = round((total_correct / total_reviews * 100), 1) if total_reviews > 0 else 0
 
+    # ease_factor now stores the FSRS difficulty (1-10, higher = harder), and only
+    # cards that have actually been reviewed have a meaningful value.
     ease_buckets = [
-        {"range": "1.3-1.7", "label": "Hard", "count": 0},
-        {"range": "1.7-2.1", "label": "Difficult", "count": 0},
-        {"range": "2.1-2.5", "label": "Normal", "count": 0},
-        {"range": "2.5-2.9", "label": "Easy", "count": 0},
-        {"range": "2.9+", "label": "Very Easy", "count": 0},
+        {"range": "<3", "label": "Easy", "count": 0},
+        {"range": "3-5", "label": "Moderate", "count": 0},
+        {"range": "5-7", "label": "Tricky", "count": 0},
+        {"range": "7-9", "label": "Hard", "count": 0},
+        {"range": "9+", "label": "Very hard", "count": 0},
     ]
     for c in all_cards:
-        ease = c.ease_factor or 2.5
-        if ease < 1.7:
-            ease_buckets[0]["count"] += 1
-        elif ease < 2.1:
-            ease_buckets[1]["count"] += 1
-        elif ease < 2.5:
-            ease_buckets[2]["count"] += 1
-        elif ease < 2.9:
-            ease_buckets[3]["count"] += 1
-        else:
-            ease_buckets[4]["count"] += 1
+        if (c.sr_state or "new") == "new" or not (c.repetitions or 0):
+            continue
+        difficulty = c.ease_factor or 5.0
+        idx = 0 if difficulty < 3 else 1 if difficulty < 5 else 2 if difficulty < 7 else 3 if difficulty < 9 else 4
+        ease_buckets[idx]["count"] += 1
+    difficulty_total = sum(b["count"] for b in ease_buckets)
 
     now = datetime.now(timezone.utc)
     forecast = []
@@ -1469,6 +1483,7 @@ def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
         "retention_rate": retention,
         "total_reviews": total_reviews,
         "ease_distribution": ease_buckets,
+        "difficulty_total": difficulty_total,
         "review_forecast": forecast,
         "maturity": {
             "average_interval": avg_interval,

@@ -73,7 +73,10 @@ def preview_intervals(flashcard) -> dict[str, str]:
     result = {}
     for grade_str, rating in GRADE_TO_RATING.items():
         test_card, _ = _scheduler.review_card(card, rating, now)
-        result[grade_str] = _format_interval(float(test_card.scheduled_days))
+        # Learning/relearning steps leave scheduled_days at 0 but push `due` out by
+        # minutes, so read the real gap from `due` (this is when the card returns).
+        gap_days = (test_card.due - now).total_seconds() / 86400
+        result[grade_str] = _format_interval(max(gap_days, float(test_card.scheduled_days)))
     return result
 
 def _format_interval(interval_days: float) -> str:
