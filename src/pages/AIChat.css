@@ -6242,20 +6242,20 @@ sub {
 }
 
 .ai-chat-page.ac-qb-page .ac-messages {
-  padding-bottom: 136px !important;
+  max-width: none !important;
+  padding: 28px 32px 190px !important;
 }
 
-.ai-chat-page.ac-qb-page .ac-main > .ac-input-wrapper {
-  left: max(326px, calc((100vw - 1600px) / 2 + 326px)) !important;
-  right: max(62px, calc((100vw - 1600px) / 2 + 62px)) !important;
-  width: min(900px, calc(100% - 388px)) !important;
-  max-width: 900px !important;
-  margin: 0 auto !important;
-}
-
+.ai-chat-page.ac-qb-page .ac-main > .ac-input-wrapper,
 .ai-chat-page.ac-qb-page .ac-qb-shell--collapsed .ac-main > .ac-input-wrapper,
 .ai-chat-page.ac-qb-page.ac-sidebar-hidden .ac-main > .ac-input-wrapper {
-  left: max(110px, calc((100vw - 1600px) / 2 + 110px)) !important;
+  position: absolute !important;
+  left: 28px !important;
+  right: 28px !important;
+  bottom: 24px !important;
+  width: auto !important;
+  max-width: 900px !important;
+  margin: 0 auto !important;
 }
 
 .ai-chat-page.ac-qb-page .ac-action-notice {
@@ -6289,8 +6289,8 @@ sub {
   }
 
   .ai-chat-page.ac-qb-page .ac-main > .ac-input-wrapper {
-    left: 34px !important;
-    right: 34px !important;
+    left: 20px !important;
+    right: 20px !important;
   }
 
   .ai-chat-page.ac-qb-page .ac-action-notice {
@@ -6396,7 +6396,7 @@ sub {
   }
 
   .ai-chat-page.ac-qb-page .ac-messages {
-    padding: 14px 14px 128px !important;
+    padding: 14px 14px 170px !important;
   }
 
   .ai-chat-page.ac-qb-page .ac-main.empty-state .ac-content {
@@ -6432,8 +6432,8 @@ sub {
   .ai-chat-page.ac-qb-page .ac-main > .ac-input-wrapper,
   .ai-chat-page.ac-qb-page .ac-qb-shell--collapsed .ac-main > .ac-input-wrapper,
   .ai-chat-page.ac-qb-page.ac-sidebar-hidden .ac-main > .ac-input-wrapper {
-    left: 18px !important;
-    right: 18px !important;
+    left: 14px !important;
+    right: 14px !important;
     bottom: 14px !important;
   }
 
@@ -7497,4 +7497,125 @@ sub {
 @media (prefers-reduced-motion: reduce) {
   .ai-chat-page .ac-main .ac-file-drop-overlay,
   .ai-chat-page .ac-input-wrapper.drag-active { animation: none; }
+}
+
+/* composer + sidebar close button: light tint so the panel's own texture shows through, plus a grain layer and a defined edge */
+.ai-chat-page.ac-qb-page .ac-input-wrapper,
+[data-theme-mode] .ai-chat-page.ac-qb-page .ac-input-wrapper {
+  isolation: isolate;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+.ai-chat-page.ac-qb-page .ac-empty-center .ac-input-wrapper {
+  position: relative !important;
+  inset: auto !important;
+}
+
+.ai-chat-page.ac-qb-page .ac-input-wrapper:focus-within,
+[data-theme-mode] .ai-chat-page.ac-qb-page .ac-input-wrapper:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent) !important;
+}
+
+.ai-chat-page.ac-qb-page .ac-input-wrapper::after,
+.ai-chat-page.ac-qb-page .ac-qb-side-close-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+.ai-chat-page.ac-qb-page button.ac-qb-side-close-btn,
+.ai-chat-page.ac-qb-page button.ac-qb-side-close-btn:active {
+  isolation: isolate;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  transform: translateY(-56%);
+  transition: color 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.ai-chat-page.ac-qb-page button.ac-qb-side-close-btn:hover {
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  transform: translateY(-56%) scale(1.1);
+}
+
+/* opt AI Chat's composer internals + chat list out of the global neumorphism.css inset/raised rectangles */
+.ai-chat-page.ac-qb-page .ac-input-wrapper .ac-tutor-controls,
+.ai-chat-page.ac-qb-page .ac-input-wrapper .ac-input-row,
+.ai-chat-page.ac-qb-page .ac-input-wrapper textarea,
+.ai-chat-page.ac-qb-page .ac-sessions-list,
+.ai-chat-page.ac-qb-page .ac-session-item {
+  box-shadow: none !important;
+}
+
+/* thread map: sits bottom-right beside the composer (out of the message column), opens upward, same grain material */
+@media (min-width: 721px) {
+  .ai-chat-page.ac-qb-page .ac-main:has(.ac-thread-map) > .ac-input-wrapper {
+    right: 88px !important;
+  }
+
+  .ai-chat-page.ac-qb-page .ac-thread-map {
+    top: auto;
+    bottom: 24px;
+    right: 28px;
+    transform: none;
+  }
+
+  .ai-chat-page.ac-qb-page .ac-thread-map-rail {
+    max-height: 132px;
+    justify-content: flex-start;
+  }
+
+  .ai-chat-page.ac-qb-page .ac-thread-map-panel {
+    top: auto;
+    bottom: 0;
+    transform: translate(10px, 0) scale(0.985);
+    transform-origin: right bottom;
+  }
+
+  .ai-chat-page.ac-qb-page .ac-thread-map.is-open .ac-thread-map-panel {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.ai-chat-page.ac-qb-page .ac-thread-map-rail,
+.ai-chat-page.ac-qb-page .ac-thread-map-toggle {
+  isolation: isolate;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 24%, transparent);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+
+.ai-chat-page.ac-qb-page .ac-thread-map-panel {
+  isolation: isolate;
+  background: var(--neu-popup-surface, linear-gradient(155deg, #171715 0%, #0e0f10 48%, #090a0b 100%));
+  border-color: color-mix(in srgb, var(--accent) 24%, transparent);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55) !important;
+}
+
+.ai-chat-page.ac-qb-page .ac-thread-map-rail::after,
+.ai-chat-page.ac-qb-page .ac-thread-map-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* opt the thread map out of the global neumorphism.css rectangles */
+.ai-chat-page.ac-qb-page .ac-thread-map-list,
+.ai-chat-page.ac-qb-page .ac-thread-map-list button,
+.ai-chat-page.ac-qb-page .ac-thread-map-marker {
+  box-shadow: none !important;
 }
