@@ -1064,7 +1064,7 @@ const SimpleBlockEditor = ({
       },
       onKeyDown: (e) => handleKeyDown(e, block.id, blocks.findIndex(b => b.id === block.id)),
       className: `block-content block-${block.type}`,
-      'data-placeholder': block.content ? '' : `Type something...`,
+      'data-placeholder': block.content ? '' : `Type / for blocks, or start writing…`,
       style: customStyle
     };
 

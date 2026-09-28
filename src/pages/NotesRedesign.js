@@ -24,7 +24,8 @@ import {
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
   ChevronLeft, Layout, Filter, Palette, Command, Zap, Home,
-  Quote, CheckSquare, Minus, Type
+  Quote, CheckSquare, Minus, Type,
+  Wand2, MoreHorizontal
 } from 'lucide-react';
 import { API_URL } from '../config';
 import { sanitizeHtml, escapeHtml } from '../utils/sanitize';
@@ -320,8 +321,19 @@ const NotesRedesign = ({ sharedMode = false }) => {
     { id: '1', name: 'Created', type: 'date', value: new Date().toISOString().split('T')[0] },
     { id: '2', name: 'Status', type: 'text', value: 'Draft' },
   ]);
+  const [editorDarkMode] = useState(false);
   const [showPageProperties, setShowPageProperties] = useState(false);
-  const [editorDarkMode, setEditorDarkMode] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showMoreMenu) return undefined;
+    const onPointer = (event) => { if (!moreMenuRef.current?.contains(event.target)) setShowMoreMenu(false); };
+    const onKey = (event) => { if (event.key === 'Escape') setShowMoreMenu(false); };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onPointer); document.removeEventListener('keydown', onKey); };
+  }, [showMoreMenu]);
   
   
   const [showCanvasMode, setShowCanvasMode] = useState(false);
@@ -2759,48 +2771,22 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  const editorSideSections = [
-    {
-      label: 'Workspace',
-      items: [
-        { icon: Edit3, label: 'Edit note', active: viewMode === 'edit', onClick: () => setViewMode('edit') },
-        { icon: Eye, label: 'Reading view', active: viewMode === 'preview', onClick: () => setViewMode('preview') },
-        { icon: Layout, label: 'Page setup', active: showPageProperties, onClick: () => setShowPageProperties((value) => !value), disabled: isSharedContent },
-        { icon: Maximize2, label: 'Focus mode', active: isFullscreen, onClick: toggleFullscreen },
-      ],
-    },
-    {
-      label: 'Create & find',
-      items: [
-        { icon: Zap, label: 'Convert', onClick: () => setShowImportExport(true) },
-        { icon: Upload, label: 'Import from chat', onClick: () => setShowChatImport(true), disabled: isSharedContent },
-        { icon: Search, label: 'Search', onClick: () => setShowAdvancedSearch(true), disabled: isSharedContent },
-        { icon: FileText, label: 'Templates', onClick: () => setShowTemplates(true), disabled: isSharedContent },
-        { icon: Palette, label: 'Canvas', onClick: () => setShowCanvasMode(true), disabled: isSharedContent },
-      ],
-    },
-    {
-      label: 'Export',
-      items: [
-        { icon: FileDown, label: 'Export PDF', onClick: exportAsPDF },
-        { icon: Download, label: 'Export text', onClick: exportAsText },
-        { icon: Command, label: 'Shortcuts', onClick: () => setShowKeyboardShortcuts(true) },
-      ],
-    },
-  ];
-
   const editorSidebarLead = (
-    <button className="nre-side-ai" onClick={() => setShowAIAssistant(true)} type="button" disabled={isSharedContent && !canEdit}>
-      <Sparkles size={15} />
+    <button className="nre-side-ai" onClick={() => setShowAIAssistant(true)} type="button" disabled={isSharedContent && !canEdit} aria-haspopup="dialog">
+      <Wand2 size={18} aria-hidden="true" />
       <span>AI Assist</span>
     </button>
   );
-  const editorSidebarTail = (
-    <div className="nre-context-control">
-      <span>Study context</span>
-      <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-    </div>
-  );
+
+  const moreActions = [
+    { label: 'Insert template', icon: FileText, onClick: () => setShowTemplates(true), disabled: isSharedContent },
+    { label: 'Import from chat', icon: Upload, onClick: () => setShowChatImport(true), disabled: isSharedContent },
+    { label: 'Open canvas', icon: Palette, onClick: () => setShowCanvasMode(true), disabled: isSharedContent },
+    { label: 'Convert to flashcards or quiz', icon: Zap, onClick: () => setShowImportExport(true) },
+    { label: 'Export as PDF', icon: FileDown, onClick: exportAsPDF },
+    { label: 'Export as text', icon: Download, onClick: exportAsText },
+    { label: 'Keyboard shortcuts', icon: Command, onClick: () => setShowKeyboardShortcuts(true) },
+  ];
 
   return (
     <div ref={notesRootRef} className={`notes-redesign ${selectedNote ? "nr-note-selected" : ""} ${viewMode === "preview" ? "preview-mode" : ""} ${isFullscreen ? "fullscreen-mode" : ""}`}>
@@ -2816,9 +2802,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       <SocialHubChrome
         brandKicker="Editor"
-        sideSections={editorSideSections}
         sidebarLead={editorSidebarLead}
-        sidebarTail={editorSidebarTail}
+        topbarContent={isSharedContent ? null : <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />}
         noSidebar={isFullscreen || isSharedContent}
         collapsed={!sidebarOpen}
         onCollapsedChange={(collapsed) => setSidebarOpen(!collapsed)}
@@ -2949,24 +2934,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
               <div className={`title-section ${titleSectionCollapsed ? 'collapsed' : ''}`}>
               <div className="title-section-header">
                 <div className="title-section-content">
-                  <div className="nr-document-kicker">
-                    <span>{viewMode === 'edit' ? 'Writing workspace' : 'Reading view'}</span>
-                    <i aria-hidden="true" />
-                    <span>{selectedNote?.is_favorite ? 'Favorite note' : 'Personal note'}</span>
-                  </div>
                   <input
                     type="text"
+                    aria-label="Note title"
                     className="title-input-new"
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
                     placeholder="Untitled Note"
                     disabled={viewMode === 'preview' || (isSharedContent && !canEdit)}
                   />
-                  <p className="nre-editor-description">
-                    {viewMode === 'edit'
-                      ? 'Shape the page with focused blocks, formatting tools, and writing assistance.'
-                      : 'Read the note in a calm, distraction-free layout while preserving its original structure.'}
-                  </p>
                   <div className="title-meta">
                     <span className="last-edited">
                       Edited {formatDateTime(selectedNote.updated_at) || 'recently'}
@@ -2997,18 +2973,48 @@ const NotesRedesign = ({ sharedMode = false }) => {
             </div>
 
             <div className="nre-editor-toolbar" aria-label="Editor view and save status">
-              <div className="nre-view-tabs" role="tablist" aria-label="Editor view">
-                <button className={viewMode === 'edit' ? 'is-selected' : ''} type="button" role="tab" aria-selected={viewMode === 'edit'} onClick={() => setViewMode('edit')}>
-                  <Edit3 size={13} /><span>Edit</span>
+              <div className="nre-view-row">
+                <div className="nre-view-tabs" role="tablist" aria-label="Editor view">
+                  <button className={viewMode === 'edit' ? 'is-selected' : ''} type="button" role="tab" aria-selected={viewMode === 'edit'} onClick={() => setViewMode('edit')}>
+                    <Edit3 size={13} aria-hidden="true" /><span>Edit</span>
+                  </button>
+                  <button className={viewMode === 'preview' ? 'is-selected' : ''} type="button" role="tab" aria-selected={viewMode === 'preview'} onClick={() => setViewMode('preview')}>
+                    <Eye size={13} aria-hidden="true" /><span>Read</span>
+                  </button>
+                </div>
+                <button className={showPageProperties ? 'is-selected' : ''} type="button" aria-pressed={showPageProperties} onClick={() => setShowPageProperties((value) => !value)} disabled={isSharedContent}>
+                  <Layout size={13} aria-hidden="true" /><span>Page setup</span>
                 </button>
-                <button className={viewMode === 'preview' ? 'is-selected' : ''} type="button" role="tab" aria-selected={viewMode === 'preview'} onClick={() => setViewMode('preview')}>
-                  <Eye size={13} /><span>Read</span>
-                </button>
-                <button className={showPageProperties ? 'is-selected' : ''} type="button" role="tab" aria-selected={showPageProperties} onClick={() => setShowPageProperties((value) => !value)} disabled={isSharedContent}>
-                  <Layout size={13} /><span>Page setup</span>
-                </button>
+                <div className="nre-more" ref={moreMenuRef}>
+                  <button
+                    type="button"
+                    className={showMoreMenu ? 'is-selected' : ''}
+                    aria-haspopup="menu"
+                    aria-expanded={showMoreMenu}
+                    aria-controls="nre-more-menu"
+                    onClick={() => setShowMoreMenu((open) => !open)}
+                  >
+                    <MoreHorizontal size={15} aria-hidden="true" /><span>More</span>
+                  </button>
+                  {showMoreMenu && (
+                    <ul id="nre-more-menu" className="nre-more-menu" role="menu" aria-label="More note actions">
+                      {moreActions.map(({ label, icon: Icon, onClick, disabled }) => (
+                        <li key={label} role="none">
+                          <button
+                            type="button"
+                            role="menuitem"
+                            disabled={disabled}
+                            onClick={() => { setShowMoreMenu(false); onClick(); }}
+                          >
+                            <Icon size={15} aria-hidden="true" /><span>{label}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
-              <div className={`nr-document-status ${saveError ? 'is-error' : saving ? 'is-saving' : autoSaved ? 'is-saved' : 'is-unsaved'}`}>
+              <div role="status" className={`nr-document-status ${saveError ? 'is-error' : saving ? 'is-saving' : autoSaved ? 'is-saved' : 'is-unsaved'}`}>
                 <span aria-hidden="true" />
                 {saveError ? 'Save interrupted' : saving ? 'Saving' : buildSaveSnapshot(selectedNote?.id, noteTitle, noteContent, canvasData) === lastSavedSnapshotRef.current ? 'Saved' : 'Unsaved'}
               </div>
@@ -3017,7 +3023,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             <div className="block-editor-wrapper" style={{ position: 'relative' }}>
               {viewMode === "edit" && (!isSharedContent || canEdit) && (
                 <div className="formatting-toolbar-wrapper">
-                  <div className="formatting-toolbar">
+                  <div className="formatting-toolbar" role="toolbar" aria-label="Text formatting">
                     {/* Headers */}
                     <select 
                       className="format-select"
@@ -3077,28 +3083,32 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <div className="toolbar-divider"></div>
                     
                     {/* Text Formatting */}
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => applyEditorCommand('bold')}
                       title="Bold (Ctrl+B)"
                     >
                       <Bold size={16} />
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => applyEditorCommand('italic')}
                       title="Italic (Ctrl+I)"
                     >
                       <Italic size={16} />
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => applyEditorCommand('underline')}
                       title="Underline (Ctrl+U)"
                     >
                       <Underline size={16} />
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => applyEditorCommand('strikeThrough')}
                       title="Strikethrough"
@@ -3122,14 +3132,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <div className="toolbar-divider"></div>
                     
                     {/* Lists */}
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => applyEditorCommand('insertUnorderedList')}
                       title="Bullet List"
                     >
                       <List size={16} />
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => applyEditorCommand('insertOrderedList')}
                       title="Numbered List"
@@ -3138,14 +3150,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     </button>
                     
                     {/* Alignment */}
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => applyEditorCommand('justifyLeft')}
                       title="Align Left"
                     >
                       <AlignLeft size={16} />
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => applyEditorCommand('justifyCenter')}
                       title="Align Center"
@@ -3153,7 +3167,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     >
                       <span style={{ fontSize: '16px' }}>≡</span>
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => applyEditorCommand('justifyRight')}
                       title="Align Right"
@@ -3165,7 +3180,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <div className="toolbar-divider"></div>
                     
                     {/* Media & Code */}
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => {
                         saveEditorSelection();
@@ -3176,7 +3192,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     >
                       <Link2 size={16} />
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => {
                         saveEditorSelection();
@@ -3187,7 +3204,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     >
                       <Image size={16} />
                     </button>
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => {
                         // Insert a new code block
@@ -3209,7 +3227,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <div className="toolbar-divider"></div>
                     
                     {/* AI */}
-                    <button 
+                    <button
+                      type="button"
                       className="format-btn" 
                       onClick={() => setShowAIAssistant(true)}
                       title="AI Assistant"
@@ -3220,23 +3239,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </div>
               )}
 
-              {viewMode === "edit" && (!isSharedContent || canEdit) && (
-                <div className="nr-insert-rail" role="toolbar" aria-label="Quick insert blocks">
-                  <span className="nr-insert-label">
-                    <span className="nr-insert-label-icon" aria-hidden="true"><Plus size={14} /></span>
-                    <span className="nr-insert-label-text">Add block</span>
-                  </span>
-                  <div className="nr-insert-actions">
-                    <button type="button" onClick={() => handleInsertBlock('paragraph')}><Type size={15} /> Text</button>
-                    <button type="button" onClick={() => handleInsertBlock('todo')}><CheckSquare size={15} /> To-do</button>
-                    <button type="button" onClick={() => handleInsertBlock('quote')}><Quote size={15} /> Quote</button>
-                    <button type="button" onClick={() => handleInsertBlock('divider')}><Minus size={15} /> Divider</button>
-                    <button type="button" onClick={() => setShowCanvasMode(true)}><Palette size={15} /> Canvas</button>
-                  </div>
-                  <span className="nr-insert-hint">Type <kbd>/</kbd> for every block</span>
-                </div>
-              )}
-              
               {/* Page Properties */}
               {showPageProperties && !isSharedContent && (
                 <PageProperties
@@ -3308,28 +3310,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
               )}
             </div>
 
-            <div className="note-footer">
-              <div className="footer-left">
-                <span className="stat-item">
-                  {wordCount} {wordCount === 1 ? "word" : "words"}
-                </span>
-                <span className="stat-divider">-</span>
-                <span className="stat-item">
-                  {charCount} {charCount === 1 ? "character" : "characters"}
-                </span>
-              </div>
-              <div className="footer-right">
-                {saving ? (
-                  <span className="saving-indicator">Saving...</span>
-                ) : saveError ? (
-                  <span className="save-error-indicator">Save interrupted — edit to retry</span>
-                ) : !hasUnsavedEdits ? (
-                  <span className="saved-indicator">Saved <Check size={14} /></span>
-                ) : (
-                  <span className="unsaved-indicator">Unsaved</span>
-                )}
-              </div>
-            </div>
             </section>
 
               {/* Backlinks Panel */}

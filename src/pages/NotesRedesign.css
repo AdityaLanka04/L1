@@ -1265,47 +1265,7 @@
   flex-shrink: 0;
 }
 
-.footer-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--nr-text-muted);
-}
-
 .stat-item {
-  font-weight: 500;
-}
-
-.stat-divider {
-  color: var(--nr-border-subtle);
-}
-
-.footer-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.saving-indicator {
-  color: var(--nr-warning);
-  font-weight: 500;
-}
-
-.saved-indicator {
-  color: var(--nr-success);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.save-error-indicator {
-  color: var(--nr-danger);
-  font-weight: 500;
-}
-
-.unsaved-indicator {
-  color: var(--nr-text-muted);
   font-weight: 500;
 }
 
@@ -6384,11 +6344,6 @@ h1.note-title ::-moz-selection,
     width: 100%;
   }
 
-  .notes-redesign .footer-left,
-  .notes-redesign .footer-right {
-    width: 100%;
-    justify-content: space-between;
-  }
 }
 
 /* Rebuilt Notes editor chrome: topbar + full-page Question Bank-style sidebar */
@@ -6420,7 +6375,6 @@ h1.note-title ::-moz-selection,
 .notes-redesign .nr-qb-tagline span {
   color: var(--accent);
 }
-
 
 .notes-redesign .nr-qb-topbar-right {
   display: flex;
@@ -7277,24 +7231,6 @@ h1.note-title ::-moz-selection,
   align-items: flex-end;
 }
 
-.notes-redesign .nr-document-kicker {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 16px;
-  color: #756b61;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-}
-
-.notes-redesign .nr-document-kicker i {
-  width: 18px;
-  height: 1px;
-  background: #b89a78;
-}
-
 .notes-redesign .title-input-new,
 .notes-redesign .editor-content:not(.dark-mode) .title-input-new,
 [data-theme-mode="dark"] .notes-redesign .editor-content:not(.dark-mode) .title-input-new {
@@ -7483,77 +7419,6 @@ h1.note-title ::-moz-selection,
   background: rgba(28, 23, 18, .12);
 }
 
-.notes-redesign .nr-insert-rail {
-  min-height: 46px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px clamp(18px, 4vw, 42px);
-  overflow-x: auto;
-  border-bottom: 1px solid rgba(28, 23, 18, .08);
-  background: #fbfaf7;
-  scrollbar-width: none;
-}
-
-.notes-redesign .nr-insert-rail::-webkit-scrollbar { display: none; }
-
-.notes-redesign .nr-insert-label {
-  margin-right: 8px;
-  color: #8a8077;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.notes-redesign .nr-insert-rail button {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 9px;
-  flex: 0 0 auto;
-  color: #665d54;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
-  font: inherit;
-  font-size: 10px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: color 150ms ease, border-color 150ms ease, background 150ms ease, transform 120ms ease;
-}
-
-.notes-redesign .nr-insert-rail button:hover {
-  color: #181512;
-  border-color: rgba(28, 23, 18, .12);
-  background: #f2eee8;
-  transform: translateY(-1px);
-}
-
-.notes-redesign .nr-insert-hint {
-  margin-left: auto;
-  color: #948a81;
-  font-size: 9px;
-  white-space: nowrap;
-}
-
-.notes-redesign .nr-insert-hint kbd {
-  min-width: 18px;
-  display: inline-grid;
-  place-items: center;
-  margin: 0 2px;
-  padding: 2px 5px;
-  border: 1px solid rgba(28, 23, 18, .14);
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  background: #fff;
-  color: #51483f;
-  font: inherit;
-  font-weight: 800;
-}
-
 .notes-redesign .block-editor-container,
 .notes-redesign .block-editor-container:not(.dark-mode),
 [data-theme-mode="dark"] .notes-redesign .block-editor-container:not(.dark-mode) {
@@ -7596,20 +7461,16 @@ h1.note-title ::-moz-selection,
   background: rgba(246, 243, 238, .96);
   backdrop-filter: blur(14px);
 }
-
-.notes-redesign .note-footer .stat-item,
-.notes-redesign .note-footer .unsaved-indicator {
+.notes-redesign .note-footer .stat-item {
   color: #7b7168;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .07em;
   text-transform: uppercase;
 }
-
 .notes-redesign .editor-content.dark-mode .nr-document-stage,
 .notes-redesign .editor-content.dark-mode .title-section,
 .notes-redesign .editor-content.dark-mode .block-editor-wrapper,
-.notes-redesign .editor-content.dark-mode .nr-insert-rail,
 .notes-redesign .editor-content.dark-mode .block-editor-container,
 .notes-redesign .editor-content.dark-mode .block-editor-container .block-editor {
   color: #f4f1ec !important;
@@ -7709,14 +7570,6 @@ h1.note-title ::-moz-selection,
     padding-inline: 12px;
   }
 
-  .notes-redesign .nr-insert-rail {
-    padding-inline: 12px;
-  }
-
-  .notes-redesign .nr-insert-hint {
-    display: none;
-  }
-
   .notes-redesign .block-editor-container,
   .notes-redesign .block-editor-container:not(.dark-mode) {
     padding: 30px 18px 86px;
@@ -7725,8 +7578,7 @@ h1.note-title ::-moz-selection,
 
 @media (prefers-reduced-motion: reduce) {
   .notes-redesign .nr-document-stage,
-  .notes-redesign .nr-document-stage::before,
-  .notes-redesign .nr-insert-rail button {
+  .notes-redesign .nr-document-stage::before {
     transition-duration: .01ms;
   }
 
@@ -7853,44 +7705,6 @@ h1.note-title ::-moz-selection,
   cursor: not-allowed;
 }
 
-.notes-redesign .nre-context-control {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  padding: 11px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
-  border-radius: 11px;
-  background:
-    radial-gradient(ellipse 72% 105% at 100% 100%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 72%),
-    linear-gradient(135deg, #18191b, #111214);
-}
-
-.notes-redesign .nre-context-control > span {
-  color: var(--accent);
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
-
-.notes-redesign .nre-context-control .context-selector-btn {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.notes-redesign .nre-context-control .cs-label {
-  min-width: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .notes-redesign .nre-document-card {
   --shc-mx: 50%;
   --shc-my: 50%;
@@ -7963,22 +7777,6 @@ h1.note-title ::-moz-selection,
   gap: 28px;
 }
 
-.notes-redesign .nr-document-kicker {
-  margin-bottom: 10px;
-  color: var(--accent);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-}
-
-.notes-redesign .nr-document-kicker i {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--accent) 55%, transparent);
-}
-
 .notes-redesign .title-input-new,
 .notes-redesign .editor-content:not(.dark-mode) .title-input-new,
 [data-theme-mode="dark"] .notes-redesign .editor-content:not(.dark-mode) .title-input-new,
@@ -7999,14 +7797,6 @@ h1.note-title ::-moz-selection,
 
 .notes-redesign .title-input-new::placeholder {
   color: color-mix(in srgb, var(--text-primary) 28%, transparent) !important;
-}
-
-.notes-redesign .nre-editor-description {
-  max-width: 670px;
-  margin: 13px 0 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.6;
 }
 
 .notes-redesign .title-meta {
@@ -8203,40 +7993,6 @@ h1.note-title ::-moz-selection,
   background: color-mix(in srgb, var(--accent) 13%, transparent);
 }
 
-.notes-redesign .nr-insert-rail,
-.notes-redesign .editor-content.dark-mode .nr-insert-rail {
-  min-height: 44px;
-  gap: 5px;
-  padding: 6px 18px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--text-secondary);
-  background: rgba(14, 15, 16, .52) !important;
-}
-
-.notes-redesign .nr-insert-label {
-  color: var(--accent);
-  font-size: 8px;
-}
-
-.notes-redesign .nr-insert-rail button {
-  min-height: 30px;
-  color: var(--text-secondary);
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
-  transition: transform 120ms cubic-bezier(.23, 1, .32, 1), color 150ms ease, border-color 150ms ease, background-color 150ms ease;
-}
-
-.notes-redesign .nr-insert-hint,
-.notes-redesign .nr-insert-hint kbd {
-  color: var(--text-secondary);
-}
-
-.notes-redesign .nr-insert-hint kbd {
-  border-color: color-mix(in srgb, var(--accent) 17%, transparent);
-  background: rgba(255, 255, 255, .025);
-}
-
 .notes-redesign .block-editor-container,
 .notes-redesign .block-editor-container:not(.dark-mode),
 [data-theme-mode="dark"] .notes-redesign .block-editor-container:not(.dark-mode),
@@ -8286,9 +8042,7 @@ h1.note-title ::-moz-selection,
   background: rgba(18, 19, 20, .94) !important;
   backdrop-filter: blur(12px);
 }
-
-.notes-redesign .note-footer .stat-item,
-.notes-redesign .note-footer .unsaved-indicator {
+.notes-redesign .note-footer .stat-item {
   color: var(--text-secondary);
   font-size: 9px;
 }
@@ -8354,12 +8108,10 @@ h1.note-title ::-moz-selection,
   .notes-redesign .nre-document-card:hover::before {
     opacity: 1;
   }
-
-  .notes-redesign .format-btn:hover,
-  [data-theme-mode="dark"] .notes-redesign .editor-content:not(.dark-mode) .format-btn:hover,
-  .notes-redesign .editor-content.dark-mode .format-btn:hover,
-  .notes-redesign .nr-insert-rail button:hover,
-  .notes-redesign .title-action-btn:hover {
+.notes-redesign .format-btn:hover,
+[data-theme-mode="dark"] .notes-redesign .editor-content:not(.dark-mode) .format-btn:hover,
+.notes-redesign .editor-content.dark-mode .format-btn:hover,
+.notes-redesign .title-action-btn:hover {
     color: var(--text-primary);
     border-color: color-mix(in srgb, var(--accent) 27%, transparent);
     background-color: color-mix(in srgb, var(--accent) 6%, #18191a);
@@ -8371,9 +8123,7 @@ h1.note-title ::-moz-selection,
     border-color: color-mix(in srgb, var(--accent) 29%, transparent);
     background-color: color-mix(in srgb, var(--accent) 5%, #18191a);
   }
-
-  .notes-redesign .format-btn:hover svg,
-  .notes-redesign .nr-insert-rail button:hover svg {
+.notes-redesign .format-btn:hover svg {
     transform: translateY(-1px);
   }
 }
@@ -8433,9 +8183,7 @@ h1.note-title ::-moz-selection,
   .notes-redesign .nr-document-status {
     justify-self: start;
   }
-
-  .notes-redesign .formatting-toolbar-wrapper,
-  .notes-redesign .nr-insert-rail {
+.notes-redesign .formatting-toolbar-wrapper {
     padding-inline: 12px;
   }
 
@@ -8452,15 +8200,12 @@ h1.note-title ::-moz-selection,
   .notes-redesign .nre-view-tabs button,
   .notes-redesign .nre-view-tabs button::after,
   .notes-redesign .format-btn,
-  .notes-redesign .nr-insert-rail button,
   .notes-redesign .title-action-btn {
     transition-duration: .01ms !important;
   }
-
-  .notes-redesign .nre-document-card:hover,
-  .notes-redesign .format-btn:hover,
-  .notes-redesign .nr-insert-rail button:hover,
-  .notes-redesign button:active:not(:disabled) {
+.notes-redesign .nre-document-card:hover,
+.notes-redesign .format-btn:hover,
+.notes-redesign button:active:not(:disabled) {
     transform: none !important;
   }
 }
@@ -8691,166 +8436,6 @@ h1.note-title ::-moz-selection,
   border-radius: 0 !important;
 }
 
-/* Quick insert rail: uses the same neumorphic contract as the rest of SocialHubChrome. */
-#root .notes-redesign .nr-insert-rail,
-#root .notes-redesign .editor-content.dark-mode .nr-insert-rail {
-  position: relative;
-  min-height: 54px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 18px;
-  overflow-x: auto;
-  border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 13%, transparent);
-  color: var(--text-secondary);
-  background: rgba(18, 19, 20, .94) !important;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
-  scrollbar-width: none;
-}
-
-#root .notes-redesign .nr-insert-label {
-  min-width: max-content;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: var(--accent);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
-
-#root .notes-redesign .nr-insert-label-icon {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-  border-radius: 8px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 5%, #18191a);
-  box-shadow: var(--shc-neu-raised);
-}
-
-#root .notes-redesign .nr-insert-actions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 6px;
-}
-
-#root .notes-redesign .nr-insert-rail button {
-  min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 11px;
-  flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, .025);
-  box-shadow: var(--shc-neu-raised);
-  font-size: 10px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
-}
-
-#root .notes-redesign .nr-insert-rail button svg {
-  flex: 0 0 auto;
-  color: color-mix(in srgb, var(--accent) 76%, var(--text-primary));
-}
-
-#root .notes-redesign .nr-insert-rail button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 88%, white);
-  outline-offset: 2px;
-}
-
-#root .notes-redesign .nr-insert-rail button:active {
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-  background: color-mix(in srgb, var(--accent) 7%, #18191a);
-  box-shadow: var(--shc-neu-inset);
-  transform: scale(.98);
-}
-
-#root .notes-redesign .nr-insert-hint {
-  min-height: 32px;
-  margin-left: auto;
-  padding: 0 10px;
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, .015);
-  box-shadow: var(--shc-neu-inset);
-  font-size: 9px;
-  font-weight: 600;
-}
-
-#root .notes-redesign .nr-insert-hint kbd {
-  min-width: 20px;
-  margin: 0 5px;
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 5%, #18191a);
-  box-shadow: var(--shc-neu-raised);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  #root .notes-redesign .nr-insert-rail button:hover {
-    color: var(--text-primary);
-    border-color: color-mix(in srgb, var(--accent) 27%, transparent);
-    background: color-mix(in srgb, var(--accent) 6%, #18191a);
-    box-shadow: var(--shc-neu-raised-hover);
-    transform: translateY(-1px);
-  }
-
-  #root .notes-redesign .nr-insert-rail button:hover svg {
-    color: var(--accent);
-    transform: none;
-  }
-}
-
-@media (max-width: 720px) {
-  #root .notes-redesign .nr-insert-rail,
-  #root .notes-redesign .editor-content.dark-mode .nr-insert-rail {
-    min-height: 54px;
-    gap: 10px;
-    padding-inline: 12px;
-  }
-
-  #root .notes-redesign .nr-insert-label {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    padding-right: 8px;
-    background: #121314;
-  }
-
-  #root .notes-redesign .nr-insert-label-icon {
-    width: 32px;
-    height: 32px;
-  }
-
-  #root .notes-redesign .nr-insert-label-text {
-    display: none;
-  }
-
-  #root .notes-redesign .nr-insert-rail button {
-    min-height: 36px;
-    padding-inline: 12px;
-  }
-
-  #root .notes-redesign .nr-insert-hint {
-    display: none;
-  }
-}
-
 /* Keep the fullscreen action horizontal; the generic square icon-button rule must not collapse it. */
 #root .notes-redesign .title-action-btn.title-action-btn--fullscreen {
   width: auto;
@@ -8914,4 +8499,194 @@ h1.note-title ::-moz-selection,
 .notes-redesign .block-editor-container .math-content :is(.math-display-wrap, .katex-display) {
   background: #f5f3f0 !important;
   border-color: #bba58a !important;
+}
+
+/* ---- Editor chrome: matte, one tab row, More menu ------------------------- */
+#root .notes-redesign :is(
+  .nre-document-card,
+  .title-section,
+  .title-section.collapsed,
+  .nre-editor-toolbar
+) {
+  background: color-mix(in srgb, var(--text-primary) 2.5%, transparent) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+#root .notes-redesign .nre-document-card {
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent) !important;
+}
+
+#root .notes-redesign :is(.nre-document-card, .title-section)::before,
+#root .notes-redesign :is(.nre-document-card, .title-section)::after {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+#root .notes-redesign :is(.format-select, .format-btn, .title-action-btn, .nr-document-status) {
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.notes-redesign .nre-editor-toolbar {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.notes-redesign .nre-view-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.notes-redesign .nre-view-row .nre-view-tabs {
+  flex: 0 1 260px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Page setup + More share the tab chip look */
+.notes-redesign :is(.nre-view-row > button, .nre-more > button) {
+  position: relative;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 13%, transparent);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, .015);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none !important;
+}
+
+.notes-redesign .nre-view-tabs button {
+  font-size: 11px;
+}
+
+.notes-redesign :is(.nre-view-row > button, .nre-more > button).is-selected {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.notes-redesign :is(.nre-view-row > button, .nre-more > button):disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+.notes-redesign .nre-more {
+  position: relative;
+}
+
+.notes-redesign .nre-more-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  min-width: 250px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-radius: 12px;
+  background: var(--neu-popup-surface, #111214);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .5);
+}
+
+.notes-redesign .nre-more-menu button {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none !important;
+}
+
+.notes-redesign .nre-more-menu button svg {
+  color: var(--accent);
+}
+
+.notes-redesign .nre-more-menu button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.notes-redesign .nre-more-menu button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.notes-redesign :is(.nre-view-row button, .nre-more-menu button, .format-btn, .format-select, .format-color, .title-action-btn, .title-input-new, .nre-side-ai):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 80%, white);
+  outline-offset: 2px;
+}
+
+/* exact copy of AI Chat's sidebar New Chat button (.ai-chat-page.ac-qb-page .ac-new-chat-btn) */
+.notes-redesign button.nre-side-ai {
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  box-shadow: none !important;
+  color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transform: none;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.notes-redesign button.nre-side-ai:hover:not(:disabled),
+.notes-redesign button.nre-side-ai:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 85%, black);
+  box-shadow: none !important;
+  transform: none;
+}
+
+.notes-redesign button.nre-side-ai:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.notes-redesign button.nre-side-ai svg {
+  width: 18px;
+  height: 18px;
+}
+
+[data-theme-mode="light"] .notes-redesign button.nre-side-ai {
+  color: #fff;
+}
+
+/* The formatting toolbar sits on the white sheet's wrapper, so it needs its own
+   solid (flat, matte) dark fill rather than a see-through tint. */
+#root .notes-redesign .formatting-toolbar-wrapper,
+#root .notes-redesign .formatting-toolbar {
+  background: #151617 !important;
+}
+
+#root .notes-redesign .formatting-toolbar-wrapper {
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 13%, transparent);
 }
