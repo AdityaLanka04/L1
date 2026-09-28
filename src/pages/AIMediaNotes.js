@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   Upload, FileText, Save, Copy, Mic, Loader,
-  Settings, Brain, Zap, Clock, Globe, ChevronLeft, ChevronRight,
+  Brain, Zap, Clock, Globe, ChevronLeft, ChevronRight,
   BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home,
-  Search, PanelRight, X
+  Search, PanelRight, X, Plus
 } from 'lucide-react';
 import './AIMediaNotes.css';
 import './AIMediaNotesConvert.css';
@@ -89,7 +89,6 @@ const AIMediaNotes = () => {
   const [customInstructions, setCustomInstructions] = useState('');
   const [generateFlashcards, setGenerateFlashcards] = useState(false);
   const [generateQuiz, setGenerateQuiz] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
 
   
@@ -512,13 +511,6 @@ const AIMediaNotes = () => {
     }
   };
 
-  const handleWorkflowKeyDown = (event, action) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      action();
-    }
-  };
-
   const flashcardCount = Array.isArray(results?.flashcards) ? results.flashcards.length : 0;
   const quizCount = Array.isArray(results?.quiz_questions) ? results.quiz_questions.length : 0;
   const momentCount = Array.isArray(results?.key_moments) ? results.key_moments.length : 0;
@@ -533,7 +525,6 @@ const AIMediaNotes = () => {
       : results?.source_type === 'history'
         ? 'Saved note'
         : 'Media upload';
-  const selectedSourceName = uploadedFile?.name || 'No source selected';
   const mediaOutputItems = [
     { icon: BookOpen, label: 'Notes', onClick: () => setActiveTab('notes'), active: !isLibraryView && activeTab === 'notes', disabled: !results },
     { icon: FileText, label: 'Transcript', onClick: () => setActiveTab('transcript'), active: !isLibraryView && activeTab === 'transcript', disabled: !results || !transcriptText },
@@ -544,7 +535,6 @@ const AIMediaNotes = () => {
     { icon: Play, label: 'Moments', onClick: () => setActiveTab('moments'), active: !isLibraryView && activeTab === 'moments', disabled: !results || !momentCount, count: momentCount },
   ];
   const mediaSideSections = [
-    { label: 'Generated output', items: mediaOutputItems },
     {
       label: 'Library',
       items: [{
@@ -558,7 +548,7 @@ const AIMediaNotes = () => {
   ];
   const mediaSidebarLead = (
     <button className="amn-side-upload" onClick={startNewUpload} type="button">
-      <Upload size={16} />
+      <Plus size={18} />
       <span>New upload</span>
     </button>
   );
@@ -805,7 +795,6 @@ const AIMediaNotes = () => {
               <div className="mn-upload-section">
                 <div className="amn-library-heading">
                   <div className="view-heading mn-view-heading">
-                    <span className="view-kicker">Source Archive / {history.length} editions</span>
                     <h2 className="view-title">Media library</h2>
 
                   </div>
@@ -826,12 +815,7 @@ const AIMediaNotes = () => {
                           if (e.key === 'Enter' || e.key === ' ') navigate(`/notes/ai-media/${item.id}`);
                         }}
                       >
-                        <div className="amn-library-card-top">
-                          <span className="amn-library-index">{String(idx + 1).padStart(2, '0')}</span>
-                          <div className="amn-library-card-icon"><FileText size={18} /></div>
-                        </div>
                         <div>
-                          <span className="amn-library-kind">Study edition</span>
                           <h3 className="amn-library-card-title">{item.title}</h3>
                           {item.preview && <p className="amn-library-card-preview">{String(item.preview).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim().slice(0, 180)}</p>}
                         </div>
@@ -859,123 +843,49 @@ const AIMediaNotes = () => {
                 )}
               </div>
             ) : !results ? (
-              <div className="mn-upload-section mn-intake">
+              <div className={`mn-upload-section mn-intake ${uploadedFile ? 'mn-intake--brief' : 'mn-intake--source'}`}>
                 <div className="mn-intake-heading">
                   <div className="view-heading mn-view-heading">
-
-                    <h2 className="view-title plain-page-title">Media Notes</h2>
-
+                    <h2 className="view-title plain-page-title">Generator</h2>
                   </div>
                 </div>
 
-                <section className="mn-intake-stage" aria-label="Build a study edition">
-                  <div className="mn-intake-view-bar">
-                  <div className="mn-intake-status" aria-label="Current setup">
-                    <span>Source</span>
-                    <strong>{selectedSourceName}</strong>
-                  </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={MEDIA_FILE_ACCEPT}
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
+                />
 
-                    <div className="mn-workflow-strip" aria-label="Media Notes workflow">
-                      <span
-                        className={uploadedFile ? 'is-complete' : 'is-current'}
-                        role="button"
-                        tabIndex={0}
-                        aria-label="Choose source"
-                        onClick={() => fileInputRef.current?.click()}
-                        onKeyDown={(event) => handleWorkflowKeyDown(event, () => fileInputRef.current?.click())}
-                      >
-                        <b>01</b> Source
-                      </span>
-                      <i />
-                      <span
-                        className={uploadedFile || showSettings ? 'is-current' : ''}
-                        role="button"
-                        tabIndex={0}
-                        aria-label="Open study brief"
-                        aria-expanded={showSettings}
-                        onClick={() => setShowSettings(true)}
-                        onKeyDown={(event) => handleWorkflowKeyDown(event, () => setShowSettings(true))}
-                      >
-                        <b>02</b> Study brief
-                      </span>
-                      <i />
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        aria-label={uploadedFile ? 'Generate study edition' : 'Choose a source before generating'}
-                        onClick={() => uploadedFile ? processMedia() : fileInputRef.current?.click()}
-                        onKeyDown={(event) => handleWorkflowKeyDown(
-                          event,
-                          () => uploadedFile ? processMedia() : fileInputRef.current?.click()
-                        )}
-                      >
-                        <b>03</b> Study desk
-                      </span>
+                {!uploadedFile ? (
+                  <div
+                    className={`mn-upload-area ${isDragging ? 'dragging' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="mn-source-icon"><Upload size={24} /></div>
+                    <div>
+                      <p>Drop a PDF, MP3, or MP4</p>
+                      <span>or click to browse · up to {MAX_MEDIA_FILE_SIZE_MB} MB</span>
                     </div>
                   </div>
-
-                <div className="mn-intake-grid">
-                  <section className="mn-intake-card mn-source-card">
-                    <div className="mn-intake-card-head">
-                      <span className="mn-step-index">01</span>
-                      <div>
-                        <span className="mn-card-kicker">Choose source</span>
-                        <h3>What are you studying?</h3>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`mn-upload-area ${isDragging ? 'dragging' : ''} ${uploadedFile ? 'has-source' : ''}`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept={MEDIA_FILE_ACCEPT}
-                        onChange={handleFileUpload}
-                        style={{ display: 'none' }}
-                      />
-                      <div className="mn-source-icon"><Upload size={24} /></div>
-                      <div>
-                        <p>{uploadedFile ? 'Replace source file' : 'Drop a PDF, MP3, or MP4'}</p>
-                        <span>Local upload · up to {MAX_MEDIA_FILE_SIZE_MB} MB · PDF, MP3, MP4</span>
-                      </div>
-                    </div>
-
-                    {uploadedFile && (
-                      <div className="mn-uploaded-file">
-                        <FileText size={20} />
-                        <span>
-                          <strong>{uploadedFile.name}</strong>
-                          <small>{(uploadedFile.size / (1024 * 1024)).toFixed(1)} MB · ready to process</small>
-                        </span>
-                        <button type="button" aria-label="Remove selected file" onClick={() => setUploadedFile(null)}><X size={15} /></button>
-                      </div>
-                    )}
-
-                    <div className="mn-local-source-note">
-                      <span>Cloud-safe intake</span>
-                      <p>Files are uploaded directly for processing. No external video host or public link is required.</p>
-                    </div>
-                  </section>
-
-                  <section className={`mn-intake-card mn-brief-card ${showSettings ? 'is-open' : 'is-closed'}`}>
-                    <button className="mn-intake-card-head mn-brief-toggle" type="button" onClick={() => setShowSettings(!showSettings)} aria-expanded={showSettings}>
-                      <span className="mn-step-index">02</span>
+                ) : (
+                  <section className="mn-intake-card mn-brief-card">
+                    <div className="mn-uploaded-file">
+                      <FileText size={20} />
                       <span>
-                        <span className="mn-card-kicker">Shape the output</span>
-                        <strong>Study brief</strong>
+                        <strong>{uploadedFile.name}</strong>
+                        <small>{uploadedFile.size < 1024 * 1024 ? `${Math.max(1, Math.round(uploadedFile.size / 1024))} KB` : `${(uploadedFile.size / (1024 * 1024)).toFixed(1)} MB`}</small>
                       </span>
-                      <Settings size={17} />
-                    </button>
+                      <button type="button" aria-label="Remove selected file" onClick={() => setUploadedFile(null)} disabled={isProcessing}><X size={15} /></button>
+                    </div>
 
-                    {showSettings && (
                     <div className="mn-settings-content">
                       <div className="mn-recipe-picker">
-                        <span className="mn-recipe-label">Quick recipes</span>
+                        <span className="mn-recipe-label">Preset</span>
                         <div>
                           <button
                             className={noteStyle === 'detailed' && difficulty === 'intermediate' ? 'is-selected' : ''}
@@ -984,7 +894,6 @@ const AIMediaNotes = () => {
                           >
                             <span className="mn-recipe-icon"><BookOpen size={15} /></span>
                             <span className="mn-recipe-copy"><strong>Lecture</strong><small>Detailed + recall tools</small></span>
-                            <span className="mn-recipe-signal" aria-hidden="true"><i /><i /><i /><i /></span>
                           </button>
                           <button
                             className={noteStyle === 'bullet_points' && difficulty === 'beginner' ? 'is-selected' : ''}
@@ -993,7 +902,6 @@ const AIMediaNotes = () => {
                           >
                             <span className="mn-recipe-icon"><Zap size={15} /></span>
                             <span className="mn-recipe-copy"><strong>Quick review</strong><small>Key points + cards</small></span>
-                            <span className="mn-recipe-signal" aria-hidden="true"><i /><i /><i /><i /></span>
                           </button>
                           <button
                             className={noteStyle === 'cornell' && difficulty === 'advanced' ? 'is-selected' : ''}
@@ -1002,7 +910,6 @@ const AIMediaNotes = () => {
                           >
                             <span className="mn-recipe-icon"><Brain size={15} /></span>
                             <span className="mn-recipe-copy"><strong>Deep study</strong><small>Cornell + challenge</small></span>
-                            <span className="mn-recipe-signal" aria-hidden="true"><i /><i /><i /><i /></span>
                           </button>
                         </div>
                       </div>
@@ -1017,7 +924,7 @@ const AIMediaNotes = () => {
                             <option value="mind_map">Mind Map</option>
                             <option value="cornell">Cornell Notes</option>
                             <option value="outline">Outline</option>
-                            <option value="qa">Q&A Format</option>
+                            <option value="qa">Q&amp;A Format</option>
                           </select>
                         </div>
 
@@ -1070,37 +977,22 @@ const AIMediaNotes = () => {
                         </label>
                       </div>
                     </div>
-                    )}
-
-                    <div className="mn-brief-summary">
-                      <div>
-                        <span>Deliverable</span>
-                        <strong>{noteStyle.replace('_', ' ')} notes</strong>
-                      </div>
-                      <div>
-                        <span>Level</span>
-                        <strong>{difficulty}</strong>
-                      </div>
-                      <div>
-                        <span>Study tools</span>
-                        <strong>{[generateFlashcards && 'cards', generateQuiz && 'quiz'].filter(Boolean).join(' + ') || 'notes only'}</strong>
-                      </div>
-                    </div>
 
                     <button
                       onClick={processMedia}
-                      disabled={isProcessing || !uploadedFile}
+                      disabled={isProcessing}
                       className="mn-process-btn"
+                      type="button"
                     >
                       {isProcessing ? (
                         <>
                           <Loader size={18} className="mn-spinner" />
-                          Building your study edition
+                          <span>Generating</span>
                         </>
                       ) : (
                         <>
-                          <Brain size={18} />
-                          Generate study edition
+                          <Plus size={18} />
+                          <span>Generate notes</span>
                         </>
                       )}
                     </button>
@@ -1117,8 +1009,7 @@ const AIMediaNotes = () => {
                       </div>
                     )}
                   </section>
-                </div>
-                </section>
+                )}
               </div>
             ) : (
               <div className="mn-results">
