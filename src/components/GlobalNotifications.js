@@ -1,5 +1,6 @@
 import { getCachedAccountSession } from '../utils/institutionSession';
 import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 import SlideNotification from './SlideNotification';
 import { useNotifications } from '../contexts/NotificationContext';
 import useModalFocus from '../hooks/useModalFocus';
@@ -19,7 +20,7 @@ export default function GlobalNotifications() {
     </div>
     {selectedNotification && <div className="notification-detail-backdrop">
       <section className="notification-detail" ref={dialog} role="dialog" aria-modal="true" aria-labelledby="notification-detail-title" tabIndex={-1}>
-        <button type="button" onClick={closeNotification} aria-label="Close notification">Close</button>
+        <button type="button" className="notification-detail-close" onClick={closeNotification} aria-label="Close notification"><X size={18} /></button>
         <h2 id="notification-detail-title">{selectedNotification.title}</h2>
         <time>{notificationTime(selectedNotification.created_at)}</time>
         <p>{notificationMessage(selectedNotification)}</p>
