@@ -26,6 +26,7 @@ import {
 import './styles/ui-safety.css';
 import './App.css';
 import './styles/neumorphism.css';
+import './styles/notesGrain.css';
 
 // Pages are lazy-loaded so each route ships as its own chunk instead of
 // inflating the initial bundle with ~60 page components up front.
