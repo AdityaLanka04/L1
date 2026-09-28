@@ -23,10 +23,7 @@
 .my-notes-standard .view-kicker { display: none; }
 .my-notes-standard .view-title { margin: 0 0 10px; font-size: 36px; font-weight: 750; line-height: 1.15; letter-spacing: -.03em; color: var(--text-primary); }
 .my-notes-standard .view-sub { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-secondary); max-width: 60ch; }
-.my-notes-standard .nt-library-stats { display: flex; align-items: center; gap: 20px; background: none; border: 0; box-shadow: none; }
-.my-notes-standard .nt-library-stats > div { display: flex; flex-direction: column; gap: 4px; }
-.my-notes-standard .nt-library-stats strong { color: var(--accent); font-size: 20px; }
-.my-notes-standard .nt-library-stats span { font-size: 11px; color: var(--text-secondary); }
+
 .my-notes-standard .mns-create { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--accent); color: var(--bg-primary); border: 1px solid var(--accent); border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .my-notes-standard .nt-content-controls { display: flex; align-items: center; gap: 16px; padding: 20px 0; margin: 0; background: none; border: 0; }
 .my-notes-standard .nt-search { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; margin: 0; padding: 0 14px; min-height: 44px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; }
@@ -65,7 +62,7 @@
   .my-notes-standard .view-title { font-size: 28px; }
   .my-notes-standard .view-sub { font-size: 13px; }
   .my-notes-standard .nt-library-command { flex-wrap: wrap; gap: 14px; padding-bottom: 18px; }
-  .my-notes-standard .nt-library-stats { display: none; }
+
   .my-notes-standard .nt-content-controls { gap: 8px; }
   .my-notes-standard .nt-notes-grid { grid-template-columns: minmax(0, 1fr); }
   .my-notes-standard .nt-note-card { padding: 18px; }
@@ -101,3 +98,58 @@
   .my-notes-standard .nt-view-controls { margin-left: auto; }
   .my-notes-standard .shc-topbar-right { width: auto; }
 }
+
+/* exact copy of AI Chat's sidebar New Chat button (.ai-chat-page.ac-qb-page .ac-new-chat-btn) */
+.my-notes-standard button.mns-create {
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  box-shadow: none !important;
+  color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transform: none;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.my-notes-standard button.mns-create:hover:not(:disabled),
+.my-notes-standard button.mns-create:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 85%, black);
+  box-shadow: none !important;
+  transform: none;
+}
+
+.my-notes-standard button.mns-create:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.my-notes-standard button.mns-create svg {
+  width: 18px;
+  height: 18px;
+}
+
+[data-theme-mode="light"] .my-notes-standard button.mns-create {
+  color: #fff;
+}
+
+/* favourite star sits bottom-right beside the date, clear of the folder/delete actions */
+.my-notes-standard .nt-favorite-badge { top: auto; right: 20px; bottom: 20px; line-height: 0; }
+
+.my-notes-standard .mns-header-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.my-notes-standard .mns-convert { min-height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--text-primary) 3%, transparent); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: none !important; }
+.my-notes-standard .mns-convert svg { color: var(--accent); }
+.my-notes-standard .mns-convert:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.my-notes-standard :is(.mns-convert, .mns-create, .nt-view-btn):focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 80%, white); outline-offset: 2px; }

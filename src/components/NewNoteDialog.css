@@ -1,0 +1,149 @@
+.nn-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 5, 6, .72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.nn-backdrop .nn-dialog {
+  width: min(100%, 480px);
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  padding: 22px;
+  color: var(--text-primary);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.nn-dialog:focus {
+  outline: none;
+}
+
+.nn-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.nn-head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+
+.nn-dialog .nn-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  box-shadow: none !important;
+}
+
+.nn-dialog .nn-close:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+.nn-options {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nn-dialog .nn-option {
+  width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.nn-dialog .nn-option:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.nn-dialog .nn-option:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.nn-dialog :is(.nn-option, .nn-close):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 80%, white);
+  outline-offset: 2px;
+}
+
+.nn-option-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-radius: 10px;
+  color: var(--accent);
+}
+
+.nn-option-copy strong,
+.nn-option-copy small {
+  display: block;
+}
+
+.nn-option-copy strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.nn-option-copy small {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.nn-option-chevron {
+  color: var(--text-secondary);
+}
+
+.nn-error {
+  margin: 12px 0 0;
+  color: #f87171;
+  font-size: 13px;
+}
+
+.nn-spin {
+  animation: nn-spin 1s linear infinite;
+}
+
+@keyframes nn-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nn-spin { animation: none; }
+}

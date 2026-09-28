@@ -2,9 +2,9 @@ import SocialHubChrome from '../components/SocialHubChrome';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus,
-  Grid, List as ListIcon, Layout, Sparkles, ChevronLeft, ChevronRight,
-  Home, FileText, RotateCcw, MessageSquare, BookOpen,
+  Plus, Search, Star, Clock, Folder, Trash2, FolderPlus,
+  Grid, List as ListIcon, Sparkles,
+  FileText, RotateCcw, MessageSquare, BookOpen,
   HelpCircle, X
 } from 'lucide-react';
 import './MyNotes.css';
@@ -15,6 +15,7 @@ import '../components/NotesSidebarSystem.css';
 import { API_URL } from '../config';
 import { notePreviewText } from '../utils/notePreviewText';
 import Templates from '../components/Templates';
+import NewNoteDialog from '../components/NewNoteDialog';
 import ImportExportModal from '../components/ImportExportModal';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
@@ -59,6 +60,9 @@ const MyNotes = () => {
   const [noteToMove, setNoteToMove] = useState(null);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [showNewNote, setShowNewNote] = useState(false);
+  const [creatingNote, setCreatingNote] = useState(false);
+  const [createError, setCreateError] = useState('');
   const [importTab, setImportTab] = useState('chat');
   const [flashcardSets, setFlashcardSets] = useState([]);
   const [selectedFlashcardSets, setSelectedFlashcardSets] = useState([]);
@@ -122,6 +126,14 @@ const MyNotes = () => {
       createGeneratedNote();
     }
   }, [location.state, userName, navigate]);
+
+  useEffect(() => {
+    const createFrom = location.state?.createFrom;
+    if (!createFrom || !userName) return;
+    navigate(location.pathname, { replace: true, state: null });
+    chooseNewNote(createFrom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, userName]);
 
   const loadNotes = async () => {
     setLoading(true);
@@ -231,6 +243,9 @@ const MyNotes = () => {
   };
 
   const createNewNote = async () => {
+    if (creatingNote) return;
+    setCreatingNote(true);
+    setCreateError('');
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/create_note`, {
@@ -255,8 +270,27 @@ const MyNotes = () => {
       }
     } catch (error) {
       console.error('Error creating note:', error);
-      alert('Failed to create note');
-  }
+      setCreateError('Could not create a note. Please try again.');
+      setCreatingNote(false);
+    }
+  };
+
+  const openImport = (tab) => {
+    setSelectedSessions([]);
+    setSelectedFlashcardSets([]);
+    setSelectedQuizzes([]);
+    setImportTab(tab);
+    if (tab === 'flashcards') loadFlashcardSets();
+    setShowChatImport(true);
+  };
+
+  const chooseNewNote = (choice) => {
+    if (choice === 'blank') { createNewNote(); return; }
+    setShowNewNote(false);
+    if (choice === 'template') setShowTemplates(true);
+    else if (choice === 'chat') openImport('chat');
+    else if (choice === 'flashcards') openImport('flashcards');
+    else if (choice === 'media') navigate('/notes/ai-media');
   };
 
   const createFolder = async () => {
@@ -641,9 +675,6 @@ const MyNotes = () => {
 
   const filteredNotes = getFilteredNotes();
   const favoriteCount = notes.filter(n => n.is_favorite).length;
-  const flashcardSourceCount = notes.filter(n => n.source_type === 'flashcards' || asText(n.title).toLowerCase().includes('flashcard')).length;
-  const quizSourceCount = notes.filter(n => n.source_type === 'quiz' || asText(n.title).toLowerCase().includes('quiz')).length;
-  const roadmapSourceCount = notes.filter(n => n.source_type === 'roadmap' || asText(n.title).toLowerCase().includes('roadmap') || asText(n.title).toLowerCase().includes('knowledge map')).length;
   const currentTitle = showTrash ? 'Trash' : showFavorites ? 'Favorites' :
     selectedFolder === 'source-flashcards' ? 'From Flashcards' :
     selectedFolder === 'source-quizzes' ? 'From Quizzes' :
@@ -656,8 +687,8 @@ const MyNotes = () => {
       <SocialHubChrome
         brandKicker="Notes"
         topbarContent={<ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />}
-        sidebarLead={<button className="mns-create" onClick={createNewNote} type="button"><Plus size={16} />New note</button>}
-        collapsedLeadItems={[{ icon: Plus, label: 'New note', onClick: createNewNote }]}
+        sidebarLead={<button className="mns-create" onClick={() => { setCreateError(''); setShowNewNote(true); }} type="button" aria-haspopup="dialog"><Plus size={16} aria-hidden="true" />New note</button>}
+        collapsedLeadItems={[{ icon: Plus, label: 'New note', onClick: () => { setCreateError(''); setShowNewNote(true); } }]}
         sideSections={[
           { label: 'Workspace', items: [
             { icon: BookOpen, label: 'Overview', onClick: () => navigate('/notes') },
@@ -666,33 +697,22 @@ const MyNotes = () => {
             { icon: Trash2, label: 'Trash', active: showTrash, onClick: () => { setShowTrash(true); setShowFavorites(false); setSelectedFolder(null); loadTrash(); } },
             { icon: FileText, label: 'Media Notes', onClick: () => navigate('/notes/ai-media') },
           ] },
-          { label: 'Create', items: [
-            { icon: Sparkles, label: 'Convert', onClick: () => setShowConvertModal(true) },
-            { icon: Layout, label: 'Templates', onClick: () => setShowTemplates(true) },
-            { icon: Upload, label: 'From Chat', onClick: () => { setShowChatImport(true); setImportTab('chat'); setSelectedSessions([]); setSelectedFlashcardSets([]); setSelectedQuizzes([]); } },
+          { label: 'Folders', items: [
+            ...folders.map(folder => ({ icon: Folder, label: folder.name, count: notes.filter(n => noteIsInFolder(n, folder.id)).length, active: selectedFolder === folder.id, onClick: () => { setSelectedFolder(folder.id); setShowFavorites(false); setShowTrash(false); } })),
             { icon: FolderPlus, label: 'New folder', onClick: () => setShowFolderModal(true) },
-          ] },
-          { label: 'Folders', items: folders.map(folder => ({ icon: Folder, label: folder.name, count: notes.filter(n => noteIsInFolder(n, folder.id)).length, active: selectedFolder === folder.id, onClick: () => { setSelectedFolder(folder.id); setShowFavorites(false); setShowTrash(false); } })) },
-          { label: 'By source', items: [
-            { icon: FileText, label: 'From Flashcards', count: flashcardSourceCount, active: selectedFolder === 'source-flashcards', onClick: () => { setSelectedFolder('source-flashcards'); setShowFavorites(false); setShowTrash(false); } },
-            { icon: HelpCircle, label: 'From Quizzes', count: quizSourceCount, active: selectedFolder === 'source-quizzes', onClick: () => { setSelectedFolder('source-quizzes'); setShowFavorites(false); setShowTrash(false); } },
-            { icon: BookOpen, label: 'From Knowledge Maps', count: roadmapSourceCount, active: selectedFolder === 'source-roadmaps', onClick: () => { setSelectedFolder('source-roadmaps'); setShowFavorites(false); setShowTrash(false); } },
           ] },
         ].filter(section => section.items.length)}
       >
             <div className="nt-content">
             <div className="nt-library-command">
               <div className="nt-library-title">
-                <span className="view-kicker">Notes Library / {currentTitle}</span>
                 <h1 className="view-title">{currentTitle}</h1>
 
               </div>
-              <div className="nt-library-stats" aria-label="Library summary">
-                <div><strong>{filteredNotes.length}</strong><span>in view</span></div>
-                <div><strong>{favoriteCount}</strong><span>starred</span></div>
-                <div><strong>{folders.length}</strong><span>folders</span></div>
+              <div className="mns-header-actions">
+                {viewingRealFolder && <button className="mns-folder-delete" type="button" onClick={() => deleteFolder(selectedFolder, currentTitle)}><Trash2 size={16} aria-hidden="true" />Delete folder</button>}
+                <button className="mns-convert" type="button" onClick={() => setShowConvertModal(true)}><Sparkles size={15} aria-hidden="true" />Convert notes</button>
               </div>
-              {viewingRealFolder && <button className="mns-folder-delete" type="button" onClick={() => deleteFolder(selectedFolder, currentTitle)}><Trash2 size={16} />Delete folder</button>}
             </div>
 
             <div className="nt-content-controls">
@@ -767,7 +787,7 @@ const MyNotes = () => {
                     {note.is_favorite && (
                       <div className="nt-favorite-badge"><Star size={14} /></div>
                     )}
-                    <span className="nt-note-card-type">{note.source_type ? note.source_type.replace('_', ' ') : 'note'}</span>
+                    {note.source_type && <span className="nt-note-card-type">{note.source_type.replace('_', ' ')}</span>}
                     <div className="nt-note-card-content">
                       <div className="nt-note-card-header">
                         {showTrash ? (
@@ -1057,6 +1077,14 @@ const MyNotes = () => {
           </div>
         </div>
       )}
+
+      <NewNoteDialog
+        open={showNewNote}
+        onClose={() => setShowNewNote(false)}
+        onChoose={chooseNewNote}
+        busy={creatingNote}
+        error={createError}
+      />
 
       {showTemplates && (
         <>
