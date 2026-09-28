@@ -10195,3 +10195,49 @@
 .flashcards-page .fc-preview-card .fc-delete-btn-thumb {
   position: absolute;
 }
+
+/* exact copy of AI Chat's sidebar New Chat button (.ai-chat-page.ac-qb-page .ac-new-chat-btn) */
+.flashcards-page button.fc-side-generate {
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  box-shadow: none !important;
+  color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transform: none;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.flashcards-page button.fc-side-generate:hover:not(:disabled),
+.flashcards-page button.fc-side-generate:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 85%, black);
+  box-shadow: none !important;
+  transform: none;
+}
+
+.flashcards-page button.fc-side-generate:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.flashcards-page button.fc-side-generate svg {
+  width: 18px;
+  height: 18px;
+}
+
+[data-theme-mode="light"] .flashcards-page button.fc-side-generate {
+  color: #fff;
+}

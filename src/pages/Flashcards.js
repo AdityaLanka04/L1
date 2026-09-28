@@ -21,7 +21,7 @@ import {
   RefreshCcw,
   Search,
   Shuffle,
-  Sparkles,
+  Plus,
   Target,
 } from 'lucide-react';
 
@@ -2229,7 +2229,7 @@ const Flashcards = () => {
         onCollapsedChange={setSidebarCollapsed}
         sidebarLead={(
           <button className="fc-side-generate" onClick={() => setActivePanel('generator')} type="button">
-            <Sparkles size={15} />
+            <Plus size={15} />
             <span>Generate cards</span>
           </button>
         )}
@@ -3215,7 +3215,7 @@ const Flashcards = () => {
         onCollapsedChange={setSidebarCollapsed}
         sidebarLead={(
           <button className="fc-side-generate" onClick={() => setActivePanel('generator')} type="button">
-            <Sparkles size={15} />
+            <Plus size={15} />
             <span>Generate cards</span>
           </button>
         )}
