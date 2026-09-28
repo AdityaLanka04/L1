@@ -1996,7 +1996,7 @@
 .cb-feat:hover .cb-feat-arrow {
   background: var(--accent);
   color: #1a1306;
-  transform: rotate(45deg) scale(1.05);
+  transform: scale(1.05);
 }
 
 .cb-feat-typing {

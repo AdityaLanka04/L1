@@ -3,7 +3,7 @@ import useCerbylCardMotion from '../hooks/useCerbylCardMotion';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowUpRight, ChevronLeft, ChevronRight, FileText, Mic, Library, Search, X, User, Bell, Sparkles, Trash2, LogOut,
+  ChevronLeft, ChevronRight, FileText, Mic, Library, Search, X, User, Bell, Sparkles, Trash2, LogOut,
   History, MessageSquare, BarChart2, Layers, Network, Route, HelpCircle, Presentation, Users, Target, Trophy,
 } from 'lucide-react';
 import { API_URL } from '../config/api';
@@ -1695,10 +1695,10 @@ const DashboardCerbyl = () => {
                 <div className="cb-stat-lbl">STREAK</div>
               </div>
               <button className="cb-ai-cta" onClick={() => navigate('/search-hub')}>
-                <Search size={15} /> Search Hub <ArrowUpRight size={16} />
+                <Search size={15} /> Search Hub <ChevronRight size={16} />
               </button>
               <button className="cb-ai-cta cb-ai-cta--ghost" onClick={() => navigate('/contexthub')}>
-                <Library size={15} /> ContextHub <ArrowUpRight size={16} />
+                <Library size={15} /> ContextHub <ChevronRight size={16} />
               </button>
             </div>
 
@@ -1737,7 +1737,7 @@ const DashboardCerbyl = () => {
                   )}
                 </div>
               </div>
-              <span className="cb-feat-arrow"><ArrowUpRight size={16}/></span>
+              <span className="cb-feat-arrow"><ChevronRight size={16}/></span>
             </div>
 
             <div
@@ -1789,7 +1789,7 @@ const DashboardCerbyl = () => {
                   </button>
                 ))}
               </div>
-              <span className="cb-feat-arrow"><ArrowUpRight size={16}/></span>
+              <span className="cb-feat-arrow"><ChevronRight size={16}/></span>
             </div>
 
             <div
@@ -1886,7 +1886,7 @@ const DashboardCerbyl = () => {
                   </>
                 )}
               </div>
-              <span className="cb-feat-arrow"><ArrowUpRight size={16}/></span>
+              <span className="cb-feat-arrow"><ChevronRight size={16}/></span>
             </div>
           </section>
 
@@ -1963,7 +1963,7 @@ const DashboardCerbyl = () => {
                     navigate('/analytics');
                   }}
                 >
-                  all <ArrowUpRight size={12}/>
+                  all <ChevronRight size={12}/>
                 </button>
               </div>
               <div className="cb-panel-sub">{sessionsTotal} sessions total · {stats.weeklyPoints} pts this week</div>
@@ -2047,7 +2047,7 @@ const DashboardCerbyl = () => {
                 </li>
               </ul>
               <button className="cb-rank-cta" onClick={() => navigate('/leaderboards')}>
-                View Leaderboard <ArrowUpRight size={12}/>
+                View Leaderboard <ChevronRight size={12}/>
               </button>
             </div>
           </section>
