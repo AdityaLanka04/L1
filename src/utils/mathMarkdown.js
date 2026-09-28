@@ -8,10 +8,16 @@ import { marked } from 'marked';
 // so math spans are pulled out into placeholders before `marked` runs and restored
 // into KaTeX-ready `$...$`/`$$...$$` delimiters afterward, ready for <MathRenderer>.
 
+const ESCAPED_DOLLAR = 'ZDOLLARZ';
+
 export function extractMathPlaceholders(text, { prefix = 'ZMATH' } = {}) {
   const mathStore = [];
   const placeholder = (i) => `${prefix}${i}Z`;
   let src = String(text || '');
+
+  // Escaped currency: models write `\$0.02` LaTeX-style. Pull it out first so the
+  // `$` is never taken as a math delimiter and the backslash never renders.
+  src = src.replace(/\\\$/g, ESCAPED_DOLLAR);
 
   // Display: $$...$$ (may be multiline)
   src = src.replace(/\$\$([\s\S]+?)\$\$/g, (_, m) => {
@@ -42,12 +48,17 @@ export function extractMathPlaceholders(text, { prefix = 'ZMATH' } = {}) {
 
 export function restoreMathPlaceholders(html, mathStore, { prefix = 'ZMATH' } = {}) {
   const re = new RegExp(`${prefix}(\\d+)Z`, 'g');
-  return String(html || '').replace(re, (_, i) => {
-    const record = mathStore[Number(i)];
-    if (!record) return '';
-    if (record.display) return `<div class="math-display-wrap">$$${record.tex}$$</div>`;
-    return `$${record.tex}$`;
-  });
+  return String(html || '')
+    .replace(re, (_, i) => {
+      const record = mathStore[Number(i)];
+      if (!record) return '';
+      const tex = record.tex.split(ESCAPED_DOLLAR).join('\\$');
+      if (record.display) return `<div class="math-display-wrap">$$${tex}$$</div>`;
+      return `$${tex}$`;
+    })
+    // Own element so KaTeX auto-render (which scans each text node separately)
+    // can't pair this literal `$` with another one into a math span.
+    .split(ESCAPED_DOLLAR).join('<span class="md-dollar">$</span>');
 }
 
 function buildRenderer({ tutorStepList = false } = {}) {

@@ -40,4 +40,19 @@ describe('mathMarkdown', () => {
     expect(html).toContain('$x + C$');
     expect(html).not.toContain('$3x^2\n- 4$');
   });
+
+  it('renders escaped currency as a literal dollar instead of pairing it into math', () => {
+    const html = renderMarkdownWithMath(String.raw`Sides cost \$0.02 per cm², ends cost \$0.05 for $1000\ \text{cm}^3$.`);
+
+    expect(html).toContain('<span class="md-dollar">$</span>0.02 per cm²');
+    expect(html).toContain('<span class="md-dollar">$</span>0.05 for');
+    expect(html).toContain(String.raw`$1000\ \text{cm}^3$`);
+    expect(html).not.toContain('\\$0');
+  });
+
+  it('keeps an escaped dollar inside math as \\$', () => {
+    const html = renderMarkdownWithMath(String.raw`Price: $\$5 + x$`);
+
+    expect(html).toContain(String.raw`$\$5 + x$`);
+  });
 });
