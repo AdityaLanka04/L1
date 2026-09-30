@@ -91,12 +91,54 @@ def _student_section(s: StudentState | None, intent: str = "", context_only: boo
     if intent not in ("greeting", "returning_greeting") and not context_only:
         if s.strengths:
             lines.append(f"- Strengths: {', '.join(s.strengths)}")
+        scored = {item["label"]: item["weakness_score"] for item in (s.weakness_scores or [])}
         if s.weaknesses:
-            lines.append(f"- Weaknesses: {', '.join(s.weaknesses)}")
+            lines.append("- Weaknesses: " + ", ".join(
+                f"{w} (weakness {scored[w]:.0f}/100)" if w in scored else w for w in s.weaknesses
+            ))
         if s.current_subject:
             lines.append(f"- Current subject: {s.current_subject}")
     lines.append(f"- Preferred style: {s.preferred_style}")
     lines.append(f"- Difficulty level: {s.difficulty_level}")
+    if s.matched_weaknesses and intent not in ("greeting", "returning_greeting") and not context_only:
+        lines.append("")
+        lines.append(_matched_weakness_section(s.matched_weaknesses))
+    return "\n".join(lines)
+
+
+_SOURCE_LABELS = {
+    "flashcard": "flashcards",
+    "solo_quiz": "quizzes",
+    "question_bank": "practice questions",
+    "chat": "tutor chat",
+}
+
+
+def _matched_weakness_section(items: list[dict]) -> str:
+    """The student's message is about a topic the weakness model is tracking.
+    Scores come from services/weakness_model.py (BKT + forgetting curve over
+    every graded flashcard / quiz / practice / verified chat answer)."""
+    lines = [
+        "[TRACKED WEAKNESSES — THIS MESSAGE IS ABOUT A TOPIC THE STUDENT HAS BEEN GETTING WRONG]",
+        "Weakness score is 0-100 (100 = not yet mastered), from a knowledge-tracing model over the student's graded answers.",
+    ]
+    for item in items:
+        sources = ", ".join(_SOURCE_LABELS.get(src, src) for src in item.get("sources") or []) or "graded practice"
+        streak = item.get("consecutive_wrong") or 0
+        lines.append(
+            f"- {item['label']}: weakness {item['weakness_score']:.0f}/100 — "
+            f"{item.get('correct', 0)}/{item.get('attempts', 0)} correct across {sources}"
+            + (f", {streak} wrong in a row" if streak >= 2 else "")
+        )
+        for miss in (item.get("recent_misses") or [])[:3]:
+            expected = f" (expected: {miss['correct_answer']})" if miss.get("correct_answer") else ""
+            lines.append(f"    missed: {miss['question']}{expected}")
+    lines.append(
+        "How to use this: in one short sentence near the start, tell the student this is a topic they've been "
+        "finding hard and give the weakness score (e.g. \"this has been a weak spot for you — weakness 72/100\"). "
+        "Then aim the explanation at the specific items they missed above, and end with one quick check question "
+        "on that exact point. Do not lecture about the score or repeat it later in the reply."
+    )
     return "\n".join(lines)
 
 def _chat_history_section(history: list[dict]) -> str:

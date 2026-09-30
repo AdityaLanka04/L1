@@ -12,6 +12,10 @@ class StudentState:
     preferred_style: str = "balanced"
     difficulty_level: str = "intermediate"
     current_subject: str = ""
+    # Live model scores (services/weakness_model.py): top weak areas overall,
+    # and the ones the current message is actually about.
+    weakness_scores: list[dict] = field(default_factory=list)
+    matched_weaknesses: list[dict] = field(default_factory=list)
 
 @dataclass
 class EvalResult:
