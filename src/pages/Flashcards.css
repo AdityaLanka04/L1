@@ -10133,16 +10133,6 @@
   color: inherit;
 }
 
-.fc-explore-search-row {
-  margin: 18px 0 22px;
-  align-items: stretch;
-}
-
-.fc-explore-search-row .fc-form-group {
-  flex: 1;
-  min-width: 0;
-}
-
 .fc-explore-panel .fc-set-actions-new {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -10154,15 +10144,6 @@
   color: var(--fc-accent);
   text-transform: uppercase;
   letter-spacing: .1em;
-}
-
-@media (max-width: 640px) {
-  .fc-explore-search-row {
-    flex-direction: column;
-  }
-  .fc-explore-search-row .fc-form-group {
-    width: 100%;
-  }
 }
 
 /* Stretch the preview action over the card; explicit controls remain above it. */
@@ -10362,4 +10343,242 @@
   margin: .4em 0;
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+/* Study view: answers sit in the middle of the card; auto margins centre the
+   text and collapse to 0 when it's long enough to scroll. */
+.flashcards-page.fc-focus-shell .fc-study-card-scroll > .fc-study-card-text {
+  margin-block: auto;
+}
+
+/* I know / I don't know: clear green and red, filled once chosen. */
+.flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-knowledge-btn {
+  min-height: 54px;
+  gap: 10px;
+  border-width: 1.5px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-knowledge-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-dont-know {
+  border-color: color-mix(in srgb, #ef4444 60%, transparent);
+  background: color-mix(in srgb, #ef4444 13%, transparent);
+  color: #fca5a5;
+}
+.flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-know {
+  border-color: color-mix(in srgb, #22c55e 60%, transparent);
+  background: color-mix(in srgb, #22c55e 13%, transparent);
+  color: #86efac;
+}
+@media (hover: hover) and (pointer: fine) {
+  .flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-dont-know:hover:not(:disabled) {
+    border-color: #ef4444 !important;
+    background: color-mix(in srgb, #ef4444 24%, transparent) !important;
+    color: #fecaca !important;
+  }
+  .flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-know:hover:not(:disabled) {
+    border-color: #22c55e !important;
+    background: color-mix(in srgb, #22c55e 24%, transparent) !important;
+    color: #bbf7d0 !important;
+  }
+}
+.flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-dont-know.selected,
+.flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-dont-know.selected:hover:not(:disabled) {
+  border-color: #ef4444 !important;
+  background: #dc2626 !important;
+  color: #fff !important;
+}
+.flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-know.selected,
+.flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-know.selected:hover:not(:disabled) {
+  border-color: #22c55e !important;
+  background: #16a34a !important;
+  color: #fff !important;
+}
+[data-theme-mode="light"] .flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-dont-know:not(.selected) { color: #b91c1c; }
+[data-theme-mode="light"] .flashcards-page.fc-focus-shell .fc-knowledge-btns .fc-know:not(.selected) { color: #15803d; }
+
+/* Session stats under the set title. */
+.flashcards-page.fc-focus-shell .fc-study-title {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.flashcards-page .fc-session-stats {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.flashcards-page .fc-session-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--fc-work-border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.flashcards-page .fc-session-stat b {
+  color: var(--text-primary);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.flashcards-page .fc-session-stat svg { width: 12px; height: 12px; }
+.flashcards-page .fc-session-stat.known { border-color: color-mix(in srgb, #22c55e 45%, transparent); color: #86efac; }
+.flashcards-page .fc-session-stat.unknown { border-color: color-mix(in srgb, #ef4444 45%, transparent); color: #fca5a5; }
+.flashcards-page .fc-session-stat.last { border-style: dashed; }
+
+/* What happened with this card before. */
+.flashcards-page .fc-card-history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 28px;
+  margin: 0 auto 12px;
+}
+.flashcards-page .fc-card-history-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border: 1px solid var(--fc-work-border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.flashcards-page .fc-card-history-pill.known {
+  border-color: color-mix(in srgb, #22c55e 55%, transparent);
+  background: color-mix(in srgb, #22c55e 12%, transparent);
+  color: #86efac;
+}
+.flashcards-page .fc-card-history-pill.unknown {
+  border-color: color-mix(in srgb, #ef4444 55%, transparent);
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #fca5a5;
+}
+.flashcards-page .fc-card-history-pill.session.known { background: #16a34a; border-color: #16a34a; color: #fff; }
+.flashcards-page .fc-card-history-pill.session.unknown { background: #dc2626; border-color: #dc2626; color: #fff; }
+.flashcards-page .fc-card-history-meta {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme-mode="light"] .flashcards-page .fc-card-history-pill.known:not(.session),
+[data-theme-mode="light"] .flashcards-page .fc-session-stat.known { color: #15803d; }
+[data-theme-mode="light"] .flashcards-page .fc-card-history-pill.unknown:not(.session),
+[data-theme-mode="light"] .flashcards-page .fc-session-stat.unknown { color: #b91c1c; }
+
+/* Explore Public search: same field as the Social Hub search (48px, soft
+   border, icon on the left, sentence-case text), outline secondary button. */
+.flashcards-page .fc-explore-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(640px, 100%);
+  height: 48px;
+  margin: 0;
+  padding: 0 6px 0 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  color: var(--text-secondary);
+  box-shadow: none;
+  transition: border-color .15s ease, box-shadow .15s ease, color .15s ease;
+}
+.flashcards-page .fc-explore-search:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent);
+}
+.flashcards-page .fc-explore-search-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.flashcards-page .fc-explore-search-icon svg { width: 16px; height: 16px; }
+.flashcards-page .fc-explore-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.flashcards-page .fc-explore-search input::placeholder {
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+  letter-spacing: normal;
+  text-transform: none;
+}
+.flashcards-page .fc-explore-search-submit {
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: none;
+}
+.flashcards-page .fc-explore-search-submit:hover { background: color-mix(in srgb, var(--accent) 85%, black); }
+.flashcards-page .fc-explore-browse {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+}
+.flashcards-page .fc-explore-browse:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  color: var(--text-primary);
+}
+.flashcards-page .fc-empty .fc-explore-search { margin: 22px auto 14px; }
+.flashcards-page .fc-explore-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 22px;
+}
+.flashcards-page .fc-explore-search-row .fc-explore-search { flex: 1; width: auto; }
+[data-theme-mode="light"] .flashcards-page .fc-explore-search-submit { color: #fff; }
+@media (max-width: 640px) {
+  .flashcards-page .fc-explore-search-row { flex-direction: column; align-items: stretch; }
+  .flashcards-page .fc-explore-search-row .fc-explore-search { width: 100%; }
+}
+
+/* The rounded field already shows focus (:focus-within border + ring); drop the
+   global focus outline that drew a sharp rectangle around the inner input. */
+.flashcards-page .fc-explore-search input:focus,
+.flashcards-page .fc-explore-search input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }

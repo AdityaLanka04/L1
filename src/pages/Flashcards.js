@@ -15,7 +15,6 @@ import contextService from '../services/contextService';
 import SocialHubChrome from '../components/SocialHubChrome';
 import StudyQueuePanel from '../components/StudyQueuePanel';
 import {
-  BarChart3,
   FileText,
   Layers3,
   RefreshCcw,
@@ -193,7 +192,9 @@ const Flashcards = () => {
   const [previewMode, setPreviewMode] = useState(false);
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const [studySessionStats, setStudySessionStats] = useState({ correct: 0, incorrect: 0, skipped: 0 });
-  const gradedCardsRef = useRef(new Set()); 
+  // This session's grade per card id: 'known' | 'unknown'. Keyed by id, not
+  // list position, so reopening or reshuffling a set can't mix cards up.
+  const [sessionGrades, setSessionGrades] = useState({}); 
   const [showStudyResults, setShowStudyResults] = useState(false);
   const [shuffledCards, setShuffledCards] = useState([]);
   const [studySettings, setStudySettings] = useState({ shuffle: false });
@@ -807,7 +808,7 @@ const Flashcards = () => {
       setIsFlipped(false);
       setShowStudyResults(false);
       setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
-      gradedCardsRef.current.clear();
+      setSessionGrades({});
       setCurrentSetInfo({
         saved: false,
         setId: null,
@@ -1941,7 +1942,10 @@ const Flashcards = () => {
         setFlashcards(data.flashcards);
         setCurrentCard(0);
         setIsFlipped(false);
-        
+        setSessionGrades({});
+        setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
+        setShowStudyResults(false);
+
         setCurrentSetInfo({
           saved: true,
           setId: setId,
@@ -2190,7 +2194,7 @@ const Flashcards = () => {
     setIsFlipped(false);
     setShowStudyResults(false);
     setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
-    gradedCardsRef.current = new Set();
+    setSessionGrades({});
     setSelectedOption(null);
     setShowAnswer(false);
     
@@ -2624,6 +2628,69 @@ const Flashcards = () => {
       e.stopPropagation();
       setIsFlipped(prev => !prev);
     };
+
+    const cardKey = (card, index) => (card?.id != null ? String(card.id) : `idx-${index}`);
+    const activeCard = previewCards[currentCard];
+    const activeGrade = sessionGrades[cardKey(activeCard, currentCard)];
+    const sessionKnown = Object.values(sessionGrades).filter((g) => g === 'known').length;
+    const sessionUnknown = Object.values(sessionGrades).filter((g) => g === 'unknown').length;
+    const sessionLeft = Math.max(0, previewCards.length - sessionKnown - sessionUnknown);
+    const lastKnownCount = previewCards.filter((c) => c?.last_known === true).length;
+    const lastUnknownCount = previewCards.filter((c) => c?.last_known === false).length;
+
+    // First grade of a card this session is recorded as a review; changing your
+    // mind afterwards only fixes the session tally and the Needs Review flag,
+    // so a misclick doesn't count twice against your weakness score.
+    const gradeCurrentCard = async (known, e) => {
+      e?.stopPropagation();
+      const card = previewCards[currentCard];
+      const key = cardKey(card, currentCard);
+      const previous = sessionGrades[key];
+      const next = known ? 'known' : 'unknown';
+      if (previous !== next) {
+        setSessionGrades((prev) => ({ ...prev, [key]: next }));
+        setStudySessionStats((prev) => ({
+          ...prev,
+          correct: prev.correct + (known ? 1 : 0) - (previous === 'known' ? 1 : 0),
+          incorrect: prev.incorrect + (known ? 0 : 1) - (previous === 'unknown' ? 1 : 0),
+        }));
+        if (card?.id) {
+          if (!previous) {
+            await updateCardMastery(card.id, known, 'preview');
+          } else {
+            // Correct the stored "last time" label without logging a new review.
+            try {
+              await fetch(`${API_URL}/flashcards/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({ user_id: userName, card_id: String(card.id), known }),
+              });
+            } catch {
+              // silenced: the session tally is already correct
+            }
+          }
+          if (!known) {
+            await markCardForReview(card.id, true);
+          } else if (card.marked_for_review) {
+            await markCardForReview(card.id, false);
+          }
+        }
+      }
+      if (currentCard < previewCards.length - 1) {
+        setCurrentCard(currentCard + 1);
+        setIsFlipped(false);
+      } else {
+        setShowStudyResults(true);
+      }
+    };
+
+    const lastTime = activeCard?.last_known === true
+      ? { tone: 'known', label: 'Last time: you knew it' }
+      : activeCard?.last_known === false
+        ? { tone: 'unknown', label: "Last time: you didn't know it" }
+        : { tone: 'new', label: (activeCard?.times_reviewed || 0) > 0 ? 'Reviewed before' : 'New card' };
+    const reviewedTimes = activeCard?.times_reviewed || 0;
+    const correctTimes = Math.min(activeCard?.correct_count || 0, reviewedTimes);
     
     
     if (showStudyResults) {
@@ -2747,6 +2814,14 @@ const Flashcards = () => {
             <div className="fc-study-title">
               <h2>{formatTitle(currentSetInfo?.setTitle) || 'Preview Mode'}</h2>
               <span className="fc-card-counter">CARD {currentCard + 1} OF {previewCards.length}</span>
+              <div className="fc-session-stats" aria-label="This session">
+                <span className="fc-session-stat known">{FC_ICONS.check}<b>{sessionKnown}</b> known</span>
+                <span className="fc-session-stat unknown">{FC_ICONS.x}<b>{sessionUnknown}</b> don't know</span>
+                <span className="fc-session-stat left"><b>{sessionLeft}</b> left</span>
+                {(lastKnownCount + lastUnknownCount) > 0 && (
+                  <span className="fc-session-stat last">Last time: {lastKnownCount} known · {lastUnknownCount} not</span>
+                )}
+              </div>
             </div>
             <div className="fc-study-header-actions">
               <button
@@ -2789,8 +2864,19 @@ const Flashcards = () => {
           </div>
 
           <div className="fc-study-content">
+            <div className="fc-card-history" aria-live="polite">
+              <span className={`fc-card-history-pill ${lastTime.tone}`}>{lastTime.label}</span>
+              {reviewedTimes > 0 && (
+                <span className="fc-card-history-meta">{correctTimes} of {reviewedTimes} correct overall</span>
+              )}
+              {activeGrade && (
+                <span className={`fc-card-history-pill ${activeGrade} session`}>
+                  This session: {activeGrade === 'known' ? 'knew it' : "didn't know"}
+                </span>
+              )}
+            </div>
             <div className="fc-preview-card-container">
-              <button 
+              <button
                 className="fc-arrow-btn fc-arrow-left"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -2855,53 +2941,19 @@ const Flashcards = () => {
 
             <div className="fc-knowledge-btns">
               <button
-                className="fc-knowledge-btn fc-dont-know"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const alreadyGraded = gradedCardsRef.current.has(currentCard);
-                  if (!alreadyGraded) {
-                    gradedCardsRef.current.add(currentCard);
-                    setStudySessionStats(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
-                    const card = previewCards[currentCard];
-                    if (card?.id) {
-                      await updateCardMastery(card.id, false, 'preview');
-                      await markCardForReview(card.id, true);
-                    }
-                  }
-                  if (currentCard < previewCards.length - 1) {
-                    setCurrentCard(currentCard + 1);
-                    setIsFlipped(false);
-                  } else {
-                    setShowStudyResults(true);
-                  }
-                }}
+                type="button"
+                className={`fc-knowledge-btn fc-dont-know ${activeGrade === 'unknown' ? 'selected' : ''}`}
+                aria-pressed={activeGrade === 'unknown'}
+                onClick={(e) => gradeCurrentCard(false, e)}
               >
                 {FC_ICONS.x}
                 <span>I don't know this</span>
               </button>
               <button
-                className="fc-knowledge-btn fc-know"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const alreadyGraded = gradedCardsRef.current.has(currentCard);
-                  if (!alreadyGraded) {
-                    gradedCardsRef.current.add(currentCard);
-                    setStudySessionStats(prev => ({ ...prev, correct: prev.correct + 1 }));
-                    const card = previewCards[currentCard];
-                    if (card?.id) {
-                      await updateCardMastery(card.id, true, 'preview');
-                      if (card?.marked_for_review) {
-                        await markCardForReview(card.id, false);
-                      }
-                    }
-                  }
-                  if (currentCard < previewCards.length - 1) {
-                    setCurrentCard(currentCard + 1);
-                    setIsFlipped(false);
-                  } else {
-                    setShowStudyResults(true);
-                  }
-                }}
+                type="button"
+                className={`fc-knowledge-btn fc-know ${activeGrade === 'known' ? 'selected' : ''}`}
+                aria-pressed={activeGrade === 'known'}
+                onClick={(e) => gradeCurrentCard(true, e)}
               >
                 {FC_ICONS.check}
                 <span>I know this</span>
@@ -3249,7 +3301,6 @@ const Flashcards = () => {
             items: [
               { icon: FileText, label: 'PDF Sources', active: activePanel === 'sources', count: uploadedDocuments.length, onClick: () => setActivePanel('sources') },
               { icon: Search, label: 'Explore Public', active: activePanel === 'explore', onClick: () => setActivePanel('explore') },
-              { icon: BarChart3, label: 'Statistics', active: activePanel === 'statistics', onClick: () => setActivePanel('statistics') },
             ],
           },
         ]}
@@ -4129,25 +4180,22 @@ const Flashcards = () => {
                 <div className="fc-empty">
                   <h3>Explore Public</h3>
                   <p>Search flashcard sets the community has shared, or browse everything.</p>
-                  <div className="fc-empty-search-container">
-                    <form
-                      className="fc-search-large"
-                      onSubmit={(event) => { event.preventDefault(); searchPublicFlashcards(); }}
-                    >
-                      <input
-                        type="text"
-                        aria-label="Search public flashcard sets"
-                        placeholder="Search by subject, topic, or deck title..."
-                        value={publicSearchQuery}
-                        onChange={(e) => setPublicSearchQuery(e.target.value)}
-                      />
-                      <button type="submit" className="fc-search-icon search-btn" aria-label="Search">
-                        {FC_ICONS.search}
-                      </button>
-                    </form>
-                  </div>
-                  <button className="fc-btn" onClick={loadAllPublicFlashcards} type="button">
-                    Browse All Public Sets
+                  <form
+                    className="fc-explore-search"
+                    onSubmit={(event) => { event.preventDefault(); searchPublicFlashcards(); }}
+                  >
+                    <span className="fc-explore-search-icon" aria-hidden="true">{FC_ICONS.search}</span>
+                    <input
+                      type="text"
+                      aria-label="Search public flashcard sets"
+                      placeholder="Search by subject, topic, or deck title..."
+                      value={publicSearchQuery}
+                      onChange={(e) => setPublicSearchQuery(e.target.value)}
+                    />
+                    <button type="submit" className="fc-explore-search-submit">Search</button>
+                  </form>
+                  <button className="fc-explore-browse" onClick={loadAllPublicFlashcards} type="button">
+                    Browse all public sets
                   </button>
                 </div>
               ) : (
@@ -4160,23 +4208,23 @@ const Flashcards = () => {
                     </p>
                   </div>
 
-                  <form
-                    className="fc-form-row fc-explore-search-row"
-                    onSubmit={(event) => { event.preventDefault(); searchPublicFlashcards(); }}
-                  >
-                    <div className="fc-form-group" style={{ flex: 1, minWidth: 0 }}>
+                  <div className="fc-explore-search-row">
+                    <form
+                      className="fc-explore-search"
+                      onSubmit={(event) => { event.preventDefault(); searchPublicFlashcards(); }}
+                    >
+                      <span className="fc-explore-search-icon" aria-hidden="true">{FC_ICONS.search}</span>
                       <input
                         type="text"
-                        className="fc-input"
                         aria-label="Search public flashcard sets"
                         placeholder="Search by subject, topic, or deck title..."
                         value={publicSearchQuery}
                         onChange={(e) => setPublicSearchQuery(e.target.value)}
                       />
-                    </div>
-                    <button className="fc-btn fc-btn-primary" type="submit">{FC_ICONS.search} Search</button>
-                    <button className="fc-btn fc-btn-secondary" type="button" onClick={loadAllPublicFlashcards}>Show All</button>
-                  </form>
+                      <button type="submit" className="fc-explore-search-submit">Search</button>
+                    </form>
+                    <button className="fc-explore-browse" type="button" onClick={loadAllPublicFlashcards}>Show all</button>
+                  </div>
 
                   {loadingPublic ? (
                     <div className="fc-loading">
@@ -4258,54 +4306,6 @@ const Flashcards = () => {
             />
           )}
 
-          {/* Statistics Panel */}
-          {activePanel === 'statistics' && (
-            <>
-              <div className="fc-content">
-                <div className="fc-view-header">
-                  <span className="fc-view-kicker">Performance</span>
-                  <h2 className="fc-view-title">Study Statistics</h2>
-
-                </div>
-                
-                {flashcardStats ? (
-                  <>
-                    <div className="fc-stats-grid">
-                      <div className="fc-stat-card">
-                        <div className="fc-stat-icon">{FC_ICONS.book}</div>
-                        <div className="fc-stat-value">{flashcardStats.total_sets}</div>
-                        <div className="fc-stat-label">TOTAL SETS</div>
-                      </div>
-                      <div className="fc-stat-card">
-                        <div className="fc-stat-icon">{FC_ICONS.cards}</div>
-                        <div className="fc-stat-value">{flashcardStats.total_cards}</div>
-                        <div className="fc-stat-label">TOTAL CARDS</div>
-                      </div>
-                      <div className="fc-stat-card">
-                        <div className="fc-stat-icon">{FC_ICONS.target}</div>
-                        <div className="fc-stat-value">{flashcardStats.overall_accuracy}%</div>
-                        <div className="fc-stat-label">ACCURACY</div>
-                      </div>
-                      <div className="fc-stat-card">
-                        <div className="fc-stat-icon">{FC_ICONS.fire}</div>
-                        <div className="fc-stat-value">{currentStreak}</div>
-                        <div className="fc-stat-label">Day Streak</div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="fc-empty">
-                    <div className="fc-empty-icon">{FC_ICONS.chart}</div>
-                    <h3>No Statistics Yet</h3>
-                    <p>Start studying flashcards to see your analytics here!</p>
-                    <button className="fc-btn fc-btn-primary" onClick={() => setActivePanel('cards')}>
-                      View My Flashcards
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
         </main>
       </SocialHubChrome>
 
