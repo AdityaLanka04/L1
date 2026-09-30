@@ -43,6 +43,7 @@ class NoteGenState(TypedDict, total=False):
     additional_specs: str
     student_weaknesses: list[str]
     student_strengths: list[str]
+    weak_focus_block: str
     rag_context: list[str]
     rag_sources: list[dict]
     use_hs_context: bool
@@ -60,6 +61,7 @@ async def fetch_context(state: NoteGenState) -> dict:
 
     weaknesses: list[str] = []
     strengths: list[str] = []
+    weak_focus_block = ""
 
     if db_factory:
         try:
@@ -88,6 +90,19 @@ async def fetch_context(state: NoteGenState) -> dict:
                 for tm in mastery:
                     if tm.topic_name and tm.topic_name not in strengths:
                         strengths.append(tm.topic_name)
+
+                try:
+                    from services import weakness_model
+                    focus_items, weak_focus_block = weakness_model.note_focus(
+                        db, uid, topic, state.get("source_content", ""),
+                    )
+                    if focus_items:
+                        logger.info(
+                            "[NOTE GRAPH] weak-spot focus: %s",
+                            [(i["label"], i["weakness_score"]) for i in focus_items],
+                        )
+                except Exception as e:
+                    logger.warning(f"NoteGraph weak-spot lookup failed: {e}")
             finally:
                 db.close()
         except Exception as e:
@@ -145,6 +160,7 @@ async def fetch_context(state: NoteGenState) -> dict:
     return {
         "student_weaknesses": weaknesses,
         "student_strengths": strengths,
+        "weak_focus_block": weak_focus_block,
         "rag_context": rag_chunks,
         "rag_sources": rag_sources,
     }
@@ -208,7 +224,10 @@ def build_prompt(state: NoteGenState) -> dict:
 
     parts.append(f"TONE: {TONE_GUIDES[tone]}\n")
 
-    if weaknesses:
+    weak_focus_block = state.get("weak_focus_block") or ""
+    if weak_focus_block:
+        parts.append(weak_focus_block + "\n")
+    elif weaknesses:
         relevant_weak = [w for w in weaknesses[:5] if any(
             kw.lower() in topic.lower() or topic.lower() in kw.lower()
             for kw in w.split()

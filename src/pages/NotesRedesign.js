@@ -1583,6 +1583,82 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setNoteContent(html);
   };
 
+  // Weak-spot detection: is this note about a topic the student keeps getting
+  // wrong (services/weakness_model.py)? Offer to tailor it if so.
+  const [weakSpots, setWeakSpots] = useState([]);
+  const [weakSpotDismissed, setWeakSpotDismissed] = useState(null);
+  const [tailoringWeakSpot, setTailoringWeakSpot] = useState(false);
+  const noteEditable = viewMode !== 'preview' && !(isSharedContent && !canEdit);
+  const selectedNoteId = selectedNote?.id;
+
+  useEffect(() => {
+    setWeakSpots([]);
+    setWeakSpotDismissed(null);
+  }, [selectedNoteId]);
+
+  useEffect(() => {
+    if (!selectedNoteId || !noteEditable || !userName) return undefined;
+    const plain = `${noteTitle} ${noteContent || ''}`.replace(/<[^>]+>/g, ' ').trim();
+    if (plain.length < 12) {
+      setWeakSpots([]);
+      return undefined;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/weaknesses/detect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ user_id: userName, title: noteTitle, text: (noteContent || '').slice(0, 12000) }),
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        setWeakSpots(Array.isArray(data?.matches) ? data.matches : []);
+      } catch {
+        // silenced: detection is an optional hint
+      }
+    }, 1400);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [selectedNoteId, noteTitle, noteContent, noteEditable, userName]);
+
+  const tailorNoteToWeakSpot = async () => {
+    if (tailoringWeakSpot || !noteEditable) return;
+    setTailoringWeakSpot(true);
+    try {
+      const result = await noteAgentService.invoke('weak_spot', {
+        userId: userName,
+        topic: noteTitle,
+        content: noteContent,
+        context: noteContent,
+      });
+      if (!isAgentSuccess(result)) {
+        showPopup("Nothing to tailor", result?.error || "This note isn't about a topic you've been getting wrong yet.");
+        return;
+      }
+      const formatted = formatAiOutput(result.content || result.response);
+      const blocksToInsert = formatted.useBlocks && formatted.blocks.length > 0
+        ? formatted.blocks
+        : [{ id: Date.now() + Math.random(), type: 'paragraph', content: formatted.html || formatted.text, properties: {} }];
+      handleBlocksChange([...noteBlocks, ...blocksToInsert.map((block) => ({
+        ...block,
+        id: block.id || Date.now() + Math.random(),
+      }))]);
+      setWeakSpotDismissed(selectedNoteId);
+      const topic = result.weakness_focus?.[0]?.topic || weakSpots[0]?.topic;
+      showPopup("Note tailored", topic ? `Added a section aimed at what you've been missing in ${topic}.` : "Added a section aimed at what you've been missing.");
+    } catch (error) {
+      console.error('Weak-spot tailoring failed:', error);
+      showPopup("Error", "Could not tailor this note right now.");
+    } finally {
+      setTailoringWeakSpot(false);
+    }
+  };
+
   const saveEditorSelection = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
@@ -2950,6 +3026,32 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <span>{Math.max(1, Math.ceil(wordCount / 200))} min read</span>
                     <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
                   </div>
+                  {noteEditable && weakSpots.length > 0 && weakSpotDismissed !== selectedNote.id && (
+                    <div className="nr-weak-spot" role="status">
+                      <div className="nr-weak-spot-copy">
+                        <span className="nr-weak-spot-kicker">Weak spot detected</span>
+                        <span className="nr-weak-spot-topics">
+                          {weakSpots.map((spot) => (
+                            <span key={spot.topic} className="nr-weak-spot-topic">
+                              {spot.topic}
+                              <b>{Math.round(spot.weakness_score)}/100</b>
+                            </span>
+                          ))}
+                        </span>
+                        <span className="nr-weak-spot-hint">
+                          You've been missing questions on this. Add a section aimed at exactly those mistakes.
+                        </span>
+                      </div>
+                      <div className="nr-weak-spot-actions">
+                        <button type="button" className="nr-weak-spot-tailor" onClick={tailorNoteToWeakSpot} disabled={tailoringWeakSpot}>
+                          {tailoringWeakSpot ? 'Tailoring...' : 'Tailor this note'}
+                        </button>
+                        <button type="button" className="nr-weak-spot-dismiss" onClick={() => setWeakSpotDismissed(selectedNote.id)} aria-label="Dismiss weak spot suggestion">
+                          Not now
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="title-actions">
                   <button

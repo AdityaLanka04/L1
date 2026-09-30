@@ -172,6 +172,20 @@ def _clean_grammar_result(text: str) -> str:
     )[0]
     return cleaned.strip()
 
+def _weak_spot_block(db: Session, user_ref: str, *parts: Optional[str]) -> str:
+    """Prompt addition when the note is about one of the student's tracked
+    weak topics (services/weakness_model.py); empty otherwise."""
+    try:
+        from services import weakness_model
+        user = get_user_by_username(db, user_ref) or get_user_by_email(db, user_ref)
+        if not user:
+            return ""
+        _, block = weakness_model.note_focus(db, user.id, *parts)
+        return f"\n\n{block}" if block else ""
+    except Exception as e:
+        logger.warning(f"[NOTES] weak-spot lookup failed: {e}")
+        return ""
+
 def _build_note_agent_prompt(req: NoteAgentRequest) -> str:
     content = req.content or ""
     topic = req.topic or ""
@@ -201,11 +215,19 @@ def _build_note_agent_prompt(req: NoteAgentRequest) -> str:
         "tone_change": f"Rewrite in a {tone} tone:\n\n{_trim(content, 2000)}",
         "outline": f"Create a structured outline about: {base}\n\nTone: {tone}\nDepth: {depth}\n",
         "code": f"Help with this code or request:\n\n{_trim(content or topic, 2000)}",
+        "weak_spot": (
+            "The student's notes are below. Write ONE new section to append to them that targets the "
+            "student weak spot described after the notes. Start with a '## ' heading that names the topic "
+            "(for example '## Getting implicit differentiation right'), then fix the exact misunderstandings "
+            "behind the missed items with fully worked steps, then the '## Check yourself' questions. "
+            "Keep it focused: at most about 450 words. Return only the new section, not the existing notes.\n\n"
+            f"NOTES:\n{_trim(content or context, 3000)}"
+        ),
     }
 
     prompt = action_prompts.get(req.action, f"Help with this request:\n\n{_trim(content or topic, 2000)}")
 
-    if context and req.action != "grammar":
+    if context and req.action not in ("grammar", "weak_spot"):
         prompt += f"\n\nContext:\n{_trim(context, 2000)}"
 
     return prompt
@@ -1094,6 +1116,7 @@ async def generate_note_content(
         f"Format with markdown headers, bullet points, and key concepts. "
         f"Include examples where helpful."
     )
+    prompt += _weak_spot_block(db, user_id, topic)
     try:
         content = await call_ai_async(prompt, max_tokens=2000, temperature=0.7)
         from services.math_processor import process_math_in_response
@@ -1138,8 +1161,10 @@ async def expand_note_content(
 ):
     prompt = (
         f"Expand and enrich these study notes with more detail, examples, and explanations:\n\n"
-        f"{content[:3000]}\n\nExpanded notes:"
+        f"{content[:3000]}"
     )
+    prompt += _weak_spot_block(db, user_id, content)
+    prompt += "\n\nExpanded notes:"
     try:
         expanded = await call_ai_async(prompt, max_tokens=2000, temperature=0.7)
         from services.math_processor import process_math_in_response
@@ -1180,9 +1205,38 @@ async def notes_agent(
         raise HTTPException(status_code=404, detail="User not found")
 
     _NOTES_RAG_ACTIONS = {"generate", "explain", "summarize", "key_points", "outline"}
+    _WEAKNESS_AWARE_ACTIONS = {
+        "generate", "explain", "expand", "simplify", "summarize", "key_points",
+        "outline", "continue", "improve", "weak_spot",
+    }
 
     try:
+        # Is this note about a topic the student keeps getting wrong? If so the
+        # generator gets the score and the exact missed items to aim at.
+        focus_items: list[dict] = []
+        focus_block = ""
+        if request.action in _WEAKNESS_AWARE_ACTIONS:
+            try:
+                from services import weakness_model
+                focus_items, focus_block = weakness_model.note_focus(
+                    db, user.id, request.topic, request.content, request.context,
+                )
+            except Exception as focus_err:
+                logger.warning(f"[NOTES AGENT] weak-spot lookup failed: {focus_err}")
+        if request.action == "weak_spot" and not focus_items:
+            return {
+                "success": False,
+                "error": "This note isn't about any topic you've been getting wrong yet.",
+                "weakness_focus": [],
+            }
+
         prompt = _build_note_agent_prompt(request)
+        if focus_block:
+            prompt += f"\n\n{focus_block}"
+            logger.info(
+                "[NOTES AGENT] weak-spot focus for action=%s: %s",
+                request.action, [(i["label"], i["weakness_score"]) for i in focus_items],
+            )
 
         rag_sources = []
         if request.use_hs_context and request.action in _NOTES_RAG_ACTIONS:
@@ -1212,14 +1266,24 @@ async def notes_agent(
                     logger.warning(f"[NOTES AGENT RAG] context fetch failed: {rag_err}")
 
         temperature = 0.2 if request.action == "grammar" else 0.7
-        result = await call_ai_async(prompt, max_tokens=1500, temperature=temperature)
+        # Weak-spot notes carry worked steps plus a self-check section, and the
+        # primary model also spends this budget on hidden reasoning; give them
+        # room so the answer isn't cut off mid-derivation.
+        max_tokens = 4500 if focus_block else 1500
+        result = await call_ai_async(prompt, max_tokens=max_tokens, temperature=temperature)
         content = _clean_grammar_result(result) if request.action == "grammar" else result.strip()
         from services.math_processor import process_math_in_response
         content = process_math_in_response(content)
         if rag_sources:
             from services.context_store import resolve_citations
             content = resolve_citations(content, rag_sources)
-        return {"success": True, "content": content, "action": request.action}
+        from services.weakness_model import focus_summary
+        return {
+            "success": True,
+            "content": content,
+            "action": request.action,
+            "weakness_focus": focus_summary(focus_items),
+        }
     except Exception as e:
         logger.error("note agent error: %s", e, exc_info=True)
         return {"success": False, "error": "AI generation failed"}

@@ -8690,3 +8690,85 @@ h1.note-title ::-moz-selection,
 #root .notes-redesign .formatting-toolbar-wrapper {
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 13%, transparent);
 }
+
+/* Weak-spot banner: this note is about a topic the student keeps getting wrong. */
+.notes-redesign .nr-weak-spot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.notes-redesign .nr-weak-spot-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.notes-redesign .nr-weak-spot-kicker {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.notes-redesign .nr-weak-spot-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.notes-redesign .nr-weak-spot-topic {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+.notes-redesign .nr-weak-spot-topic b {
+  color: #e06d64;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.notes-redesign .nr-weak-spot-hint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.notes-redesign .nr-weak-spot-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+}
+.notes-redesign .nr-weak-spot-tailor,
+.notes-redesign .nr-weak-spot-dismiss {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.notes-redesign .nr-weak-spot-tailor {
+  border: 0;
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+.notes-redesign .nr-weak-spot-tailor:disabled { opacity: .6; cursor: wait; }
+.notes-redesign .nr-weak-spot-dismiss {
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: transparent;
+  color: var(--text-secondary);
+}
+.notes-redesign .nr-weak-spot-dismiss:hover { color: var(--text-primary); }
+@media (max-width: 640px) {
+  .notes-redesign .nr-weak-spot { flex-direction: column; align-items: stretch; }
+  .notes-redesign .nr-weak-spot-actions { justify-content: flex-end; }
+}

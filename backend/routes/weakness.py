@@ -984,3 +984,28 @@ async def explain_mistake(
         db.rollback()
         logger.error(f"Error explaining mistake: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+
+
+@router.post("/weaknesses/detect")
+async def detect_weak_spots(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Which tracked weak topics a piece of text (e.g. a note being written)
+    is about, with their live model scores. Used by the note editor to offer
+    weak-spot tailoring on notes the student writes by hand."""
+    from services import weakness_model
+
+    text = weakness_model.note_text(
+        str(payload.get("title") or ""),
+        str(payload.get("text") or ""),
+    )
+    if len(text) < 4:
+        return {"status": "success", "matches": []}
+    try:
+        items = weakness_model.weaknesses_for_message(db, current_user.id, text, limit=2)
+    except Exception as e:
+        logger.warning(f"[WEAKNESS] detect failed: {e}")
+        return {"status": "success", "matches": []}
+    return {"status": "success", "matches": weakness_model.focus_summary(items)}
