@@ -1,5 +1,5 @@
 /*
- * Notes family: matte, grainy surfaces (same treatment as AI Chat).
+ * Notes family + Flashcards: matte, grainy surfaces (same treatment as AI Chat).
  * 1. Swap the global neumorphism sheen (white edge highlights, carved insets)
  *    for a plain drop shadow on raised surfaces and nothing on inner furniture.
  * 2. Lay one fine grain over the whole page so every card reads matte.
@@ -12,7 +12,8 @@
   .ai-media-notes-page,
   .audio-video-notes-page,
   .notes-redesign,
-  .npm-page
+  .npm-page,
+  .flashcards-page
 ) {
   --neu-shadow-raised: 0 10px 24px rgba(0, 0, 0, .35);
   --neu-shadow-raised-hover: 0 12px 28px rgba(0, 0, 0, .4);
@@ -29,7 +30,8 @@
   .ai-media-notes-page,
   .audio-video-notes-page,
   .notes-redesign,
-  .npm-page
+  .npm-page,
+  .flashcards-page
 ) {
   --neu-shadow-raised: 0 10px 24px rgba(63, 47, 32, .12);
   --neu-shadow-raised-hover: 0 12px 28px rgba(63, 47, 32, .16);
@@ -45,7 +47,8 @@ html body :is(
   .ai-media-notes-page,
   .audio-video-notes-page,
   .notes-redesign,
-  .npm-page
+  .npm-page,
+  .flashcards-page
 )::after {
   content: '' !important;
   display: block !important;

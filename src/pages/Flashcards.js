@@ -30,6 +30,16 @@ const FLASHCARD_HISTORY_LIMIT = 100;
 const FLASHCARD_DEFERRED_LOAD_MS = 3500;
 const FLASHCARD_CONTEXT_COUNT_DELAY_MS = 5000;
 
+const SET_TINTS = ['#d7b38c', '#8fb89a', '#8aa4c8', '#c98f9a', '#a99bd1', '#7fbfbf', '#d9a05b', '#c7866a'];
+
+const getSetTint = (id) => {
+  const n = Number(id);
+  const key = Number.isFinite(n)
+    ? n
+    : String(id ?? '').split('').reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 0);
+  return SET_TINTS[Math.abs(key) % SET_TINTS.length];
+};
+
 const FC_ICONS = {
   menu: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>,
   fire: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2c.5 2.5 2 4.5 2 7a4 4 0 1 1-8 0c0-2.5 1.5-4.5 2-7 1.5 1.5 2.5 2 4 0z"/></svg>,
@@ -3279,7 +3289,7 @@ const Flashcards = () => {
                       {displayedSets.map((set) => {
                         const mastery = getMasteryLevel(set.accuracy_percentage || 0);
                         return (
-                          <div key={set.id} className="fc-set-card-new fc-preview-card">
+                          <div key={set.id} className="fc-set-card-new fc-preview-card" style={{ '--fc-set-tint': getSetTint(set.id) }}>
                             <button
                               type="button"
                               className="fc-card-preview-target"
@@ -3332,9 +3342,6 @@ const Flashcards = () => {
                               </div>
                               
                               <p className="fc-set-date-new">Created: {formatDate(set.created_at)}</p>
-                              {(set.share_code || set.id) && (
-                                <span className="fc-set-uid">#{set.share_code || set.id?.toString().padStart(6, '0')}</span>
-                              )}
                             </div>
 
                             <div className="fc-set-actions-new">
@@ -4051,9 +4058,12 @@ const Flashcards = () => {
                       </div>
                       
                       {(reviewCards.sets || []).map((setData) => (
-                        <div key={setData.set_id} className="fc-review-set">
+                        <div key={setData.set_id} className="fc-review-set" style={{ '--fc-set-tint': getSetTint(setData.set_id) }}>
                           <div className="fc-review-set-header">
-                            <h3>{setData.set_title}</h3>
+                            <div className="fc-review-set-heading">
+                              <span className="fc-review-set-kicker">Set</span>
+                              <h3>{(setData.set_title || 'Untitled Set').replace(/^(Cerbyl:\s*|AI Generated:\s*|Flashcards:\s*)/i, '')}</h3>
+                            </div>
                             <span className="fc-review-set-count">{(setData.cards || []).length} cards</span>
                           </div>
                           <div className="fc-review-cards-list">
@@ -4062,11 +4072,11 @@ const Flashcards = () => {
                                 <div className="fc-review-card-content">
                                   <div className="fc-review-card-question">
                                     <span className="fc-review-label">Q:</span>
-                                    {card.question}
+                                    <MathRenderer content={card.question || ''} className="fc-review-math" />
                                 </div>
                                 <div className="fc-review-card-answer">
                                   <span className="fc-review-label">A:</span>
-                                  {card.answer}
+                                  <MathRenderer content={card.answer || ''} className="fc-review-math" />
                                 </div>
                               </div>
                               <div className="fc-review-card-actions">
@@ -4194,7 +4204,7 @@ const Flashcards = () => {
                   ) : (
                     <div className="fc-grid">
                       {publicFlashcards.map((set) => (
-                        <div key={set.id} className="fc-set-card-new fc-preview-card">
+                        <div key={set.id} className="fc-set-card-new fc-preview-card" style={{ '--fc-set-tint': getSetTint(set.id) }}>
                             <button
                               type="button"
                               className="fc-card-preview-target"

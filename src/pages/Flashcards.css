@@ -10241,3 +10241,125 @@
 [data-theme-mode="light"] .flashcards-page button.fc-side-generate {
   color: #fff;
 }
+
+/* Matte, grainy surfaces: cards and the focus panel drop their opaque graphite
+   fills for a see-through tint so the page texture + grain (styles/notesGrain.css)
+   read through them. */
+.flashcards-page {
+  --fc-work-surface: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  --fc-work-surface-soft: color-mix(in srgb, var(--text-primary) 2%, transparent);
+}
+
+.flashcards-page.fc-focus-shell .fc-study-mode {
+  background:
+    radial-gradient(ellipse 70% 95% at 100% 100%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%),
+    color-mix(in srgb, var(--text-primary) 2%, transparent);
+}
+
+/* Flip faces stay opaque so the hidden face never shows through. */
+.flashcards-page.fc-focus-shell :is(.fc-study-card-front, .fc-study-card-back, .fc-sr-card-front, .fc-sr-card-back) {
+  background:
+    radial-gradient(ellipse 72% 100% at 100% 100%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    linear-gradient(142deg, #1b1b1d 0%, #141517 56%, #101113 100%) !important;
+}
+
+/* Each set gets its own header colour (--fc-set-tint, set inline from the set id). */
+.flashcards-page .fc-set-card-new .fc-set-thumbnail {
+  border-bottom-color: color-mix(in srgb, var(--fc-set-tint, var(--accent)) 30%, transparent);
+  background:
+    linear-gradient(150deg,
+      color-mix(in srgb, var(--fc-set-tint, var(--accent)) 24%, transparent) 0%,
+      color-mix(in srgb, var(--fc-set-tint, var(--accent)) 7%, transparent) 100%) !important;
+}
+
+.flashcards-page .fc-set-card-new .fc-thumbnail-card-count {
+  color: var(--fc-set-tint, var(--accent)) !important;
+}
+
+/* Mastery: label row, bar and percentage with room to breathe. */
+.flashcards-page .fc-set-card-new .fc-mastery-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.flashcards-page .fc-set-card-new .fc-mastery-info,
+.flashcards-page .fc-set-card-new .fc-set-progress-new {
+  margin: 0;
+}
+
+.flashcards-page .fc-set-card-new .fc-set-progress-new {
+  height: 5px;
+  border-radius: 999px;
+}
+
+.flashcards-page .fc-set-card-new .fc-mastery-percentage {
+  align-self: flex-end;
+}
+
+/* "-list" suffix picks up neumorphism's inset well; this is plain text. */
+.flashcards-page .fc-end-of-list {
+  background: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* Needs Review: each group is labelled by its set, tinted like its library card. */
+.flashcards-page .fc-review-set-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom-color: color-mix(in srgb, var(--fc-set-tint, var(--accent)) 28%, transparent);
+}
+
+.flashcards-page .fc-review-set-heading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.flashcards-page .fc-review-set-kicker {
+  color: var(--fc-set-tint, var(--accent));
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.flashcards-page .fc-review-set-header h3 {
+  font-size: 17px;
+  font-weight: 720;
+  letter-spacing: -.01em;
+}
+
+.flashcards-page .fc-review-set-count {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  color: var(--fc-set-tint, var(--accent));
+  border-color: color-mix(in srgb, var(--fc-set-tint, var(--accent)) 30%, transparent);
+  background: color-mix(in srgb, var(--fc-set-tint, var(--accent)) 9%, transparent);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* KaTeX inside the compact review rows: match the row's type size. */
+.flashcards-page .fc-review-math {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: inherit;
+}
+
+.flashcards-page .fc-review-math .katex {
+  font-size: 1.12em;
+}
+
+.flashcards-page .fc-review-math .katex-display {
+  margin: .4em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
