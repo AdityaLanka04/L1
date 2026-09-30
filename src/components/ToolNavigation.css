@@ -8,6 +8,8 @@
 .tool-navigation-current strong { font-weight: 500; }
 .tool-navigation-current strong, .tool-navigation-section { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tool-navigation-section { color: var(--text-secondary, #aaa); font-size: 12px; }
+/* Each deeper level is separated from the one before it by a pipe. */
+.tool-navigation-section::before { content: '|'; margin-right: 8px; color: color-mix(in srgb, var(--text-secondary, #aaa) 55%, transparent); font-weight: 400; }
 body :is(.shc-topbar, .mn-qb-topbar, .ac-qb-topbar, .aa-topbar):has(.tool-navigation) { min-height: 40px; padding-top: 0; padding-bottom: 0; margin-bottom: 8px; }
 @media (max-width: 768px) {
   .tool-navigation { gap: 6px; }
