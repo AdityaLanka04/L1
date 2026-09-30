@@ -36,6 +36,7 @@ import { getRecentMistakes, explainMistake } from '../services/weaknessMistakeSe
 import WeaknessTracker from '../components/WeaknessTracker/WeaknessTracker';
 import RLInsights from '../components/RLInsights/RLInsights';
 import SocialHubChrome from '../components/SocialHubChrome';
+import MathRenderer from '../components/MathRenderer';
 
 const VIEWS = [
   { id: 'weak-areas', label: 'Priority diagnosis', icon: Target },
@@ -50,6 +51,9 @@ const CATEGORY = {
   needs_practice: { label: 'Needs practice', tone: 'amber' },
   improving: { label: 'Improving', tone: 'green' },
 };
+
+const SCORE_SOURCE_LABELS = { flashcard: 'flashcards', quiz: 'quizzes', chat: 'tutor chat' };
+const TREND_LABELS = { improving: 'improving', slipping: 'slipping', steady: 'holding steady' };
 
 const MISTAKE_SOURCES = {
   question_bank: { label: 'Practice', icon: BookOpen },
@@ -462,24 +466,45 @@ const DiagnosisView = ({
   return (
     <section className="wa-queue">
       <header className="wa-queue-head">
-        <div><span>Weak topics</span><strong>{areas.length} tracked</strong></div>
+        <div><span>Weak topics</span><strong>{areas.length} tracked · ranked by weakness score</strong></div>
       </header>
+      <p className="wa-score-explainer">
+        <b>Weakness score</b> (0–100, higher is weaker) is how unlikely it is that you've mastered a topic.
+        A knowledge-tracing model updates it after every graded flashcard, quiz, practice question and tutor answer,
+        trusting quiz and tutor-checked answers more than self-graded flashcards and hard questions more than easy ones.
+        It's balanced against your full history so one lucky streak can't hide a pattern, and it creeps back up as time
+        passes without practice. The AI tutor and note generator see the same number.
+      </p>
       <div className="wa-queue-list">
         {areas.map((area) => {
           const key = normalizeTopicKey(area.topic);
           const isOpen = expanded.has(key);
           const topicMistakes = mistakesByTopic.get(key) || [];
-          const accuracy = Math.max(0, Math.min(100, Math.round(area.accuracy || 0)));
+          const score = Math.max(0, Math.min(100, Math.round(area.weakness_score || 0)));
+          const attempts = area.total_attempts || 0;
+          const correct = Math.max(0, attempts - (area.total_wrong || 0));
+          const sources = (area.sources || []).map((src) => SCORE_SOURCE_LABELS[src] || src).join(', ');
+          const tone = score >= 70 ? 'critical' : score >= 40 ? 'practice' : 'improving';
+          const label = area.label || displayTopic(area.topic);
           return (
             <div key={key} className="wa-topic-group">
-              <button type="button" className="wa-topic-row" title={displayTopic(area.topic)} onClick={() => toggle(key)} aria-expanded={isOpen}>
+              <button type="button" className="wa-topic-row" title={label} onClick={() => toggle(key)} aria-expanded={isOpen}>
                 <div className="wa-topic-body">
-                  <span>{displayTopic(area.topic)}</span>
-                  <div className="wa-topic-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={accuracy}>
-                    <i style={{ '--wa-accuracy': accuracy / 100 }} />
+                  <span>{label}</span>
+                  <div className={`wa-topic-track wa-score-track ${tone}`} role="progressbar" aria-label={`${label} weakness score`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={score}>
+                    <i style={{ '--wa-accuracy': score / 100 }} />
                   </div>
+                  <small className="wa-score-meta">
+                    {correct}/{attempts} correct{sources ? ` · ${sources}` : ''}
+                    {area.score_model === 'bkt' ? ` · model mastery ${Math.round((area.mastery || 0) * 100)}%` : ''}
+                    {area.confidence ? ` · ${area.confidence} confidence` : ''}
+                    {area.trend && TREND_LABELS[area.trend] ? ` · ${TREND_LABELS[area.trend]}` : ''}
+                  </small>
                 </div>
-                <strong className="wa-topic-percent">{accuracy}%</strong>
+                <div className={`wa-score ${tone}`}>
+                  <strong>{score}</strong>
+                  <span>/100 weakness</span>
+                </div>
                 {isOpen ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
               </button>
               {isOpen && (
@@ -494,7 +519,7 @@ const DiagnosisView = ({
                     return (
                       <button type="button" key={`${mistake.source}-${mistake.id}`} className="wa-mistake-row" onClick={() => onExplainMistake(mistake)}>
                         <div className="wa-mistake-icon"><Icon size={14} /></div>
-                        <span className="wa-mistake-text">{mistake.question_text}</span>
+                        <MathRenderer content={mistake.question_text || ''} className="wa-mistake-text" />
                         <ChevronRight size={15} />
                       </button>
                     );

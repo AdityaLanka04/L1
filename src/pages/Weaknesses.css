@@ -1159,3 +1159,32 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* Priority diagnosis: model weakness score, shown with its evidence. */
+.wa-score-explainer {
+  margin: 0;
+  padding: 12px 18px 14px;
+  border-bottom: 1px solid var(--wa-line);
+  color: var(--wa-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.wa-score-explainer b { color: var(--wa-ink); font-weight: 700; }
+.wa-queue .wa-topic-row { grid-template-columns: minmax(0, 1fr) auto 20px; min-height: 76px; }
+.wa-score-track.critical i { background: var(--wa-critical); }
+.wa-score-track.practice i { background: var(--wa-practice); }
+.wa-score-track.improving i { background: var(--wa-improving); }
+.wa-topic-body .wa-score-meta {
+  color: var(--wa-faint);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.wa-score { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.wa-score strong { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.wa-score span { color: var(--wa-faint); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.wa-score.critical strong { color: var(--wa-critical); }
+.wa-score.practice strong { color: var(--wa-practice); }
+.wa-score.improving strong { color: var(--wa-improving); }
+.wa-mistake-row .wa-mistake-text { min-width: 0; font-size: 12.5px; line-height: 1.5; text-align: left; }
+.wa-mistake-row .wa-mistake-text p { margin: 0; }

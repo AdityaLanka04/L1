@@ -4,6 +4,7 @@ import Weaknesses from '../../pages/Weaknesses';
 import { queuedAIJsonFetch } from '../../services/aiJobService';
 import { getRecentMistakes } from '../../services/weaknessMistakeService';
 jest.mock('../../config',()=>({API_URL:'http://localhost/api'}));
+jest.mock('../../components/MathRenderer',()=>({content,className})=><span className={className}>{content}</span>);
 jest.mock('../../services/aiJobService',()=>({queuedAIJsonFetch:jest.fn()}));
 jest.mock('../../services/weaknessMistakeService',()=>({getRecentMistakes:jest.fn(),explainMistake:jest.fn()}));
 jest.mock('../../components/WeaknessTracker/WeaknessTracker',()=>()=>null);
