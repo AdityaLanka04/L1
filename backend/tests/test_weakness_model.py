@@ -306,3 +306,24 @@ def test_a_miss_right_after_a_good_run_reads_as_slipping(db, user):
     for correct in (False, False, True, False):
         review(db, user, correct)
     assert weakness_model.ranked_weaknesses(db, user.id)[0]["trend"] == "slipping"
+
+
+def test_weakness_analysis_shows_one_row_per_topic_across_sources(db, user):
+    """Flashcard categories ('implicit differentiation') and set-title topics
+    ('Flashcards: Implicit differentiation') are the same topic: one row."""
+    fs = models.FlashcardSet(user_id=user.id, title=SET_TOPIC)
+    db.add(fs)
+    db.flush()
+    for i in range(3):
+        db.add(models.Flashcard(set_id=fs.id, question=f"q{i}", answer="a", category="implicit differentiation",
+                                times_reviewed=2, correct_count=0))
+    db.add(models.TopicMastery(user_id=user.id, topic_name="Implicit Differentiation", questions_asked=4,
+                               correct_answers=1, mastery_level=0.2))
+    db.commit()
+    review(db, user, False)
+
+    result = get_comprehensive_weakness_analysis(db, user.id, models)
+    areas = [a for group in result["weak_areas"].values() for a in group]
+    assert len(areas) == 1
+    assert areas[0]["label"] == "implicit differentiation"
+    assert "flashcard" in areas[0]["sources"]

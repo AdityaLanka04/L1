@@ -8,6 +8,12 @@ from services.topic_utils import is_placeholder_topic
 
 logger = logging.getLogger(__name__)
 
+def _topic_key(topic: Optional[str]) -> str:
+    """Same-topic key across sources: "Flashcards: Implicit differentiation",
+    "implicit differentiation" and "Implicit Differentiation" are one topic."""
+    from services.weakness_model import concept_key
+    return concept_key(topic)
+
 def _normalize_topic(topic: Optional[str]) -> str:
     if not topic:
         return ""
@@ -82,7 +88,11 @@ def _classify_score(score: float) -> str:
 
 
 def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Dict[str, Any]:
+    # Keyed by _topic_key so every source lands on one row per topic.
     areas_by_topic: Dict[str, Dict[str, Any]] = {}
+    # Topics the model already rates as mastered; other sources must not
+    # re-add them with a heuristic score.
+    mastered_keys: set = set()
 
     weak_areas = db.query(models.UserWeakArea).filter(
         models.UserWeakArea.user_id == user_id,
@@ -109,6 +119,7 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
         live = (live_scores or {}).get(wa.topic)
         if live_scores is not None and live is None and (wa.total_questions or 0) > 0:
             # Model now considers this topic mastered.
+            mastered_keys.add(_topic_key(topic))
             continue
 
         total_attempts = wa.total_questions or (wa.correct_count or 0) + (wa.incorrect_count or 0)
@@ -141,7 +152,7 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
             payload["recent_misses"] = live["recent_misses"]
             if live["model"] == "bkt":
                 payload["category"] = _classify_score(live["weakness_score"])
-        areas_by_topic[topic] = payload
+        areas_by_topic[_topic_key(topic)] = payload
 
     mastery_records = db.query(models.TopicMastery).filter(
         models.TopicMastery.user_id == user_id
@@ -155,8 +166,10 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
         attempts = tm.questions_asked or 0
         accuracy = _calc_accuracy(tm.correct_answers or 0, attempts) if attempts else None
 
-        if topic in areas_by_topic:
-            existing = areas_by_topic[topic]
+        if _topic_key(topic) in mastered_keys:
+            continue
+        if _topic_key(topic) in areas_by_topic:
+            existing = areas_by_topic[_topic_key(topic)]
             if attempts > existing.get("total_attempts", 0):
                 existing["total_attempts"] = attempts
                 existing["accuracy"] = round(accuracy, 1) if accuracy is not None else existing.get("accuracy", 0.0)
@@ -191,7 +204,7 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
             last_practiced=tm.last_practiced,
             sources=["quiz"],
         )
-        areas_by_topic[topic] = payload
+        areas_by_topic[_topic_key(topic)] = payload
 
     try:
         flashcards = db.query(models.Flashcard).join(
@@ -205,8 +218,10 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
 
     flashcards_by_topic: Dict[str, List[Any]] = {}
     for card in flashcards:
-        topic_key = _normalize_topic(card.category)
-        if is_placeholder_topic(topic_key) or topic_key in ("general", "misc", "default"):
+        if is_placeholder_topic(_normalize_topic(card.category)) or _normalize_topic(card.category) in ("general", "misc", "default"):
+            continue
+        topic_key = _topic_key(card.category)
+        if not topic_key:
             continue
         flashcards_by_topic.setdefault(topic_key, []).append(card)
 
@@ -220,9 +235,9 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
         acc = round((total_correct / total_reviews) * 100, 1) if total_reviews else None
         if acc is None or acc >= 70:
             continue
-        if topic_key not in areas_by_topic:
+        if topic_key not in areas_by_topic and topic_key not in mastered_keys:
             areas_by_topic[topic_key] = _build_area_payload(
-                topic=topic_key,
+                topic=cards[0].category.strip(),
                 accuracy=acc,
                 total_attempts=total_reviews,
                 total_wrong=total_reviews - total_correct,
@@ -232,8 +247,7 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
                 sources=["flashcard"],
             )
 
-    for topic, area in areas_by_topic.items():
-        topic_key = _normalize_topic(topic)
+    for topic_key, area in areas_by_topic.items():
         cards = flashcards_by_topic.get(topic_key, [])
         if not cards:
             continue
@@ -266,8 +280,11 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
 
     if messages:
         message_texts = [m.user_message.lower() for m in messages if m.user_message]
-        for topic, area in areas_by_topic.items():
-            t = topic.lower()
+        from services.weakness_model import topic_label
+        for area in areas_by_topic.values():
+            t = topic_label(area.get("topic")).lower()
+            if not t:
+                continue
             mentions = sum(1 for text in message_texts if t in text)
             if mentions > 0:
                 area["chat_analysis"] = {
