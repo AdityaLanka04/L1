@@ -253,7 +253,7 @@ const StudyQueuePanel = ({
             {setBreakdown.map((row) => (
               <li key={row.set_id} className="sq-set-row">
                 <div className="sq-set-info">
-                  <strong>{row.title}</strong>
+                  <strong>{String(row.title || 'Untitled Set').replace(/^(Cerbyl:\s*|AI Generated:\s*|Flashcards:\s*)/i, '')}</strong>
                   <span>
                     {plural(row.due_count, 'card')} due
                     {row.new_count > 0 ? ` · ${row.new_count} new` : ''}

@@ -2,7 +2,7 @@
 .flashcards-page .sq-panel {
   --sq-line: color-mix(in srgb, var(--accent) 15%, transparent);
   --sq-line-strong: color-mix(in srgb, var(--accent) 34%, transparent);
-  --sq-surface: linear-gradient(155deg, #0b0c0f 0%, #050506 100%);
+  --sq-surface: color-mix(in srgb, var(--text-primary) 3%, transparent);
   --sq-soft: rgba(255, 255, 255, .03);
   --sq-new: #3b82f6;
   --sq-review: #22c55e;
@@ -12,6 +12,12 @@
   flex-direction: column;
   gap: 18px;
   padding-bottom: 40px !important;
+}
+
+/* The panel sits in a fixed-height scroller; without this every section
+   shrinks to fit and its overflow:hidden clips the content. */
+.flashcards-page .sq-panel > * {
+  flex-shrink: 0;
 }
 
 [data-theme-mode="light"] .flashcards-page .sq-panel {
