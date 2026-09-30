@@ -396,7 +396,7 @@ def _record_tutor_weakness_signals(
                 func.lower(models.UserWeakArea.topic).in_(keys),
             ).all()
             for area in rows:
-                _apply_answer_to_weak_area(area, True)
+                _apply_answer_to_weak_area(area, True, already_modelled=True, source="chat")
         return []
     if verdict not in {"partly_correct", "not_yet"}:
         return []
@@ -411,44 +411,18 @@ def _record_tutor_weakness_signals(
         if topic and topic.lower() not in {item.lower() for item in topics}:
             topics.append(topic)
 
-    now = datetime.now(timezone.utc)
+    from services.adaptive_quiz import _apply_answer_to_weak_area, _get_or_create_weak_area
+
     recorded: list[str] = []
     for topic in topics[:5]:
-        existing = db.query(models.UserWeakArea).filter(
-            models.UserWeakArea.user_id == user_id,
-            models.UserWeakArea.topic == topic,
-        ).first()
-        penalty = 18 if verdict == "not_yet" else 10
-        if existing:
-            existing.subtopic = existing.subtopic or objective
-            existing.total_questions = (existing.total_questions or 0) + 1
-            existing.incorrect_count = (existing.incorrect_count or 0) + 1
-            existing.consecutive_wrong = (existing.consecutive_wrong or 0) + 1
-            existing.last_wrong_streak = max(existing.last_wrong_streak or 0, existing.consecutive_wrong or 0)
-            existing.accuracy = round(((existing.correct_count or 0) / max(existing.total_questions or 0, 1)) * 100, 1)
-            existing.weakness_score = min(100.0, max(existing.weakness_score or 0.0, 35.0) + penalty)
-            existing.priority = max(existing.priority or 0, 8 if verdict == "not_yet" else 6)
-            existing.status = "needs_practice"
-            existing.last_updated = now
-            existing.last_practiced = now
-        else:
-            db.add(models.UserWeakArea(
-                user_id=user_id,
-                topic=topic,
-                subtopic=objective,
-                total_questions=1,
-                correct_count=0,
-                incorrect_count=1,
-                accuracy=0.0,
-                weakness_score=55.0 if verdict == "not_yet" else 42.0,
-                consecutive_wrong=1,
-                last_wrong_streak=1,
-                status="needs_practice",
-                priority=8 if verdict == "not_yet" else 6,
-                first_identified=now,
-                last_practiced=now,
-                last_updated=now,
-            ))
+        area = _get_or_create_weak_area(db, user_id, topic)
+        area.subtopic = area.subtopic or objective
+        # Same BKT-backed score every other graded surface writes; the tutor
+        # graph may have just run this concept's update itself.
+        _apply_answer_to_weak_area(
+            area, False, already_modelled=True, source="chat",
+            credit=0.35 if verdict == "partly_correct" else 0.0,
+        )
         recorded.append(topic)
 
     if recorded:

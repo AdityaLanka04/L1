@@ -53,16 +53,25 @@ def get_personalization_context(db, user_id: str) -> PersonalizationContext:
         return PersonalizationContext()
 
     try:
-        weak_areas = (
-            db.query(UserWeakArea)
-            .filter(UserWeakArea.user_id == uid, UserWeakArea.status != "mastered")
-            .order_by(UserWeakArea.weakness_score.desc())
-            .limit(5)
-            .all()
-        )
-        for wa in weak_areas:
-            if wa.topic and wa.topic not in weak:
-                weak.append(wa.topic)
+        try:
+            from services.weakness_model import ranked_weaknesses
+
+            for item in ranked_weaknesses(db, uid, limit=5):
+                label = f"{item['label']} (weakness {item['weakness_score']:.0f}/100)"
+                if label not in weak:
+                    weak.append(label)
+        except Exception as e:
+            logger.warning(f"[Personalization] weakness scores unavailable: {e}")
+            weak_areas = (
+                db.query(UserWeakArea)
+                .filter(UserWeakArea.user_id == uid, UserWeakArea.status != "mastered")
+                .order_by(UserWeakArea.weakness_score.desc())
+                .limit(5)
+                .all()
+            )
+            for wa in weak_areas:
+                if wa.topic and wa.topic not in weak:
+                    weak.append(wa.topic)
 
         mastery = (
             db.query(TopicMastery)

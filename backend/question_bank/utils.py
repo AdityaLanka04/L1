@@ -34,16 +34,7 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
                 db.add(weak_area)
                 db.flush()
 
-            weak_area.total_questions += 1
-
-            if is_correct:
-                weak_area.correct_count += 1
-                weak_area.consecutive_wrong = 0
-            else:
-                weak_area.incorrect_count += 1
-                weak_area.consecutive_wrong += 1
-                weak_area.last_wrong_streak = max(weak_area.last_wrong_streak, weak_area.consecutive_wrong)
-
+            if not is_correct:
                 wrong_log = models.WrongAnswerLog(
                     user_id=user_id,
                     question_id=question_id,
@@ -57,37 +48,11 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
                 )
                 db.add(wrong_log)
 
-            if weak_area.total_questions > 0:
-                weak_area.accuracy = (weak_area.correct_count / weak_area.total_questions) * 100
-
-            accuracy_factor = 100 - weak_area.accuracy
-            streak_factor = min(weak_area.consecutive_wrong * 10, 30)
-            volume_factor = min(weak_area.incorrect_count * 2, 20)
-
-            weak_area.weakness_score = min(100, accuracy_factor * 0.5 + streak_factor + volume_factor)
-
-            if weak_area.accuracy < 30:
-                weak_area.priority = 10
-            elif weak_area.accuracy < 50:
-                weak_area.priority = 8
-            elif weak_area.accuracy < 70:
-                weak_area.priority = 6
-            elif weak_area.accuracy < 85:
-                weak_area.priority = 4
-            else:
-                weak_area.priority = 2
-
-            if weak_area.consecutive_wrong >= 3:
-                weak_area.priority = min(10, weak_area.priority + 2)
-
-            if weak_area.accuracy >= 90 and weak_area.total_questions >= 5:
-                weak_area.status = "mastered"
-            elif weak_area.accuracy >= 70:
-                weak_area.status = "improving"
-            else:
-                weak_area.status = "needs_practice"
-
-            weak_area.last_updated = datetime.now(timezone.utc)
+            # Same model-backed scoring every other graded surface uses.
+            from services.adaptive_quiz import _apply_answer_to_weak_area
+            _apply_answer_to_weak_area(
+                weak_area, bool(is_correct), source="quiz", difficulty=result.get("difficulty"),
+            )
 
         db.commit()
         logger.info(f"Updated weak areas for user {user_id}")

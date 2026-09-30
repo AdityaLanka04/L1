@@ -69,6 +69,18 @@ def _build_area_payload(
         "flashcard_performance": {"is_weak": False, "struggling_cards": [], "total_cards": 0},
     }
 
+_SOURCE_GROUP = {"flashcard": "flashcard", "solo_quiz": "quiz", "question_bank": "quiz", "chat": "chat"}
+
+
+def _classify_score(score: float) -> str:
+    """Category from the model's weakness score alone (0-100, higher = weaker)."""
+    if score >= 70:
+        return "critical"
+    if score >= 40:
+        return "needs_practice"
+    return "improving"
+
+
 def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Dict[str, Any]:
     areas_by_topic: Dict[str, Dict[str, Any]] = {}
 
@@ -80,27 +92,55 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
         models.UserWeakArea.weakness_score.desc(),
     ).all()
 
+    # Live, forgetting-adjusted model scores (services/weakness_model.py) --
+    # the same numbers the AI tutor is given.
+    try:
+        from services.weakness_model import ranked_weaknesses
+        live_scores = {item["topic"]: item for item in ranked_weaknesses(db, user_id, limit=None)}
+    except Exception as e:
+        logger.warning(f"[WEAKNESS] live scores unavailable, using stored scores: {e}")
+        live_scores = None
+
     for wa in weak_areas:
         topic = (wa.topic or "").strip()
         if is_placeholder_topic(topic):
+            continue
+
+        live = (live_scores or {}).get(wa.topic)
+        if live_scores is not None and live is None and (wa.total_questions or 0) > 0:
+            # Model now considers this topic mastered.
             continue
 
         total_attempts = wa.total_questions or (wa.correct_count or 0) + (wa.incorrect_count or 0)
         correct = wa.correct_count or max(total_attempts - (wa.incorrect_count or 0), 0)
         accuracy = wa.accuracy if wa.accuracy is not None else _calc_accuracy(correct, total_attempts)
 
+        sources = ["quiz"]
+        if live:
+            sources = sorted({_SOURCE_GROUP.get(src, "quiz") for src in live["sources"]}) or ["quiz"]
+
         payload = _build_area_payload(
             topic=topic,
             accuracy=accuracy,
             total_attempts=total_attempts,
             total_wrong=wa.incorrect_count or 0,
-            weakness_score=wa.weakness_score,
+            weakness_score=live["weakness_score"] if live else wa.weakness_score,
             priority=wa.priority,
             status=wa.status,
             improvement_rate=wa.improvement_rate,
             last_practiced=wa.last_practiced,
-            sources=["quiz"],
+            sources=sources,
         )
+        if live:
+            payload["label"] = live["label"]
+            payload["score_model"] = live["model"]
+            payload["mastery"] = live["mastery"]
+            payload["model_observations"] = live["observations"]
+            payload["confidence"] = live["confidence"]
+            payload["trend"] = live["trend"]
+            payload["recent_misses"] = live["recent_misses"]
+            if live["model"] == "bkt":
+                payload["category"] = _classify_score(live["weakness_score"])
         areas_by_topic[topic] = payload
 
     mastery_records = db.query(models.TopicMastery).filter(
@@ -245,7 +285,7 @@ def get_comprehensive_weakness_analysis(db: Session, user_id: int, models) -> Di
     def _sort_key(item: Dict[str, Any]):
         acc = item.get("accuracy")
         acc_val = acc if isinstance(acc, (int, float)) else 100
-        return (acc_val, -item.get("weakness_score", 0))
+        return (-item.get("weakness_score", 0), acc_val)
 
     for category in weak_areas_by_category:
         weak_areas_by_category[category] = sorted(weak_areas_by_category[category], key=_sort_key)

@@ -164,13 +164,54 @@ def _get_or_create_weak_area(db: Session, user_id: int, topic: str):
     return weak_area
 
 
-def _apply_answer_to_weak_area(weak_area, is_correct: bool) -> None:
-    """One question/review's worth of bookkeeping on a UserWeakArea row --
-    the exact formula question_bank/utils.py::_update_weak_areas uses, so
-    solo-quiz and flashcard mistakes score consistently with question-bank
-    ones."""
+def _apply_answer_to_weak_area(
+    weak_area,
+    is_correct: bool,
+    *,
+    already_modelled: bool = False,
+    source: Optional[str] = None,
+    difficulty: Optional[str] = None,
+    credit: Optional[float] = None,
+) -> None:
+    """One graded answer's worth of bookkeeping on a UserWeakArea row, shared
+    by flashcards, spaced-repetition reviews, solo quiz, question bank,
+    weakness practice and verified chat answers. Counters stay plain counts;
+    weakness_score/status/priority come from the BKT model in
+    services/weakness_model.py. `already_modelled` is for chat, whose graph
+    has usually just run the same BKT update itself. `source`/`difficulty`
+    set how much the model trusts this answer; `credit` is partial credit in
+    [0, 1] (defaults to 1/0 from is_correct)."""
     now = datetime.now(timezone.utc)
+    _apply_counters(weak_area, is_correct, now)
 
+    from sqlalchemy.orm import object_session
+    from services import weakness_model
+
+    db = object_session(weak_area)
+    try:
+        if db is None or not weak_area.user_id:
+            raise RuntimeError("weak area is not attached to a session")
+        with db.begin_nested():
+            state = weakness_model.observe(
+                db, weak_area.user_id, weak_area.topic,
+                float(is_correct) if credit is None else credit,
+                source=source,
+                difficulty=difficulty,
+                skip_if_recent=already_modelled,
+            )
+        if state is None:
+            raise RuntimeError(f"no concept key for topic {weak_area.topic!r}")
+        weakness_model.apply_score(weak_area, state)
+    except Exception as e:
+        logger.warning(f"[WEAKNESS] model update failed for topic={weak_area.topic!r}, using accuracy formula: {e}")
+        _apply_formula_score(weak_area)
+
+    weak_area.practice_sessions = (weak_area.practice_sessions or 0) + 1
+    weak_area.last_practiced = now
+    weak_area.last_updated = now
+
+
+def _apply_counters(weak_area, is_correct: bool, now: datetime) -> None:
     weak_area.total_questions = (weak_area.total_questions or 0) + 1
     if is_correct:
         weak_area.correct_count = (weak_area.correct_count or 0) + 1
@@ -183,34 +224,35 @@ def _apply_answer_to_weak_area(weak_area, is_correct: bool) -> None:
     if weak_area.total_questions:
         weak_area.accuracy = round((weak_area.correct_count or 0) / weak_area.total_questions * 100, 1)
 
+
+def _apply_formula_score(weak_area) -> None:
+    """Pre-model accuracy/streak/volume formula; only used if the model update
+    fails, so a review is never lost."""
     accuracy_factor = 100 - (weak_area.accuracy or 0)
     streak_factor = min((weak_area.consecutive_wrong or 0) * 10, 30)
     volume_factor = min((weak_area.incorrect_count or 0) * 2, 20)
     weak_area.weakness_score = min(100, accuracy_factor * 0.5 + streak_factor + volume_factor)
 
-    if weak_area.accuracy < 30:
+    accuracy = weak_area.accuracy or 0
+    if accuracy < 30:
         weak_area.priority = 10
-    elif weak_area.accuracy < 50:
+    elif accuracy < 50:
         weak_area.priority = 8
-    elif weak_area.accuracy < 70:
+    elif accuracy < 70:
         weak_area.priority = 6
-    elif weak_area.accuracy < 85:
+    elif accuracy < 85:
         weak_area.priority = 4
     else:
         weak_area.priority = 2
     if (weak_area.consecutive_wrong or 0) >= 3:
         weak_area.priority = min(10, weak_area.priority + 2)
 
-    if weak_area.accuracy >= 90 and weak_area.total_questions >= 5:
+    if accuracy >= 90 and (weak_area.total_questions or 0) >= 5:
         weak_area.status = "mastered"
-    elif weak_area.accuracy >= 70:
+    elif accuracy >= 70:
         weak_area.status = "improving"
     else:
         weak_area.status = "needs_practice"
-
-    weak_area.practice_sessions = (weak_area.practice_sessions or 0) + 1
-    weak_area.last_practiced = now
-    weak_area.last_updated = now
 
 
 async def record_solo_quiz_mistakes(
@@ -239,7 +281,7 @@ async def record_solo_quiz_mistakes(
     for answer in per_question_answers:
         is_correct = bool(answer.get("is_correct"))
         question_text = answer.get("question_text", "")
-        _apply_answer_to_weak_area(weak_area, is_correct)
+        _apply_answer_to_weak_area(weak_area, is_correct, source="quiz", difficulty=quiz.difficulty)
 
         if not is_correct:
             db.add(models.WrongAnswerLog(
@@ -266,6 +308,7 @@ def record_flashcard_review(
     correct_answer: str,
     flashcard_id: int,
     difficulty: Optional[str] = None,
+    credit: Optional[float] = None,
 ) -> None:
     """UserWeakArea update for one flashcard review, + a WrongAnswerLog row
     when it was a miss. Flashcards previously wrote no per-review weakness
@@ -276,7 +319,9 @@ def record_flashcard_review(
 
     topic = (topic or "").strip() or "General"
     weak_area = _get_or_create_weak_area(db, user_id, topic)
-    _apply_answer_to_weak_area(weak_area, is_correct)
+    _apply_answer_to_weak_area(
+        weak_area, is_correct, source="flashcard", difficulty=difficulty, credit=credit,
+    )
 
     if not is_correct:
         db.add(models.WrongAnswerLog(

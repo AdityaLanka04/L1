@@ -1297,6 +1297,7 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
         # (grade_str in ("good", "easy")) -- "again"/"hard" both count as a
         # miss for weakness tracking, consistent with how this card already
         # reports itself as known/unknown elsewhere.
+        from services.weakness_model import GRADE_CREDIT
         record_flashcard_review(
             db, user.id, _flashcard_topic(card, flashcard_set),
             is_correct=grade_str in ("good", "easy"),
@@ -1304,6 +1305,7 @@ async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
             correct_answer=card.answer,
             flashcard_id=card.id,
             difficulty=card.difficulty,
+            credit=GRADE_CREDIT.get(grade_str),
         )
         db.commit()
     except Exception as e:
