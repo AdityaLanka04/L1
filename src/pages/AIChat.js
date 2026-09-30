@@ -1695,6 +1695,7 @@ const AIChat = ({ sharedMode = false }) => {
         id: `ai_${Date.now()}`,
         message_id: data.message_id,
         sources: data.sources || [],
+        weaknessFocus: data.weakness_focus || [],
         type: 'ai',
         content: aiAnswerContent,
         timestamp: new Date().toISOString(),
@@ -2765,6 +2766,7 @@ const AIChat = ({ sharedMode = false }) => {
             id: `ai_${Date.now()}`,
         message_id: data.message_id,
         sources: data.sources || [],
+        weaknessFocus: data.weakness_focus || [],
             type: 'ai',
             content: aiAnswerContent,
             timestamp: new Date().toISOString(),
@@ -3484,6 +3486,17 @@ const AIChat = ({ sharedMode = false }) => {
                     tabIndex={promptId ? -1 : undefined}
                   >
                     <div className="ac-message-bubble">
+                      {message.type === 'ai' && Array.isArray(message.weaknessFocus) && message.weaknessFocus.length > 0 && (
+                        <div className="ac-weak-spot" role="note">
+                          <span className="ac-weak-spot-kicker">Tailored to your weak spot</span>
+                          {message.weaknessFocus.map((spot) => (
+                            <span key={spot.topic} className="ac-weak-spot-topic">
+                              {spot.topic}
+                              <b>{Math.round(spot.weakness_score)}/100</b>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="ac-message-content">
                         {renderMessageContent(message.content)}
                       </div>

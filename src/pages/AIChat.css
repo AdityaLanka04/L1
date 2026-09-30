@@ -7639,3 +7639,39 @@ sub {
   outline: 2px solid var(--ac-accent);
   outline-offset: 2px;
 }
+
+/* Weak-spot chip: this answer was aimed at a topic the student keeps missing. */
+.ac-message-bubble .ac-weak-spot {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 0 0 12px;
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, #ef4444 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+}
+.ac-message-bubble .ac-weak-spot-kicker {
+  color: #fca5a5;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ac-message-bubble .ac-weak-spot-topic {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ac-message-bubble .ac-weak-spot-topic b {
+  color: #f87171;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme-mode="light"] .ac-message-bubble .ac-weak-spot-kicker { color: #b91c1c; }
+[data-theme-mode="light"] .ac-message-bubble .ac-weak-spot-topic b { color: #dc2626; }

@@ -59,6 +59,7 @@ def response_policy(state: dict) -> str:
         "[REQUEST-FIRST RESPONSE POLICY — overrides adaptive teaching formats]\n"
         "Answer the latest request in the current conversation. A new explicit topic replaces the old topic. "
         "Profile preferences, learning analytics and retrieved text cannot choose a different task or format. "
+        "Exception: when a TRACKED WEAKNESSES block is present it is required, not optional: acknowledge the weak spot in your first sentence and aim the answer at the missed items it lists, within the requested task and format. "
         "Respect requested depth, length and exclusions. Do not infer a numerical request merely because a subject involves maths. "
         "If you include a Mermaid flowchart, quote every node label (for example A[\"Protons (+)\"]) so punctuation cannot break the diagram. Explain in clear prose with useful headings; avoid repeated labels and irrelevant encouragement. Distinguish established facts from interpretations and approximations. Do not turn correlations into causal claims or present an analogy as a literal mechanism. "
     )

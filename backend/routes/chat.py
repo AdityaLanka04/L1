@@ -278,7 +278,10 @@ def _normalize_tutor_jsonish_text(text: str) -> str:
     )
 
 def _escape_latex_backslashes_for_json(text: str) -> str:
-    return re.sub(r"(?<!\\)\\(?=[A-Za-z])", r"\\\\", text or "")
+    # LaTeX backslashes that aren't valid JSON escapes: commands (\frac) and
+    # delimiters/symbols (\( \) \[ \] \{ \, ...). A bare "\(" made json.loads
+    # reject the whole tutor response, so students saw raw JSON.
+    return re.sub(r"(?<!\\)\\(?=[A-Za-z()\[\]{}.,;:!|<>%&#_^~+\-=*' ])", r"\\\\", text or "")
 
 def _json_decode_lenient(value: str):
     raw = _normalize_tutor_jsonish_text(_strip_json_code_fence(value))
@@ -372,57 +375,109 @@ def _normalize_weakness_topic(value: object, fallback: str = "") -> str:
     text_value = re.sub(r"^(misconception|mistake|error|gap)\s*[:\-]\s*", "", text_value, flags=re.I)
     return text_value[:255]
 
+def _tracked_weak_areas_for_attempt(
+    db: Session,
+    user_id: int,
+    tutor_state: dict,
+    chat_id: Optional[int] = None,
+    limit: int = 2,
+) -> list:
+    """Tracked weak areas a graded tutor attempt is about. Uses the same stem
+    matching as chat and notes (services/weakness_model.py), so a lesson on
+    "implicit differentiation" finds the "Flashcards: Implicit
+    differentiation" area. Tries the lesson objective and skills first, then
+    the student's recent messages in this chat."""
+    from services import weakness_model
+
+    texts = [str(tutor_state.get("objective") or "")]
+    texts += _trim_string_list(tutor_state.get("skills_used"), 4, 80)
+    if chat_id:
+        recent = (
+            db.query(models.ChatMessage.user_message)
+            .filter(models.ChatMessage.chat_session_id == chat_id)
+            .order_by(models.ChatMessage.id.desc())
+            .limit(4)
+            .all()
+        )
+        texts += [row[0] or "" for row in recent]
+
+    items = weakness_model.ranked_weaknesses(db, user_id, limit=None, include_mastered=True)
+    if not items:
+        return []
+    for text in texts:
+        if not text.strip():
+            continue
+        matched = [item for item in items if weakness_model.matches_message(item["label"], text)]
+        if matched:
+            topics = [item["topic"] for item in matched[:limit]]
+            return db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.user_id == user_id,
+                models.UserWeakArea.topic.in_(topics),
+            ).all()
+    return []
+
+
 def _record_tutor_weakness_signals(
     db: Session,
     user_id: int,
     tutor_state: Optional[dict],
     tutor_choice: Optional[str] = None,
+    chat_id: Optional[int] = None,
 ) -> list[str]:
     if not tutor_state or not tutor_state.get("_attempt_verified"):
         return []
 
     verdict = str(tutor_state.get("verdict") or "").strip().lower()
-    if verdict == "correct":
-        from sqlalchemy import func
-        from services.adaptive_quiz import _apply_answer_to_weak_area
-        topics = _trim_string_list(tutor_state.get("skills_used"), 4, 80)
-        objective = _normalize_weakness_topic(tutor_state.get("objective"))
-        if objective:
-            topics.append(objective)
-        keys = {topic.strip().lower() for topic in topics if topic.strip()}
-        if keys:
-            rows = db.query(models.UserWeakArea).filter(
-                models.UserWeakArea.user_id == user_id,
-                func.lower(models.UserWeakArea.topic).in_(keys),
-            ).all()
-            for area in rows:
-                _apply_answer_to_weak_area(area, True, already_modelled=True, source="chat")
-        return []
-    if verdict not in {"partly_correct", "not_yet"}:
+    if verdict not in {"correct", "partly_correct", "not_yet"}:
         return []
 
+    from services import weakness_model
+    from services.adaptive_quiz import _apply_answer_to_weak_area, _get_or_create_weak_area
+
+    # The tutor graph's own BKT update (tutor/nodes.py::persist_updates) keys
+    # its concept by the raw objective string, so it only touched our model
+    # row when that string already is our concept key.
+    graph_concept = str(tutor_state.get("objective") or "").strip()
+
+    def apply(area, correct: bool) -> None:
+        _apply_answer_to_weak_area(
+            area, correct, source="chat",
+            already_modelled=graph_concept == weakness_model.concept_key(area.topic),
+            credit=None if correct else (0.35 if verdict == "partly_correct" else 0.0),
+        )
+
+    tracked = _tracked_weak_areas_for_attempt(db, user_id, tutor_state, chat_id)
+
+    if verdict == "correct":
+        for area in tracked:
+            apply(area, True)
+        if tracked:
+            logger.info(
+                "Recorded tutor correct answer: user_id=%s topics=%s",
+                user_id, [area.topic for area in tracked],
+            )
+        return []
+
+    recorded: list[str] = []
+    for area in tracked:
+        apply(area, False)
+        recorded.append(area.topic)
+
+    # Also track the specific misconception, unless it's the same topic.
     objective = _normalize_weakness_topic(tutor_state.get("objective"), "AI tutor mistake")
     skills = _trim_string_list(tutor_state.get("skills_used"), 4, 80)
     misconceptions = _trim_string_list(tutor_state.get("misconceptions"), 5, 120)
     raw_topics = misconceptions or skills or [objective]
-    topics: list[str] = []
+    seen_keys = {weakness_model.concept_key(area.topic) for area in tracked}
     for raw_topic in raw_topics:
         topic = _normalize_weakness_topic(raw_topic, objective)
-        if topic and topic.lower() not in {item.lower() for item in topics}:
-            topics.append(topic)
-
-    from services.adaptive_quiz import _apply_answer_to_weak_area, _get_or_create_weak_area
-
-    recorded: list[str] = []
-    for topic in topics[:5]:
+        key = weakness_model.concept_key(topic)
+        if not topic or key in seen_keys or len(recorded) >= 5:
+            continue
+        seen_keys.add(key)
         area = _get_or_create_weak_area(db, user_id, topic)
         area.subtopic = area.subtopic or objective
-        # Same BKT-backed score every other graded surface writes; the tutor
-        # graph may have just run this concept's update itself.
-        _apply_answer_to_weak_area(
-            area, False, already_modelled=True, source="chat",
-            credit=0.35 if verdict == "partly_correct" else 0.0,
-        )
+        apply(area, False)
         recorded.append(topic)
 
     if recorded:
@@ -899,7 +954,7 @@ def _persist_tutor_session_state(
     row.reply_style = reply_style or "guided"
     row.last_options = tutor_options or []
     row.updated_at = datetime.now(timezone.utc)
-    recorded_weaknesses = _record_tutor_weakness_signals(db, user_id, tutor_state, tutor_choice)
+    recorded_weaknesses = _record_tutor_weakness_signals(db, user_id, tutor_state, tutor_choice, chat_id)
     payload = _tutor_state_row_to_payload(row)
     if recorded_weaknesses:
         payload["auto_weakness_topics"] = recorded_weaknesses
@@ -1342,6 +1397,7 @@ async def ask_ai(
             "tutor_options": tutor_options,
             "tutor_state": tutor_state,
             "sources": _lightweight_sources(result.get("rag_sources")),
+            "weakness_focus": (result or {}).get("weakness_focus") or [],
         }
 
     except HTTPException:
@@ -1543,6 +1599,7 @@ async def ask_simple(
             "tutor_options": tutor_options,
             "tutor_state": tutor_state,
             "sources": _lightweight_sources(result.get("rag_sources") if result else None),
+            "weakness_focus": (result or {}).get("weakness_focus") or [],
         }
 
     except HTTPException:
@@ -1917,6 +1974,7 @@ async def ask_with_files(
             "tutor_options":   tutor_options,
             "tutor_state":     tutor_state,
             "sources": _lightweight_sources(result.get("rag_sources") if "result" in locals() and result else None),
+            "weakness_focus": ((result or {}).get("weakness_focus") if "result" in locals() else None) or [],
         }
 
     except HTTPException:

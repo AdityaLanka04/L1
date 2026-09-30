@@ -339,3 +339,58 @@ def test_tutor_verified_correct_answer_updates_matching_weakness_only(db):
     state['_attempt_verified'] = False
     chat._record_tutor_weakness_signals(db, user.id, state)
     assert fraction.total_questions == 2
+
+
+def test_tutor_correct_answer_reaches_flashcard_weak_topic_by_conversation(db):
+    """A tutor-graded answer like '4/3' names no topic, and the weak area came
+    from a flashcard set titled 'Flashcards: Implicit differentiation'. The
+    grade must still land on it via the lesson objective or the chat's
+    recent messages, and lower the weakness score."""
+    from services import weakness_model
+    from services.adaptive_quiz import record_flashcard_review
+
+    user, conversation = user_and_chat(db)
+    for correct in (False, False, True, False):
+        record_flashcard_review(db, user.id, 'Flashcards: Implicit differentiation', is_correct=correct,
+                                question_text='q', correct_answer='a', flashcard_id=1)
+    db.add(models.ChatMessage(chat_session_id=conversation.id, user_id=user.id,
+                              user_message='Can you help me with implicit differentiation?', ai_response='...'))
+    db.commit()
+    before = weakness_model.ranked_weaknesses(db, user.id)[0]['weakness_score']
+
+    state = {'_attempt_verified': True, 'verdict': 'correct', 'skills_used': ['slope at a point'], 'objective': 'Tangent slope'}
+    chat._record_tutor_weakness_signals(db, user.id, state, chat_id=conversation.id)
+    db.commit(); db.expire_all()
+
+    area = db.query(models.UserWeakArea).filter_by(topic='Flashcards: Implicit differentiation').one()
+    assert area.total_questions == 5 and area.correct_count == 2
+    assert weakness_model.ranked_weaknesses(db, user.id)[0]['weakness_score'] < before
+
+
+def test_tutor_miss_on_tracked_topic_does_not_duplicate_it(db):
+    from services.adaptive_quiz import record_flashcard_review
+
+    user, conversation = user_and_chat(db)
+    record_flashcard_review(db, user.id, 'Flashcards: Implicit differentiation', is_correct=False,
+                            question_text='q', correct_answer='a', flashcard_id=1)
+    db.commit()
+    state = {'_attempt_verified': True, 'verdict': 'not_yet', 'objective': 'Implicit differentiation',
+             'skills_used': ['implicit differentiation'], 'misconceptions': []}
+    recorded = chat._record_tutor_weakness_signals(db, user.id, state, chat_id=conversation.id)
+    db.commit(); db.expire_all()
+
+    assert recorded == ['Flashcards: Implicit differentiation']
+    assert db.query(models.UserWeakArea).filter_by(user_id=user.id).count() == 1
+    assert db.query(models.UserWeakArea).one().total_questions == 2
+
+
+def test_tutor_json_with_inline_math_delimiters_parses():
+    raw = (
+        '{"answer": "When \\(y\\) is not isolated, like \\(F(x, y) = 0\\), use '
+        '\\[\\frac{d}{dx}(y^2) = 2y\\frac{dy}{dx}\\]", "options": [], '
+        '"tutor_state": {"phase": "teach", "verdict": "not_applicable"}}'
+    )
+    answer, _options, _state = chat._parse_tutor_response(raw)
+    assert not answer.startswith('{')
+    assert '\\(y\\)' in answer
+    assert '\\[\\frac{d}{dx}(y^2)' in answer

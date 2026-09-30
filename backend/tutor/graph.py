@@ -120,10 +120,21 @@ class TutorGraph:
                 "evaluation": result.get("evaluation"),
                 "chroma_writes": result.get("chroma_writes", []),
                 "rag_sources": result.get("rag_sources", []),
+                "weakness_focus": _weakness_focus(result),
             }
         except Exception as e:
             logger.error(f"Tutor graph failed: {e}")
             raise AIWorkflowError("Tutor generation failed") from e
+
+def _weakness_focus(result: dict) -> list[dict]:
+    """Tracked weak topics this message was about, for the chat UI's chip.
+    Omitted for greetings and context-only answers, same as the prompt block."""
+    student = result.get("student_state")
+    items = getattr(student, "matched_weaknesses", None) or []
+    if not items or result.get("intent") in ("greeting", "returning_greeting") or result.get("context_only"):
+        return []
+    from services.weakness_model import focus_summary
+    return focus_summary(items)
 
 _tutor: Optional[TutorGraph] = None
 
