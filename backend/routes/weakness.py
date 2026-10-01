@@ -806,6 +806,34 @@ async def get_daily_recommendations(
 CHAT_STRUGGLE_THRESHOLD = -0.3
 
 
+def _as_utc(value):
+    if value is None:
+        return None
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+def _fixed_mistake_ids(db: Session, wrong_answers: list) -> set:
+    """Mistakes the student has since gotten right. New answers mark this on
+    the row (understood_after_review); flashcard misses logged before that
+    also count when the card's latest answer, after the miss, was "know it"."""
+    fixed = {wa.id for wa in wrong_answers if wa.understood_after_review}
+    card_ids = {wa.flashcard_id for wa in wrong_answers if wa.flashcard_id and wa.id not in fixed}
+    if not card_ids:
+        return fixed
+    cards = {
+        card.id: card
+        for card in db.query(models.Flashcard).filter(models.Flashcard.id.in_(card_ids)).all()
+    }
+    for wa in wrong_answers:
+        card = cards.get(wa.flashcard_id)
+        if not card or wa.id in fixed or card.last_known is not True:
+            continue
+        reviewed_at, missed_at = _as_utc(card.last_reviewed), _as_utc(wa.answered_at)
+        if reviewed_at and missed_at and reviewed_at > missed_at:
+            fixed.add(wa.id)
+    return fixed
+
+
 @router.get("/weaknesses/recent_mistakes")
 async def get_recent_mistakes(
     user_id: str = Query(...),
@@ -826,6 +854,7 @@ async def get_recent_mistakes(
             if source != "all":
                 wa_query = wa_query.filter(models.WrongAnswerLog.source == source)
             wrong_answers = wa_query.order_by(models.WrongAnswerLog.answered_at.desc()).limit(limit).all()
+            fixed_ids = _fixed_mistake_ids(db, wrong_answers)
             for wa in wrong_answers:
                 items.append({
                     "id": wa.id,
@@ -837,6 +866,7 @@ async def get_recent_mistakes(
                     "occurred_at": wa.answered_at.isoformat() if wa.answered_at else None,
                     "has_explanation": bool(wa.ai_explanation),
                     "reviewed": bool(wa.reviewed),
+                    "resolved": wa.id in fixed_ids,
                 })
 
         if source in ("all", "chat"):
@@ -861,6 +891,7 @@ async def get_recent_mistakes(
                     "occurred_at": row.created_at.isoformat() if row.created_at else None,
                     "has_explanation": False,
                     "reviewed": False,
+                    "resolved": False,
                 })
 
         items.sort(key=lambda i: i["occurred_at"] or "", reverse=True)

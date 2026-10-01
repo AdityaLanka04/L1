@@ -47,6 +47,15 @@ async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], mod
                     answered_at=datetime.now(timezone.utc)
                 )
                 db.add(wrong_log)
+            elif question_id:
+                db.query(models.WrongAnswerLog).filter(
+                    models.WrongAnswerLog.user_id == user_id,
+                    models.WrongAnswerLog.question_id == question_id,
+                    models.WrongAnswerLog.understood_after_review.isnot(True),
+                ).update(
+                    {"reviewed": True, "understood_after_review": True, "reviewed_at": datetime.now(timezone.utc)},
+                    synchronize_session=False,
+                )
 
             # Same model-backed scoring every other graded surface uses.
             from services.adaptive_quiz import _apply_answer_to_weak_area

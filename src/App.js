@@ -392,6 +392,9 @@ function App() {
                   <Route path="/slide-explorer" element={<ProtectedRoute><SlideExplorer /></ProtectedRoute>} />
                   <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
                   <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+                  <Route path="/flashcards/set/:setId" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+                  <Route path="/flashcards/review" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+                  <Route path="/flashcards/queue" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
                   <Route path="/notes" element={<ProtectedRoute><NotesHub /></ProtectedRoute>} />
                   <Route path="/notes/dashboard" element={<ProtectedRoute><NotesDashboard /></ProtectedRoute>} />
                   <Route path="/notes/audio-video" element={<ProtectedRoute><AudioVideoNotes /></ProtectedRoute>} />

@@ -323,7 +323,18 @@ def record_flashcard_review(
         weak_area, is_correct, source="flashcard", difficulty=difficulty, credit=credit,
     )
 
-    if not is_correct:
+    if is_correct:
+        # A later correct answer on the same card means the earlier misses are
+        # fixed; the Weaknesses page stops listing them as open mistakes.
+        db.query(models.WrongAnswerLog).filter(
+            models.WrongAnswerLog.user_id == user_id,
+            models.WrongAnswerLog.flashcard_id == flashcard_id,
+            models.WrongAnswerLog.understood_after_review.isnot(True),
+        ).update(
+            {"reviewed": True, "understood_after_review": True, "reviewed_at": datetime.now(timezone.utc)},
+            synchronize_session=False,
+        )
+    else:
         db.add(models.WrongAnswerLog(
             user_id=user_id,
             source="flashcard",

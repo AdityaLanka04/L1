@@ -62,6 +62,55 @@ const MISTAKE_SOURCES = {
   chat: { label: 'AI Chat', icon: MessageCircle },
 };
 
+// What to do next for one weak topic, from its score and which mistakes are
+// still open (a mistake is "fixed" once the student later got it right).
+const topicNextSteps = (area, label, openMistakes, fixedCount) => {
+  const score = Math.round(area.weakness_score || 0);
+  const sources = area.sources || [];
+  const openCards = openMistakes.filter((m) => m.source === 'flashcard').length;
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+  let headline;
+  if (openMistakes.length === 0 && fixedCount > 0) {
+    headline = score < 40
+      ? `You've fixed all ${plural(fixedCount, 'mistake')} here. A quick quiz will confirm it sticks.`
+      : `You've fixed the ${plural(fixedCount, 'mistake')} you made, but the model wants more evidence before it trusts this topic. Test yourself on new questions.`;
+  } else if (score >= 70) {
+    headline = openMistakes.length
+      ? `Priority topic. Start with the ${plural(openMistakes.length, 'mistake')} you haven't fixed yet, then get it explained step by step.`
+      : 'Priority topic. Get it explained step by step, then test yourself.';
+  } else if (score >= 40) {
+    headline = openMistakes.length
+      ? `Partly there. Clear the ${plural(openMistakes.length, 'open mistake')}, then a short quiz will show whether it's sticking.`
+      : "Partly there. A short quiz will show whether it's sticking.";
+  } else {
+    headline = 'Nearly mastered. Keep it fresh with a quick review every few days.';
+  }
+  if (area.trend === 'slipping' && score >= 40) headline += ' Your recent answers are trending the wrong way.';
+
+  const actions = [];
+  if (openCards > 0) {
+    actions.push({ key: 'cards', label: `Review ${plural(openCards, 'missed card')}`, to: '/flashcards/review' });
+  }
+  if (score >= 40 || !sources.includes('quiz')) {
+    actions.push({
+      key: 'quiz',
+      label: 'Quiz me on it',
+      to: '/solo-quiz',
+      state: { autoStart: true, topics: [label], difficulty: score >= 70 ? 'easy' : 'medium', questionCount: 5 },
+    });
+  }
+  if (score >= 40) {
+    actions.push({
+      key: 'chat',
+      label: 'Explain it in AI Chat',
+      to: '/ai-chat',
+      state: { initialMessage: `Help me with ${label}. I keep getting it wrong, so walk me through it step by step and check my understanding.` },
+    });
+  }
+  return { headline, actions: actions.slice(0, 3) };
+};
+
 const Weaknesses = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -284,6 +333,7 @@ const Weaknesses = () => {
                 mistakes={mistakes}
                 mistakesLoading={mistakesLoading}
                 onExplainMistake={openMistakeExplanation}
+                onNavigate={navigate}
               />
             )}
 
@@ -431,8 +481,10 @@ const DiagnosisView = ({
   mistakes,
   mistakesLoading,
   onExplainMistake,
+  onNavigate,
 }) => {
   const [expanded, setExpanded] = useState(() => new Set());
+  const [showFixed, setShowFixed] = useState(() => new Set());
 
   if (loading) return <LoadingState label="Analyzing your performance" />;
   if (failed) return <RequestErrorState label="We could not read your diagnosis." onRetry={onRetry} />;
@@ -454,6 +506,31 @@ const DiagnosisView = ({
     if (!mistakesByTopic.has(key)) mistakesByTopic.set(key, []);
     mistakesByTopic.get(key).push(mistake);
   });
+
+  const toggleFixed = (key) => {
+    setShowFixed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const renderMistake = (mistake) => {
+    const meta = MISTAKE_SOURCES[mistake.source] || { label: mistake.source, icon: Target };
+    const Icon = mistake.resolved ? CheckCircle2 : meta.icon;
+    return (
+      <button
+        type="button"
+        key={`${mistake.source}-${mistake.id}`}
+        className={`wa-mistake-row${mistake.resolved ? ' is-fixed' : ''}`}
+        onClick={() => onExplainMistake(mistake)}
+      >
+        <div className="wa-mistake-icon"><Icon size={14} /></div>
+        <MathRenderer content={mistake.question_text || ''} className="wa-mistake-text" />
+        <ChevronRight size={15} />
+      </button>
+    );
+  };
 
   const toggle = (key) => {
     setExpanded((prev) => {
@@ -507,25 +584,58 @@ const DiagnosisView = ({
                 </div>
                 {isOpen ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
               </button>
-              {isOpen && (
-                <div className="wa-topic-mistakes">
-                  {mistakesLoading ? (
-                    <div className="wa-mistakes-loading"><LoadingState label="Gathering mistakes" /></div>
-                  ) : topicMistakes.length === 0 ? (
-                    <p className="wa-topic-mistakes-empty">No recorded mistakes for this topic yet.</p>
-                  ) : topicMistakes.map((mistake) => {
-                    const meta = MISTAKE_SOURCES[mistake.source] || { label: mistake.source, icon: Target };
-                    const Icon = meta.icon;
-                    return (
-                      <button type="button" key={`${mistake.source}-${mistake.id}`} className="wa-mistake-row" onClick={() => onExplainMistake(mistake)}>
-                        <div className="wa-mistake-icon"><Icon size={14} /></div>
-                        <MathRenderer content={mistake.question_text || ''} className="wa-mistake-text" />
-                        <ChevronRight size={15} />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              {isOpen && (() => {
+                const openMistakes = topicMistakes.filter((m) => !m.resolved);
+                const fixedMistakes = topicMistakes.filter((m) => m.resolved);
+                const fixedVisible = showFixed.has(key);
+                const plan = topicNextSteps(area, label, openMistakes, fixedMistakes.length);
+                return (
+                  <div className="wa-topic-mistakes">
+                    {mistakesLoading ? (
+                      <div className="wa-mistakes-loading"><LoadingState label="Gathering mistakes" /></div>
+                    ) : (
+                      <>
+                        <div className="wa-next-step">
+                          <span className="wa-next-step-kicker"><Sparkles size={13} />Next step</span>
+                          <p>{plan.headline}</p>
+                          {plan.actions.length > 0 && (
+                            <div className="wa-next-step-actions">
+                              {plan.actions.map((action) => (
+                                <button
+                                  type="button"
+                                  key={action.key}
+                                  onClick={() => onNavigate(action.to, action.state ? { state: action.state } : undefined)}
+                                >
+                                  {action.label}<ArrowUpRight size={14} />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="wa-mistake-group-label">
+                          {openMistakes.length ? `Still missing · ${openMistakes.length}` : 'No open mistakes'}
+                        </div>
+                        {openMistakes.length === 0 ? (
+                          <p className="wa-topic-mistakes-empty">
+                            {fixedMistakes.length ? 'Every mistake on this topic has since been answered correctly.' : 'No recorded mistakes for this topic yet.'}
+                          </p>
+                        ) : openMistakes.map(renderMistake)}
+
+                        {fixedMistakes.length > 0 && (
+                          <>
+                            <button type="button" className="wa-fixed-toggle" onClick={() => toggleFixed(key)} aria-expanded={fixedVisible}>
+                              {fixedVisible ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                              Fixed since · {fixedMistakes.length}
+                            </button>
+                            {fixedVisible && fixedMistakes.map(renderMistake)}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
@@ -547,11 +657,11 @@ const MistakeExplanationModal = ({ state, onClose }) => {
         </header>
         <div className="wa-modal-body">
           <div className="wa-modal-source">{meta.label}</div>
-          <p className="wa-modal-question">{mistake.question_text}</p>
+          <MathRenderer content={mistake.question_text || ''} className="wa-modal-question" />
           {mistake.user_answer ? (
             <dl className="wa-modal-answers">
-              <div><dt>Your answer</dt><dd>{mistake.user_answer}</dd></div>
-              {mistake.correct_answer ? <div><dt>Correct answer</dt><dd>{mistake.correct_answer}</dd></div> : null}
+              <div><dt>Your answer</dt><dd><MathRenderer content={mistake.user_answer} /></dd></div>
+              {mistake.correct_answer ? <div><dt>Correct answer</dt><dd><MathRenderer content={mistake.correct_answer} /></dd></div> : null}
             </dl>
           ) : null}
           {loading ? (
@@ -559,7 +669,7 @@ const MistakeExplanationModal = ({ state, onClose }) => {
           ) : error ? (
             <p className="wa-modal-error">{error}</p>
           ) : (
-            <p className="wa-modal-explanation">{content}</p>
+            <MathRenderer content={content || ''} className="wa-modal-explanation" />
           )}
         </div>
       </div>
@@ -727,7 +837,8 @@ const displayTopic = (topic) => {
   if (!normalized || normalized.toLowerCase() === 'none' || normalized.toLowerCase() === 'null') {
     return 'Unclassified concept';
   }
-  return normalized;
+  // Set titles carry a source prefix ("Flashcards: Implicit differentiation").
+  return normalized.replace(/^(flashcards?|ai generated|quiz)\s*:\s*/i, '') || normalized;
 };
 
 export default Weaknesses;

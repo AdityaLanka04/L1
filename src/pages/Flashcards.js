@@ -1434,21 +1434,24 @@ const Flashcards = () => {
       const params = new URLSearchParams(location.search);
       const shareCode = params.get('code');
       const mode = params.get('mode') || 'preview';
-      const setId = params.get('set_id');
+      const pathSetId = location.pathname.match(/^\/flashcards\/set\/(\d+)/)?.[1];
+      const setId = params.get('set_id') || pathSetId;
       
-      if (params.get('review') === 'due') {
+      if (params.get('review') === 'due' || location.pathname === '/flashcards/queue') {
         setActivePanel('sr_study'); loadDueCards(); loadSrStats();
+      } else if (location.pathname === '/flashcards/review') {
+        setActivePanel('review');
       } else if (shareCode) {
                 loadFlashcardSetByCode(shareCode, mode);
         setActivePanel('cards');
       } else if (setId) {
-                loadFlashcardSet(parseInt(setId), mode);
+                loadFlashcardSet(parseInt(setId, 10), mode);
         setActivePanel('cards');
       }
       return () => window.clearTimeout(deferredLoad);
     }
     return undefined;
-  }, [userName, location.search, loadChatSessions, loadFlashcardStats, loadReviewCards, loadFlashcardSetByCode, loadDueCards, loadSrStats]);
+  }, [userName, location.search, location.pathname, loadChatSessions, loadFlashcardStats, loadReviewCards, loadFlashcardSetByCode, loadDueCards, loadSrStats]);
 
   useEffect(() => {
     sourcesLoadedRef.current = false;
@@ -1834,10 +1837,6 @@ const Flashcards = () => {
       loadFlashcardStats();
       gamificationService.trackFlashcardSet(userName, cards.length);
 
-      if (data.share_code) {
-        window.history.replaceState({}, '', `/flashcards?code=${data.share_code}&mode=preview`);
-      }
-
       const shuffledCards = studySettings.shuffle ? [...cards].sort(() => Math.random() - 0.5) : cards;
       setShuffledCards(shuffledCards);
       setPreviewMode(true);
@@ -1929,6 +1928,20 @@ const Flashcards = () => {
     });
   };
 
+  // Every open saved set and sidebar view gets its own link, like AI Chat's
+  // per-conversation URLs. replaceState keeps the router (and its effects) still.
+  useEffect(() => {
+    const openSetId = (studyMode || previewMode) && currentSetInfo?.saved ? currentSetInfo.setId : null;
+    const target = openSetId
+      ? `/flashcards/set/${openSetId}`
+      : activePanel === 'review' ? '/flashcards/review'
+      : activePanel === 'sr_study' ? '/flashcards/queue'
+      : '/flashcards';
+    if (window.location.pathname !== target || window.location.search) {
+      window.history.replaceState(window.history.state, '', target);
+    }
+  }, [studyMode, previewMode, currentSetInfo?.saved, currentSetInfo?.setId, activePanel]);
+
   const loadFlashcardSet = async (setId, mode = 'study') => {
     setLoadingSetId(setId);
     try {
@@ -1955,11 +1968,6 @@ const Flashcards = () => {
           cardCount: data.flashcards.length
         });
         
-        
-        if (data.share_code) {
-          const newUrl = `/flashcards?code=${data.share_code}&mode=${mode}`;
-          window.history.replaceState({}, '', newUrl);
-        }
         
         if (mode === 'preview') {
           
@@ -2184,9 +2192,6 @@ const Flashcards = () => {
     
     
     loadFlashcardHistory(true); 
-    
-    
-    window.history.replaceState({}, '', '/flashcards');
   };
 
   const restartStudy = () => {
@@ -2696,14 +2701,6 @@ const Flashcards = () => {
     if (showStudyResults) {
       const totalReviewed = studySessionStats.correct + studySessionStats.incorrect;
       const knownPercentage = totalReviewed > 0 ? Math.round((studySessionStats.correct / totalReviewed) * 100) : 0;
-      const ringRadius = 52;
-      const ringCircumference = 2 * Math.PI * ringRadius;
-      const ringOffset = ringCircumference - (knownPercentage / 100) * ringCircumference;
-      const ringColor = totalReviewed === 0
-        ? 'var(--fc-accent)'
-        : knownPercentage >= 70 ? '#22c55e'
-        : knownPercentage >= 50 ? '#f59e0b'
-        : 'var(--fc-danger)';
       const performanceTier = totalReviewed === 0 ? null
         : knownPercentage >= 90 ? { label: 'Perfect', color: '#22c55e' }
         : knownPercentage >= 70 ? { label: 'Great', color: 'var(--fc-accent)' }
@@ -2718,29 +2715,14 @@ const Flashcards = () => {
                 <div className="fc-results-orb fc-results-orb--br" />
 
                 <div className="fc-results-header">
-                  <div className="fc-results-icon">{FC_ICONS.celebration}</div>
                   <h2>Review Complete!</h2>
                   <p className="fc-results-subtitle">{currentSetInfo?.setTitle || 'Preview Session'}</p>
                 </div>
 
                 <div className="fc-results-score-section">
-                  <div
-                    className="fc-results-ring-wrap"
-                    style={{ '--ring-color': ringColor }}
-                  >
-                    <svg className="fc-results-ring" viewBox="0 0 120 120">
-                      <circle className="fc-ring-track" cx="60" cy="60" r={ringRadius} />
-                      <circle
-                        className="fc-ring-fill"
-                        cx="60" cy="60" r={ringRadius}
-                        strokeDasharray={ringCircumference}
-                        style={{ strokeDashoffset: ringOffset, '--dash-offset': ringOffset }}
-                      />
-                    </svg>
-                    <div className="fc-ring-center">
-                      <span className="fc-ring-pct">{knownPercentage}%</span>
-                      <span className="fc-ring-lbl">mastered</span>
-                    </div>
+                  <div className="fc-results-score">
+                    <span className="fc-results-score-pct">{knownPercentage}%</span>
+                    <span className="fc-results-score-lbl">known</span>
                   </div>
                   {performanceTier && (
                     <div className="fc-results-badge" style={{ '--badge-color': performanceTier.color }}>
@@ -2767,17 +2749,11 @@ const Flashcards = () => {
                   </div>
                 </div>
 
-                <div className="fc-results-message">
-                  {totalReviewed === 0 ? (
+                {totalReviewed === 0 && (
+                  <div className="fc-results-message">
                     <p>You viewed the cards but didn't mark any as known or unknown. Try reviewing them to track your progress.</p>
-                  ) : knownPercentage >= 80 ? (
-                    <p>Excellent! You know {knownPercentage}% of these cards. Keep up the great work!</p>
-                  ) : knownPercentage >= 50 ? (
-                    <p>Good progress! You know {knownPercentage}% of these cards. Keep studying!</p>
-                  ) : (
-                    <p>You know {knownPercentage}% of these cards. Practice makes perfect!</p>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 <div className="fc-results-actions">
                   <button className="fc-btn fc-btn-secondary" onClick={restartStudy}>

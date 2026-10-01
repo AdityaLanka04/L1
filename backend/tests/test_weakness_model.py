@@ -327,3 +327,51 @@ def test_weakness_analysis_shows_one_row_per_topic_across_sources(db, user):
     assert len(areas) == 1
     assert areas[0]["label"] == "implicit differentiation"
     assert "flashcard" in areas[0]["sources"]
+
+
+def test_getting_a_missed_card_right_marks_the_mistake_fixed(db, user):
+    review(db, user, False)
+    log = db.query(models.WrongAnswerLog).filter_by(user_id=user.id).one()
+    assert not log.understood_after_review
+
+    review(db, user, True)
+    db.refresh(log)
+    assert log.understood_after_review is True
+    assert log.reviewed is True
+
+
+def test_question_bank_correct_answer_fixes_earlier_miss(db, user):
+    miss = {"topic": "Implicit Differentiation", "is_correct": False, "question_id": 7,
+            "question_text": "d/dx of y^2?", "correct_answer": "2y y'"}
+    asyncio.run(_update_weak_areas(db, user.id, [miss], models))
+    asyncio.run(_update_weak_areas(db, user.id, [{**miss, "is_correct": True}], models))
+    log = db.query(models.WrongAnswerLog).filter_by(user_id=user.id).one()
+    assert log.understood_after_review is True
+
+
+def test_recent_mistakes_flags_flashcard_misses_fixed_before_tracking_existed(db, user):
+    """Rows logged before misses were marked fixed on write still count as
+    fixed when the card's latest answer, after the miss, was 'know it'."""
+    from routes.weakness import _fixed_mistake_ids
+
+    fs = models.FlashcardSet(user_id=user.id, title=SET_TOPIC)
+    db.add(fs)
+    db.flush()
+    missed_at = datetime.now(timezone.utc) - timedelta(hours=2)
+    fixed_card = models.Flashcard(set_id=fs.id, question="q1", answer="a", last_known=True,
+                                  last_reviewed=datetime.now(timezone.utc))
+    open_card = models.Flashcard(set_id=fs.id, question="q2", answer="a", last_known=False,
+                                 last_reviewed=datetime.now(timezone.utc))
+    stale_card = models.Flashcard(set_id=fs.id, question="q3", answer="a", last_known=True,
+                                  last_reviewed=missed_at - timedelta(hours=1))
+    db.add_all([fixed_card, open_card, stale_card])
+    db.flush()
+    logs = [
+        models.WrongAnswerLog(user_id=user.id, source="flashcard", flashcard_id=card.id, question_text=card.question,
+                              topic=SET_TOPIC, correct_answer="a", user_answer="", answered_at=missed_at)
+        for card in (fixed_card, open_card, stale_card)
+    ]
+    db.add_all(logs)
+    db.commit()
+
+    assert _fixed_mistake_ids(db, logs) == {logs[0].id}
