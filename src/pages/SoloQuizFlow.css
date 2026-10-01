@@ -465,3 +465,144 @@
   .solo-quiz-flow *::before,
   .solo-quiz-flow *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* Matte, grainy surfaces (same material as Solo Quiz setup and Quiz Hub):
+   see-through tint, no graphite gradients, no inset wells, no hover glow or lift.
+   Page grain comes from styles/notesGrain.css. */
+#root .solo-quiz-flow :is(.question-card, .battle-sidebar, .result-container, .solo-review-question, .solo-review-empty, .result-stat, .question-comparison-item, .insight-section),
+.solo-review-stat {
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  box-shadow: none;
+}
+
+#root .solo-quiz-flow :is(.sidebar-meta, .score-display, .questions-overview, .answer-option-review),
+.solo-review-answer,
+.solo-flow-summary {
+  background: transparent;
+  box-shadow: none;
+}
+
+#root .solo-quiz-flow :is(.answer-option, .answer-option:hover:not(:disabled)) {
+  background: color-mix(in srgb, var(--text-primary) 2%, transparent);
+  box-shadow: none;
+  transform: none;
+}
+
+#root .solo-quiz-flow .answer-option.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  box-shadow: none;
+}
+
+#root .solo-quiz-flow .answer-option.selected::before { display: none; }
+
+#root .solo-quiz-flow :is(.option-letter, .question-dot, .solo-review-index),
+.solo-review-index {
+  background: transparent;
+  box-shadow: none;
+}
+
+#root .solo-quiz-flow .question-dot.current {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: none;
+}
+
+#root .solo-quiz-flow .progress-bar {
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  box-shadow: none;
+}
+
+#root .solo-quiz-flow :is(.answer-option, .question-card, .battle-sidebar, .question-comparison-item, .result-stat, .insight-section, .solo-review-question)::after { display: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  #root .solo-quiz-flow :is(.question-card, .battle-sidebar, .question-comparison-item, .result-stat, .solo-review-question):hover { transform: none; }
+  #root .solo-quiz-flow .answer-option:hover:not(:disabled) { border-color: var(--solo-border-strong); }
+}
+
+/* Title: the same left-aligned page title as Solo Quiz setup. */
+#root .solo-quiz-flow .session-header {
+  display: block;
+  text-align: left;
+}
+
+#root .solo-quiz-flow .session-title {
+  margin: 0;
+  font-size: clamp(32px, 4.2vw, 56px);
+  font-weight: 760;
+  text-align: left;
+}
+
+/* Question text: readable size, normal tracking. */
+#root .solo-quiz-flow .question-text,
+#root .solo-quiz-flow .question-text p {
+  font-size: clamp(18px, 1.6vw, 22px);
+  font-weight: 650;
+  line-height: 1.45;
+  letter-spacing: -.01em;
+}
+
+#root .solo-quiz-flow .option-text,
+#root .solo-quiz-flow .option-text p {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+#root .solo-quiz-flow .score-label,
+#root .solo-quiz-flow .questions-overview h3,
+#root .solo-quiz-flow .session-question-count {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+#root .solo-quiz-flow .score-value { font-size: 24px; }
+
+/* Buttons: uppercase Inter, same as AI Chat's New Chat. */
+.solo-flow-primary,
+#root .solo-quiz-flow :is(.nav-btn, .sidebar-submit-btn, .result-button, .solo-review-action),
+.solo-review-empty button {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+#root .solo-quiz-flow .nav-btn { background: transparent; }
+
+/* QuizBattleSession.css (shared base) sets these with !important. */
+#root .solo-quiz-flow .session-header {
+  display: block !important;
+  padding: 3px 0 24px !important;
+  margin-bottom: 18px !important;
+  border-bottom: 1px solid var(--solo-border) !important;
+  text-align: left !important;
+}
+
+#root .solo-quiz-flow .session-title {
+  font-size: clamp(32px, 4.2vw, 56px) !important;
+  font-weight: 760 !important;
+  line-height: .98 !important;
+  text-align: left !important;
+}
+
+#root .solo-quiz-flow .option-letter {
+  border: 1px solid var(--solo-border) !important;
+  background: transparent !important;
+  color: var(--accent);
+  font-size: 12px !important;
+}
+
+#root .solo-quiz-flow .answer-option.selected .option-letter {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+  color: #111;
+}
+
+#root .solo-quiz-flow :is(.question-card, .battle-sidebar, .result-container, .solo-review-question) {
+  box-shadow: none !important;
+}

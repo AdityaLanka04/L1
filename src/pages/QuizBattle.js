@@ -306,7 +306,7 @@ const QuizBattle = () => {
           label: 'Create battle', icon: Swords, active: activeView === 'create', onClick: () => setActiveView('create'),
         }]}
       >
-        <main className="qz-main">
+        <main className={`qz-main${activeView === 'create' ? ' qz-centered' : ''}`}>
           {activeView === 'create' ? (
             <>
               <header className="qz-hero">

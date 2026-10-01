@@ -279,7 +279,10 @@ const Games = () => {
     return (
       <div className="pf-page gm-page">
         <PageBackground />
-        <p className="gm-loading">Loading your stats…</p>
+        <div className="gm-loading" role="status">
+          <div className="gm-loading-cubes" aria-hidden="true"><span /><span /><span /></div>
+          <p>Loading your stats…</p>
+        </div>
       </div>
     );
   }

@@ -1,7 +1,7 @@
 import AnswerFeedback from '../components/AnswerFeedback';
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Clock, FileQuestion, Play, Target, Trophy, XCircle } from 'lucide-react';
+import { Sparkles, CheckCircle, Clock, FileQuestion, Play, Target, Trophy, XCircle } from 'lucide-react';
 import SocialHubChrome from '../components/SocialHubChrome';
 import MathRenderer from '../components/MathRenderer';
 import { answerToOptionIndex, extractQuestionText } from '../utils/quizQuestionUtils';
@@ -43,16 +43,15 @@ const SoloQuizReview = () => {
   const sidebar = {
     sidebarLead: (
       <button className="solo-flow-primary" type="button" onClick={() => navigate('/solo-quiz')}>
-        <ArrowLeft size={15} />
-        <span>Back to quizzes</span>
+        <Sparkles size={15} />
+        <span>New quiz</span>
       </button>
     ),
-    collapsedLeadItems: [{ icon: ArrowLeft, label: 'Back to quizzes', onClick: () => navigate('/solo-quiz') }],
+    collapsedLeadItems: [{ icon: Sparkles, label: 'New quiz', onClick: () => navigate('/solo-quiz') }],
     sideSections: [{
       label: 'Quiz review',
       items: [
         { icon: FileQuestion, label: 'Answer review', active: true, onClick: () => {} },
-        { icon: Play, label: 'New quiz', onClick: () => navigate('/solo-quiz') },
       ],
     }],
     sidebarTail: quizResults ? (

@@ -373,6 +373,7 @@ function App() {
                   <Route path="/quiz-battle/:battleId" element={<ProtectedRoute><QuizBattleSession /></ProtectedRoute>} />
                   <Route path="/solo-quiz" element={<ProtectedRoute><SoloQuiz /></ProtectedRoute>} />
                   <Route path="/solo-quiz/session" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
+                  <Route path="/solo-quiz/session/:quizRef" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
                   <Route path="/solo-quiz/review" element={<ProtectedRoute><SoloQuizReview /></ProtectedRoute>} />
                   <Route path="/solo-quiz/review/:quizId" element={<ProtectedRoute><SoloQuizReview /></ProtectedRoute>} />
                   <Route path="/solo-quiz/:quizId" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />

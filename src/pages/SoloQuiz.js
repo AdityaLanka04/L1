@@ -115,9 +115,10 @@ const SoloQuiz = () => {
           adaptiveConfig: response.adaptive_config,
           quizMode,
           timingMode,
-          quiz_id: response.quiz_id
+          quiz_id: response.quiz_id,
+          uid: response.uid
         }));
-        navigate('/solo-quiz/session');
+        navigate(`/solo-quiz/session/${response.uid || response.quiz_id}`);
       } else {
         setError('Unable to generate questions. Please try a different topic.');
       }
@@ -163,7 +164,7 @@ const SoloQuiz = () => {
           },
         ]}
       >
-        <main className="qz-main">
+        <main className={`qz-main${activeTab === 'generator' ? ' qz-centered' : ''}`}>
           {activeTab === 'generator' && (
             <>
               <header className="qz-hero">

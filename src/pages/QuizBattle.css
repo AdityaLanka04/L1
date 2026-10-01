@@ -21,8 +21,11 @@
   border-radius: 9px;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   cursor: pointer;
 }
 

@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import SoloQuizSession from '../../pages/SoloQuizSession';
 import quizAgentService from '../../services/quizAgentService';
 const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
+jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate, useParams: () => ({}) }));
 jest.mock('../../components/SocialHubChrome', () => ({ children }) => <div>{children}</div>);
 jest.mock('../../components/MathRenderer', () => ({ content }) => <span>{content}</span>);
 jest.mock('../../services/quizAgentService', () => ({ __esModule: true, default: { gradeQuiz: jest.fn(), analyzePerformance: jest.fn(), checkAnswer: jest.fn().mockResolvedValue({ is_correct: true, correct_answer: 1 }) } }));

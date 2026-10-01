@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Clock, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ArrowLeft, Play } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Clock, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, Sparkles, Play } from 'lucide-react';
 import SocialHubChrome from '../components/SocialHubChrome';
 import quizAgentService from '../services/quizAgentService';
 import MathRenderer from '../components/MathRenderer';
@@ -10,6 +10,7 @@ import './SoloQuizFlow.css';
 
 const SoloQuizSession = () => {
   const navigate = useNavigate();
+  const { quizRef } = useParams();
   const username = localStorage.getItem('username');
   
   const [questions, setQuestions] = useState([]);
@@ -47,10 +48,7 @@ const SoloQuizSession = () => {
 
   
   useEffect(() => {
-    const storedData = sessionStorage.getItem('quizData');
-    if (storedData) {
-      let data;
-      try { data = JSON.parse(storedData); } catch { navigate('/solo-quiz'); return; }
+    const startSession = (data, storedData) => {
       let saved;
       try { saved = JSON.parse(sessionStorage.getItem(attemptKey) || 'null'); } catch {}
       if (saved?.signature !== storedData) saved = null;
@@ -60,21 +58,64 @@ const SoloQuizSession = () => {
       setQuestions(normalizedQuestions);
       setQuizMode(data.quizMode || 'standard');
       setTimingMode(data.timingMode || 'timed');
-      
-      
+
       if ((data.timingMode || 'timed') === 'timed') {
         setTimeRemaining(Math.max(0, (data.questions?.length || 10) * 60 - Math.floor((Date.now() - beganAt) / 1000)));
       } else if (data.timingMode === 'stopwatch') {
         setTimeElapsed(0);
       }
-      
+
       setStartTime(beganAt);
       if (saved) { setUserAnswers(saved.answers || {}); setCurrentQuestionIndex(saved.index || 0); setSelectedAnswer(saved.selected ?? null); setScore(saved.score || 0); setTimeElapsed(Math.floor((Date.now() - beganAt) / 1000)); }
       setLoading(false);
-    } else {
-      navigate('/solo-quiz');
+    };
+
+    const storedData = sessionStorage.getItem('quizData');
+    let stored = null;
+    if (storedData) {
+      try { stored = JSON.parse(storedData); } catch { stored = null; }
     }
-  }, [navigate]);
+    const storedRef = stored ? String(stored.uid || stored.quiz_id || '') : '';
+
+    // The quiz this tab just built: give it its own link if it came in on the bare route.
+    if (stored && (!quizRef || quizRef === storedRef || quizRef === String(stored.quiz_id))) {
+      if (!quizRef && storedRef) navigate(`/solo-quiz/session/${storedRef}`, { replace: true });
+      startSession(stored, storedData);
+      return undefined;
+    }
+
+    if (!quizRef) {
+      navigate('/solo-quiz');
+      return undefined;
+    }
+
+    // Opened from a link (reload, new tab): load that quiz from the server.
+    let cancelled = false;
+    quizAgentService.getQuiz(quizRef)
+      .then((response) => {
+        if (cancelled) return;
+        const quiz = response?.quiz;
+        if (!quiz || quiz.completed || !response.questions?.length) {
+          navigate('/solo-quiz', { replace: true });
+          return;
+        }
+        const data = {
+          questions: response.questions,
+          topic: quiz.subject,
+          difficulty: quiz.difficulty,
+          quizMode: 'standard',
+          timingMode: 'timed',
+          quiz_id: quiz.id,
+          uid: quiz.uid,
+        };
+        const serialized = JSON.stringify(data);
+        sessionStorage.setItem('quizData', serialized);
+        startSession(data, serialized);
+      })
+      .catch(() => { if (!cancelled) navigate('/solo-quiz', { replace: true }); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, quizRef]);
 
   
   useEffect(() => {
@@ -367,18 +408,17 @@ const SoloQuizSession = () => {
         brandKicker="Solo Quiz"
         sidebarLead={(
           <button className="solo-flow-primary" type="button" onClick={() => navigate('/solo-quiz')}>
-            <ArrowLeft size={15} />
+            <Sparkles size={15} />
             <span>New quiz</span>
           </button>
         )}
-        collapsedLeadItems={[{ icon: ArrowLeft, label: 'New quiz', onClick: () => navigate('/solo-quiz') }]}
+        collapsedLeadItems={[{ icon: Sparkles, label: 'New quiz', onClick: () => navigate('/solo-quiz') }]}
         sideSections={[
           {
             label: 'Quiz session',
             items: [
               { icon: Play, label: 'Questions', active: activeSection === 'session', onClick: () => {} },
               { icon: Trophy, label: 'Results', active: activeSection === 'results', disabled: activeSection !== 'results', onClick: () => {} },
-              { icon: ArrowLeft, label: 'Quiz setup', onClick: () => navigate('/solo-quiz') },
             ],
           },
         ]}
@@ -596,7 +636,6 @@ const SoloQuizSession = () => {
   return renderSoloChrome(
     <main className="solo-session-main battle-session-page solo-session-page">
       <div className="session-header">
-        <span className="view-kicker">Solo Quiz</span>
         <h1 className="session-title">{quizData?.topic || 'QUIZ'}</h1>
       </div>
 

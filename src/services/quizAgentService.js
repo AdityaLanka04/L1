@@ -49,6 +49,12 @@ class QuizAgentService {
   }
 
   
+  // One quiz (questions only; answers come back once it's completed). Used to
+  // reopen a session from its /solo-quiz/session/:ref link.
+  async getQuiz(ref) {
+    return this.request(`/solo_quiz/${encodeURIComponent(ref)}`, { method: 'GET' });
+  }
+
   async generateQuiz(params) {
     const {
       userId,
@@ -87,6 +93,7 @@ class QuizAgentService {
       success: true,
       questions: quizResponse.questions || [],
       quiz_id: createResponse.quiz_id,
+      uid: createResponse.uid || quizResponse.quiz?.uid,
       quiz: quizResponse.quiz
     };
   }
@@ -132,6 +139,7 @@ class QuizAgentService {
       success: true,
       questions: quizResponse.questions || [],
       quiz_id: createResponse.quiz_id,
+      uid: createResponse.uid || quizResponse.quiz?.uid,
       quiz: quizResponse.quiz,
       adaptive_config: {
         difficulty: quizResponse.quiz?.difficulty || null,

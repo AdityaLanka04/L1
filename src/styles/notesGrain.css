@@ -16,7 +16,9 @@
   .flashcards-page,
   .qh,
   .sq-page,
-  .qb-page
+  .qb-page,
+  .wa-root,
+  .solo-quiz-flow
 ) {
   --neu-shadow-raised: 0 10px 24px rgba(0, 0, 0, .35);
   --neu-shadow-raised-hover: 0 12px 28px rgba(0, 0, 0, .4);
@@ -37,7 +39,9 @@
   .flashcards-page,
   .qh,
   .sq-page,
-  .qb-page
+  .qb-page,
+  .wa-root,
+  .solo-quiz-flow
 ) {
   --neu-shadow-raised: 0 10px 24px rgba(63, 47, 32, .12);
   --neu-shadow-raised-hover: 0 12px 28px rgba(63, 47, 32, .16);
@@ -57,7 +61,9 @@ html body :is(
   .flashcards-page,
   .qh,
   .sq-page,
-  .qb-page
+  .qb-page,
+  .wa-root,
+  .solo-quiz-flow
 )::after {
   content: '' !important;
   display: block !important;

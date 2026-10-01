@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
-  ArrowUpRight,
   BookOpen,
   Brain,
   CheckCircle2,
@@ -24,7 +23,6 @@ import {
   MessageCircle,
   Play,
   RefreshCw,
-  Sparkles,
   Target,
   TrendingUp,
   X,
@@ -418,7 +416,7 @@ const IntelligenceFallback = ({
           <h3>Keep learning to unlock intelligence.</h3>
           <p>Cerbyl needs a few more answered questions before it can identify reliable learning patterns.</p>
         </div>
-        <button type="button" className="wa-intelligence-primary" onClick={onPracticeAll}>Practice now <ArrowUpRight size={16} /></button>
+        <button type="button" className="wa-intelligence-primary" onClick={onPracticeAll}>Practice now</button>
       </section>
     );
   }
@@ -431,7 +429,7 @@ const IntelligenceFallback = ({
           <h3>Your pattern profile is taking shape.</h3>
           <p>These signals are already strong enough to guide your next recovery session. Deeper trend analysis appears as your study history grows.</p>
         </div>
-        <button type="button" className="wa-intelligence-primary" onClick={onPracticeAll}>Practice priority gaps <ArrowUpRight size={16} /></button>
+        <button type="button" className="wa-intelligence-primary" onClick={onPracticeAll}>Practice priority gaps</button>
       </div>
 
       <div className="wa-intelligence-stats" aria-label="Current intelligence signals">
@@ -461,7 +459,7 @@ const IntelligenceFallback = ({
                 <span>Accuracy</span>
                 <strong>{accuracy === null ? '—' : `${accuracy}%`}</strong>
               </div>
-              <button type="button" aria-label={`Practice ${area.topic}`} onClick={() => onPractice(area.topic)}><ArrowUpRight size={17} /></button>
+              <button type="button" aria-label={`Practice ${area.topic}`} onClick={() => onPractice(area.topic)}><ChevronRight size={17} /></button>
             </article>
           );
         })}
@@ -596,7 +594,7 @@ const DiagnosisView = ({
                     ) : (
                       <>
                         <div className="wa-next-step">
-                          <span className="wa-next-step-kicker"><Sparkles size={13} />Next step</span>
+                          <span className="wa-next-step-kicker">Next step</span>
                           <p>{plan.headline}</p>
                           {plan.actions.length > 0 && (
                             <div className="wa-next-step-actions">
@@ -606,7 +604,7 @@ const DiagnosisView = ({
                                   key={action.key}
                                   onClick={() => onNavigate(action.to, action.state ? { state: action.state } : undefined)}
                                 >
-                                  {action.label}<ArrowUpRight size={14} />
+                                  {action.label}
                                 </button>
                               ))}
                             </div>
@@ -652,7 +650,7 @@ const MistakeExplanationModal = ({ state, onClose }) => {
     <div className="wa-modal-overlay" onClick={onClose}>
       <div className="wa-modal" onClick={(e) => e.stopPropagation()}>
         <header className="wa-modal-head">
-          <h3><Sparkles size={18} />{displayTopic(mistake.topic)}</h3>
+          <h3>{displayTopic(mistake.topic)}</h3>
           <button type="button" className="wa-modal-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </header>
         <div className="wa-modal-body">
@@ -739,7 +737,7 @@ const TopicRow = ({ topic, onPractice }) => {
         <span><b>{topic.times_studied || 0}</b> sessions</span>
         <span>{formatLastPracticed(topic.last_practiced)}</span>
       </div>
-      <button type="button" onClick={onPractice}>Open topic<ArrowUpRight size={15} /></button>
+      <button type="button" onClick={onPractice}>Open topic</button>
     </article>
   );
 };
@@ -799,7 +797,7 @@ const EmptyState = ({ icon: Icon, title, copy, action, onAction }) => (
     <Icon size={34} />
     <h2>{title}</h2>
     <p>{copy}</p>
-    <button type="button" onClick={onAction}>{action}<ArrowUpRight size={15} /></button>
+    <button type="button" onClick={onAction}>{action}</button>
   </section>
 );
 

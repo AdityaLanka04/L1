@@ -1257,3 +1257,62 @@
 .wa-score.improving strong { color: var(--wa-improving); }
 .wa-mistake-row .wa-mistake-text { min-width: 0; font-size: 12.5px; line-height: 1.5; text-align: left; }
 .wa-mistake-row .wa-mistake-text p { margin: 0; }
+
+/* Matte, grainy surfaces (same material as the quiz pages and Flashcards):
+   see-through tint instead of graphite gradients, no glow, page grain from
+   styles/notesGrain.css. */
+.wa-root.with-social-chrome :is(
+  .wa-diagnosis-summary,
+  .wa-queue,
+  .wa-topics,
+  .wa-activity,
+  .wa-component-panel,
+  .wa-loading,
+  .wa-empty,
+  .wa-topics-overview,
+  .wa-component-intro
+) {
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.wa-root.with-social-chrome :is(.wa-diagnosis-summary, .wa-queue, .wa-topics-overview, .wa-topic-row, .wa-component-panel, .wa-activity-row)::before {
+  display: none;
+}
+
+/* Signals / attempts row: plain text on the page, no box behind it. */
+.wa-root.with-social-chrome .wa-content-toolbar {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0;
+}
+
+.wa-root.with-social-chrome .wa-main-meta button { background: transparent; }
+
+.wa-root.with-social-chrome .wa-topic-mistakes { background: transparent; }
+.wa-root.with-social-chrome .wa-mistake-row { background: transparent !important; box-shadow: none !important; }
+
+/* Next step: same matte card as the rest, no accent edge or tint. */
+.wa-root .wa-next-step {
+  border: 1px solid var(--wa-line);
+  border-left: 1px solid var(--wa-line);
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+
+/* Buttons: uppercase Inter, same as AI Chat's New Chat. */
+.wa-root :is(.wa-next-step-actions button, .wa-practice-now, .wa-intelligence-primary, .wa-topic-row > button, .wa-empty button) {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.wa-root .wa-next-step-actions button { min-height: 38px; padding: 0 16px; }
+
+/* Sidebar diagnosis card: same matte tint as the other sidebar blocks. */
+.wa-root.with-social-chrome .wa-sidebar-signal {
+  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent) !important;
+  box-shadow: none !important;
+}
