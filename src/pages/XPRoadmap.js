@@ -1,50 +1,22 @@
-import ToolNavigation from '../components/ToolNavigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity,
-  Award,
-  BookOpen,
   Brain,
-  CheckCircle,
-  ChevronRight,
-  Clock,
   Crown,
   FileText,
   Flame,
   Gift,
-  LayoutDashboard,
   Layers,
-  Lock,
-  Map,
   MessageCircle,
   Package,
-  Plus,
   RefreshCw,
   Rocket,
   Shield,
-  Sparkles,
-  Star,
   Target,
   Trophy,
-  User,
-  X,
   Zap
 } from 'lucide-react';
-import {
-  SidebarAction,
-  SidebarActions,
-  SidebarMenuItem,
-  SidebarPrimaryButton,
-  SidebarSection,
-  SidebarShell,
-  SidebarStripButton,
-  SidebarStripDivider,
-  SidebarStripSpacer
-} from '../components/Sidebar';
 import XPRoadmapWorkspace from './XPRoadmapWorkspace';
-import './XPRoadmap.css';
-import '../components/SocialHubChrome.css';
 
 const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '');
 
@@ -98,15 +70,6 @@ function getWeekDecayLabel() {
   return `${days}d ${hours}h`;
 }
 
-function pathForSegment(from, to) {
-  const x1 = from.x * 10;
-  const y1 = from.y * 6;
-  const x2 = to.x * 10;
-  const y2 = to.y * 6;
-  const mid = (x1 + x2) / 2;
-  return `M ${x1} ${y1} C ${mid} ${y1 - 70}, ${mid} ${y2 + 70}, ${x2} ${y2}`;
-}
-
 const MISSION_ACTIONS = {
   ignite: { label: 'Explore Topic', route: '/search-hub', mode: 'search' },
   spark: { label: 'Start AI Chat', route: '/ai-chat', mode: 'chat' },
@@ -119,24 +82,6 @@ const MISSION_ACTIONS = {
   mastery: { label: 'Open Analytics', route: '/analytics', mode: 'analytics' }
 };
 
-const XP_QUICK_LINKS = [
-  { label: 'AI Chat', route: '/ai-chat' },
-  { label: 'Flashcards', route: '/flashcards' },
-  { label: 'Notes', route: '/notes' }
-];
-
-const XP_SIDEBAR_LINKS = [
-  { label: 'Dashboard', route: '/dashboard-cerbyl' },
-  { label: 'Search Hub', route: '/search-hub' },
-  { label: 'Knowledge Map', route: '/knowledge-map' },
-  { label: 'Question Bank', route: '/question-bank' },
-  { label: 'Quiz Hub', route: '/quiz-hub' },
-  { label: 'Learning Path', route: '/learning-paths' },
-  { label: 'XP Roadmap', route: '/xp-roadmap' },
-  { label: 'Activity Timeline', route: '/activity-timeline' },
-  { label: 'Leaderboards', route: '/leaderboards' }
-];
-
 const MISSION_MODE_TO_MILESTONE_TYPE = {
   chat: 'ai_chat',
   note: 'notes',
@@ -145,6 +90,17 @@ const MISSION_MODE_TO_MILESTONE_TYPE = {
   quiz: 'quizzes',
   review: 'flashcards'
 };
+
+// Topic names come from chat titles and set names: drop commands like
+// "/review" and set-type prefixes like "Flashcards: ".
+const TOPIC_PREFIX_RE = /^(flashcards?|ai generated|quiz|notes?)\s*:\s*/i;
+function cleanTopic(topic) {
+  return String(topic || '').replace(TOPIC_PREFIX_RE, '').trim();
+}
+function isUsableTopic(topic) {
+  const text = cleanTopic(topic);
+  return text.length >= 3 && !text.startsWith('/') && /[a-z]{3}/i.test(text);
+}
 
 function getMissionAction(node) {
   return MISSION_ACTIONS[node?.id] || { label: 'Open Dashboard', route: '/dashboard-cerbyl' };
@@ -157,8 +113,6 @@ function getFallbackTopic(node) {
 
 const XPRoadmap = () => {
   const navigate = useNavigate();
-  const shellRef = useRef(null);
-  const pixiRef = useRef(null);
   const drawerRef = useRef(null);
   const drawerCloseRef = useRef(null);
   const previousFocusRef = useRef(null);
@@ -171,21 +125,15 @@ const XPRoadmap = () => {
   const [stats, setStats] = useState(null);
   const [personalizedRoadmap, setPersonalizedRoadmap] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [xpBursts] = useState([]);
   const [decayLabel, setDecayLabel] = useState(getWeekDecayLabel());
-  const [levelWave, setLevelWave] = useState(false);
   const [powerUpLoading, setPowerUpLoading] = useState(null);
   const [powerNotice, setPowerNotice] = useState(null);
   const [missionLoading, setMissionLoading] = useState(false);
   const [missionNotice, setMissionNotice] = useState(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (
-    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
-  ));
 
   const xp = stats?.total_points || 0;
   const level = stats?.level || 1;
   const userName = localStorage.getItem('username') || '';
-  const displayName = localStorage.getItem('cerbyl.displayName') || (userName ? userName.split('@')[0] : 'You');
 
   useEffect(() => {
     let isMounted = true;
@@ -259,17 +207,6 @@ const XPRoadmap = () => {
     return () => window.clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (loading) return undefined;
-
-    const timeout = window.setTimeout(() => setLevelWave(true), 250);
-    const cleanup = window.setTimeout(() => setLevelWave(false), 1500);
-    return () => {
-      window.clearTimeout(timeout);
-      window.clearTimeout(cleanup);
-    };
-  }, [loading, level]);
-
   const levelWindow = useMemo(() => getLevelWindow(level), [level]);
   const levelProgress = useMemo(() => {
     return Math.max(0, Math.min(100, ((xp - levelWindow.start) / Math.max(1, levelWindow.end - levelWindow.start)) * 100));
@@ -318,14 +255,6 @@ const XPRoadmap = () => {
       state: getNodeState(node, xp, nextNode?.xp)
     }));
   }, [xp, nextNode]);
-
-  const nextRewards = useMemo(() => {
-    return CAMPAIGN_NODES.filter((node) => xp < node.xp).slice(0, 3);
-  }, [xp]);
-
-  const bossNode = useMemo(() => {
-    return CAMPAIGN_NODES.find((node) => node.type === 'boss' && xp < node.xp) || CAMPAIGN_NODES.filter((node) => node.type === 'boss').slice(-1)[0];
-  }, [xp]);
 
   const streakChain = useMemo(() => {
     const streak = stats?.current_streak || 0;
@@ -394,19 +323,6 @@ const XPRoadmap = () => {
     }));
   }, [xp, nextNode]);
 
-  const seasonTrack = useMemo(() => {
-    const rewardLabels = ['Origin', 'Boost', 'Vault', 'Freeze', 'Raid', 'Crown'];
-    return rewardLabels.map((label, index) => {
-      const threshold = [0, 150, 350, 700, 1200, 2000][index];
-      return {
-        id: `season-${label}`,
-        label,
-        threshold,
-        unlocked: xp >= threshold
-      };
-    });
-  }, [xp]);
-
   const selectedNodeDetails = useMemo(() => {
     if (!selectedNode) return null;
 
@@ -468,10 +384,11 @@ const XPRoadmap = () => {
   const missionRecommendations = useMemo(() => {
     const targetNode = selectedNodeDetails?.state === 'locked' ? nextNode : selectedNodeDetails;
     const action = getMissionAction(targetNode);
-    const generatedRecommendations = personalizedRoadmap?.recommended_topics?.[action.mode] || [];
+    const generatedRecommendations = (personalizedRoadmap?.recommended_topics?.[action.mode] || [])
+      .filter((recommendation) => isUsableTopic(recommendation.topic));
     if (generatedRecommendations.length > 0) {
       return generatedRecommendations.slice(0, 3).map((recommendation, index) => ({
-        topic: recommendation.topic,
+        topic: cleanTopic(recommendation.topic),
         category: recommendation.source || 'suggestion_engine',
         activityCount: 0,
         reason: recommendation.reason || 'Recommended by Search Hub',
@@ -480,7 +397,7 @@ const XPRoadmap = () => {
       }));
     }
 
-    const topics = personalizedRoadmap?.topics || [];
+    const topics = (personalizedRoadmap?.topics || []).filter((item) => isUsableTopic(item.topic));
     const buckets = personalizedRoadmap?.topic_milestones || {};
     const milestoneType = MISSION_MODE_TO_MILESTONE_TYPE[action.mode];
 
@@ -494,7 +411,7 @@ const XPRoadmap = () => {
       const progressGap = nextMilestone ? Math.max(0, Number(nextMilestone.target || 0) - Number(nextMilestone.current || 0)) : 0;
 
       return {
-        topic,
+        topic: cleanTopic(topic),
         category: topicItem.category,
         activityCount: topicItem.activity_count || 0,
         reason: nextMilestone?.title || `${topicItem.category || 'Study'} focus`,
@@ -531,7 +448,7 @@ const XPRoadmap = () => {
   const selectedCtaLabel = selectedMissionAction.label;
 
   const topicArcs = useMemo(() => {
-    const topics = personalizedRoadmap?.topics || [];
+    const topics = (personalizedRoadmap?.topics || []).filter((item) => isUsableTopic(item.topic));
     const buckets = personalizedRoadmap?.topic_milestones || {};
 
     return topics.slice(0, 4).map((topic) => {
@@ -539,7 +456,7 @@ const XPRoadmap = () => {
       const completed = Number(bucket.completed_count || 0);
       const total = Math.max(1, Number(bucket.total_count || 1));
       return {
-        topic: topic.topic,
+        topic: cleanTopic(topic.topic),
         category: topic.category,
         activityCount: topic.activity_count,
         completed,
@@ -548,20 +465,6 @@ const XPRoadmap = () => {
       };
     });
   }, [personalizedRoadmap]);
-
-  const handleNodeMove = (event) => {
-    const target = event.currentTarget;
-    const rect = target.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) - 0.5;
-    const y = ((event.clientY - rect.top) / rect.height) - 0.5;
-    target.style.setProperty('--magnet-x', `${x * 14}px`);
-    target.style.setProperty('--magnet-y', `${y * 14}px`);
-  };
-
-  const handleNodeLeave = (event) => {
-    event.currentTarget.style.setProperty('--magnet-x', '0px');
-    event.currentTarget.style.setProperty('--magnet-y', '0px');
-  };
 
   const handleNodeClick = (node, state, event) => {
     setSelectedNode({ ...node, state });
@@ -718,10 +621,6 @@ const XPRoadmap = () => {
     }
   };
 
-  const scrollToPanel = (id) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const openNextMission = () => {
     if (nextNode) {
       setSelectedNode({ ...nextNode, state: 'active' });
@@ -730,22 +629,16 @@ const XPRoadmap = () => {
     navigate('/analytics');
   };
 
-  if (typeof XPRoadmapWorkspace === 'function') {
-    return (
+  return (
       <XPRoadmapWorkspace
         loading={loading}
         statsError={statsError}
         retryStats={() => setStatsRetry((value) => value + 1)}
         navigate={navigate}
-        shellRef={shellRef}
         drawerRef={drawerRef}
         drawerCloseRef={drawerCloseRef}
-        sidebarCollapsed={sidebarCollapsed}
-        setSidebarCollapsed={setSidebarCollapsed}
-        levelWave={levelWave}
         level={level}
         xp={xp}
-        displayName={displayName}
         levelProgress={levelProgress}
         levelWindow={levelWindow}
         masteredCount={masteredCount}
@@ -759,21 +652,15 @@ const XPRoadmap = () => {
         powerUpLoading={powerUpLoading}
         powerNotice={powerNotice}
         handleUsePowerUp={handleUsePowerUp}
-        chestInventory={chestInventory}
-        nextRewards={nextRewards}
-        bossNode={bossNode}
         streakChain={streakChain}
-        seasonTrack={seasonTrack}
         topicArcs={topicArcs}
         roadmapLoading={roadmapLoading}
         roadmapError={roadmapError}
         retryRoadmap={() => setRoadmapRetry((value) => value + 1)}
         badgeCollection={badgeCollection}
         handleNodeClick={handleNodeClick}
-        scrollToPanel={scrollToPanel}
         openNextMission={openNextMission}
         setSelectedNode={setSelectedNode}
-        xpBursts={xpBursts}
         selectedNodeDetails={selectedNodeDetails}
         missionRecommendations={missionRecommendations}
         activeMissionTopic={activeMissionTopic}
@@ -785,471 +672,6 @@ const XPRoadmap = () => {
         handleContinueMission={handleContinueMission}
       />
     );
-  }
-
-  if (loading) {
-    return (
-      <div className="xpv-loading">
-        <div className="shc-topbar">
-          <ToolNavigation />
-        </div>
-        <div className="xpv-loader-core" aria-hidden="true">
-          <span className="xpv-loader-ring xpv-loader-ring--outer" />
-          <span className="xpv-loader-ring xpv-loader-ring--inner" />
-          <span className="xpv-loader-pip" />
-        </div>
-        <p>Booting XP campaign</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="xpv-shell" ref={shellRef}>
-      <div className="xpv-bg-fx" aria-hidden="true">
-        <div className="xpv-bg-orb xpv-bg-orb-1" />
-        <div className="xpv-bg-orb xpv-bg-orb-2" />
-        <div className="xpv-bg-dots" />
-        <div className="xpv-bg-vignette" />
-      </div>
-
-      <div className="shc-topbar">
-        <ToolNavigation />
-      </div>
-
-      {levelWave && <div className="xpv-level-wave" aria-hidden="true" />}
-
-      <div className="xpv-layout">
-        <div className="xpv-side-slot">
-        <aside className="xpv-side" aria-label="XP Roadmap sidebar">
-          <div className="xpv-brand">
-            <span className="xpv-brand-name">cerbyl</span>
-          </div>
-
-          <div className="xpv-side-hero">
-            <div className="xpv-side-hero-icon">
-              <Zap size={26} />
-            </div>
-            <div className="xpv-side-hero-copy">
-              <strong>XP Roadmap</strong>
-              <span>Level {level} campaign</span>
-            </div>
-          </div>
-
-          <div className="xpv-side-sections">
-            {XP_QUICK_LINKS.map((item) => (
-              <div key={item.label} className="xpv-side-section" onClick={() => navigate(item.route)}>
-                <span className="xpv-side-dot" />
-                <span className="xpv-side-label">{item.label}</span>
-                <button
-                  className="xpv-side-plus"
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    navigate(item.route);
-                  }}
-                  aria-label={`Open ${item.label}`}
-                >
-                  <Plus size={12} strokeWidth={2.4} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <nav className="xpv-side-nav" aria-label="Learning navigation">
-            {XP_SIDEBAR_LINKS.map((item) => (
-              <button
-                key={item.route}
-                type="button"
-                className={`xpv-side-link ${item.route === '/xp-roadmap' ? 'active' : ''}`}
-                onClick={() => navigate(item.route)}
-              >
-                <span className="xpv-side-link-dot" />
-                {item.label}
-              </button>
-            ))}
-          </nav>
-
-          <button className="xpv-user-chip" type="button" onClick={() => navigate('/profile')}>
-            <span className="xpv-user-meta">
-              <span className="xpv-user-name">{displayName}</span>
-              <span className="xpv-user-sub">Level {level} · {xp.toLocaleString()} XP</span>
-            </span>
-          </button>
-        </aside>
-        </div>
-
-        <main className="xpv-content">
-        <section className="xpv-run-strip" aria-label="Current run">
-          <div className="xpv-run-cell">
-            <Flame size={18} />
-            <span>Run streak</span>
-            <strong>{stats?.current_streak || 0}d</strong>
-          </div>
-          <div className="xpv-run-cell is-hot">
-            <Zap size={18} />
-            <span>Combo</span>
-            <strong>x{runMechanics.combo}</strong>
-          </div>
-          <div className="xpv-run-cell">
-            <Target size={18} />
-            <span>Daily target</span>
-            <strong>{runMechanics.averageQuestProgress}%</strong>
-          </div>
-          <div className="xpv-run-cell">
-            <Shield size={18} />
-            <span>Freezes</span>
-            <strong>{runMechanics.freezes}</strong>
-          </div>
-          <div className="xpv-run-cell">
-            <RefreshCw size={18} />
-            <span>Revive</span>
-            <strong>{runMechanics.revive}</strong>
-          </div>
-          <div className="xpv-run-cell">
-            <Clock size={18} />
-            <span>Combo decay</span>
-            <strong>{decayLabel}</strong>
-          </div>
-        </section>
-
-        <section className="xpv-campaign-grid">
-          <div className="xpv-stage">
-            <div className="xpv-stage-canvas" ref={pixiRef} aria-hidden="true" />
-            <div className="xpv-stage-scanline" aria-hidden="true" />
-
-            <div className="xpv-stage-header">
-              <div>
-
-                <h1 className="plain-page-title">XP Roadmap</h1>
-              </div>
-              <div className="xpv-level-module" style={{ '--level-progress': `${levelProgress}%` }}>
-                <span>LEVEL {level}</span>
-                <strong>{xp.toLocaleString()} XP</strong>
-              </div>
-            </div>
-
-            <svg className="xpv-path-svg" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
-              {CAMPAIGN_NODES.slice(1).map((node, index) => {
-                const previous = CAMPAIGN_NODES[index];
-                const state = getNodeState(node, xp, nextNode?.xp);
-                const previousMastered = xp >= previous.xp;
-                const segmentState = state === 'mastered' ? 'mastered' : (previousMastered && state === 'active' ? 'active' : 'locked');
-                return (
-                  <path
-                    key={`${previous.id}-${node.id}`}
-                    className={`xpv-path-segment ${segmentState}`}
-                    d={pathForSegment(previous, node)}
-                  />
-                );
-              })}
-            </svg>
-
-            <div className="xpv-node-layer">
-              {CAMPAIGN_NODES.map((node) => {
-                const state = getNodeState(node, xp, nextNode?.xp);
-                const Icon = node.icon;
-                return (
-                  <button
-                    key={node.id}
-                    type="button"
-                    className={`xpv-mission-node ${state} type-${node.type}`}
-                    style={{ left: `${node.x}%`, top: `${node.y}%` }}
-                    onMouseMove={handleNodeMove}
-                    onMouseLeave={handleNodeLeave}
-                    onClick={(event) => handleNodeClick(node, state, event)}
-                    aria-label={`${node.title} ${state}`}
-                  >
-                    <span className="xpv-node-aura" />
-                    <span className="xpv-node-core">
-                      {state === 'locked' ? <Lock size={22} /> : <Icon size={24} />}
-                    </span>
-                    <span className="xpv-node-copy">
-                      <strong>{node.title}</strong>
-                      <small>{node.xp.toLocaleString()} XP</small>
-                    </span>
-                </button>
-              );
-            })}
-            </div>
-
-            <div className="xpv-stage-footer">
-              <div>
-                <Map size={16} />
-                <span>{masteredCount}/{CAMPAIGN_NODES.length} missions mastered</span>
-              </div>
-              <div>
-                <Award size={16} />
-                <span>{Math.max(0, levelWindow.end - xp).toLocaleString()} XP to level {level + 1}</span>
-              </div>
-            </div>
-          </div>
-
-          <aside className="xpv-rail" aria-label="Quest systems">
-            <section className="xpv-rail-panel xpv-next-panel">
-              <div className="xpv-panel-title">
-                <Target size={16} />
-                <h2>Current Mission</h2>
-              </div>
-              <div className="xpv-next-mission">
-                <strong>{nextNode?.title || 'Campaign Complete'}</strong>
-                <span>{nextNode ? `${Math.max(0, nextNode.xp - xp).toLocaleString()} XP remaining` : 'All mapped missions mastered'}</span>
-                <div className="xpv-mini-meter">
-                  <span style={{ width: `${levelProgress}%` }} />
-                </div>
-              </div>
-            </section>
-
-            <section className="xpv-rail-panel">
-              <div className="xpv-panel-title">
-                <Sparkles size={16} />
-                <h2>Active Quests</h2>
-              </div>
-              <div className="xpv-quest-list">
-                {quests.map((quest) => {
-                  const Icon = quest.icon;
-                  return (
-                    <div key={quest.id} className={`xpv-quest-row ${quest.done ? 'done' : ''}`}>
-                      <Icon size={17} />
-                      <div>
-                        <strong>{quest.label}</strong>
-                        <span>{quest.current}/{quest.goal}</span>
-                      </div>
-                      <div className="xpv-mini-meter">
-                        <span style={{ width: `${quest.progress}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="xpv-rail-panel">
-              <div className="xpv-panel-title">
-                <Crown size={16} />
-                <h2>Weekly Boss</h2>
-              </div>
-              <div className="xpv-boss-module">
-                <div className="xpv-boss-mark">
-                  <Crown size={28} />
-                </div>
-                <strong>{bossNode?.title || 'Weekly Raid'}</strong>
-                <span>{runMechanics.completedQuests}/4 quest lanes charged</span>
-                <div className="xpv-mini-meter">
-                  <span style={{ width: `${(runMechanics.completedQuests / 4) * 100}%` }} />
-                </div>
-                <div className="xpv-boss-lanes">
-                  {quests.slice(1).map((quest) => (
-                    <span key={quest.id} className={quest.done ? 'done' : ''}>{quest.label}</span>
-                  ))}
-                </div>
-              </div>
-            </section>
-          </aside>
-        </section>
-
-        <section className="xpv-system-grid" aria-label="Progression systems">
-          <section className="xpv-system-panel">
-            <div className="xpv-topic-heading">
-              <Flame size={17} />
-              <h2>Streak Chain</h2>
-            </div>
-            <div className="xpv-chain xpv-chain--inline" aria-label="Streak chain">
-              {streakChain.map((link, index) => (
-                <span key={link.id} className={`xpv-chain-link ${link.active ? 'active' : ''} ${link.current ? 'current' : ''}`}>
-                  {index + 1}
-                </span>
-              ))}
-            </div>
-          </section>
-
-          <section className="xpv-system-panel">
-            <div className="xpv-topic-heading">
-              <Shield size={17} />
-              <h2>Power Ups</h2>
-            </div>
-            <div className="xpv-power-grid">
-              {powerUps.map((power) => {
-                const Icon = power.icon;
-                return (
-                  <button
-                    key={power.id}
-                    type="button"
-                    className={`xpv-power ${power.charged ? 'charged' : ''}`}
-                    onClick={() => handleUsePowerUp(power)}
-                    disabled={power.disabled || powerUpLoading === power.id}
-                    title={power.description}
-                  >
-                    <Icon size={18} />
-                    <strong>{powerUpLoading === power.id ? '...' : power.value}</strong>
-                    <span>{power.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {powerNotice && (
-              <div className={`xpv-power-notice ${powerNotice.type}`}>
-                {powerNotice.text}
-              </div>
-            )}
-          </section>
-
-          <section className="xpv-system-panel">
-            <div className="xpv-topic-heading">
-              <Package size={17} />
-              <h2>Chest Inventory</h2>
-            </div>
-            <div className="xpv-chest-list">
-              {chestInventory.map((chest) => (
-                <button key={chest.id} type="button" className={`xpv-chest ${chest.state}`} onClick={() => setSelectedNode(chest)}>
-                  <Gift size={17} />
-                  <span>{chest.reward}</span>
-                  {chest.state === 'mastered' ? <CheckCircle size={15} /> : <Lock size={15} />}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="xpv-system-panel">
-            <div className="xpv-topic-heading">
-              <Star size={17} />
-              <h2>Next Rewards</h2>
-            </div>
-            <div className="xpv-reward-list">
-              {nextRewards.length === 0 && <span className="xpv-muted">All rewards unlocked</span>}
-              {nextRewards.map((reward) => (
-                <div key={reward.id} className="xpv-reward-row">
-                  <Gift size={15} />
-                  <span>{reward.reward}</span>
-                  <small>{reward.xp.toLocaleString()} XP</small>
-                </div>
-              ))}
-            </div>
-          </section>
-        </section>
-
-        <section className="xpv-season-band">
-          <div className="xpv-topic-heading">
-            <Award size={17} />
-            <h2>Season Track</h2>
-          </div>
-          <div className="xpv-season-track">
-            {seasonTrack.map((reward) => (
-              <div key={reward.id} className={`xpv-season-step ${reward.unlocked ? 'unlocked' : ''}`}>
-                <span>{reward.label}</span>
-                <small>{reward.threshold.toLocaleString()} XP</small>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="xpv-topic-band">
-          <div className="xpv-topic-heading">
-            <BookOpen size={17} />
-            <h2>Topic Progress</h2>
-          </div>
-          <div className="xpv-topic-arcs">
-            {topicArcs.length === 0 && (
-              <div className="xpv-topic-empty">No topic arcs unlocked yet.</div>
-            )}
-            {topicArcs.map((arc) => (
-              <div key={arc.topic} className="xpv-topic-arc">
-                <div>
-                  <strong>{arc.topic}</strong>
-                  <span>{arc.category} / {arc.activityCount} signals</span>
-                </div>
-                <div className="xpv-topic-meter">
-                  <span style={{ width: `${arc.progress}%` }} />
-                </div>
-                <small>{arc.completed}/{arc.total}</small>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="xpv-badge-band">
-          <div className="xpv-topic-heading">
-            <Trophy size={17} />
-            <h2>Badge Codex</h2>
-          </div>
-          <div className="xpv-badge-grid">
-            {badgeCollection.map((badge) => {
-              const Icon = badge.icon;
-              return (
-                <button
-                  key={badge.id}
-                  type="button"
-                  className={`xpv-badge ${badge.state}`}
-                  onClick={() => setSelectedNode(badge)}
-                >
-                  <Icon size={18} />
-                  <span>{badge.title}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-        </main>
-      </div>
-
-      {xpBursts.map((burst) => (
-        <span key={burst.id} className="xpv-xp-burst" style={{ left: burst.x, top: burst.y }}>
-          +{Math.max(10, Math.round(burst.amount / 10))} XP
-        </span>
-      ))}
-
-      {selectedNodeDetails && (
-        <div className="xpv-drawer" role="dialog" aria-modal="false">
-          <div className="xpv-drawer-head">
-            <div>
-              <span>{selectedNodeDetails.state}</span>
-              <strong>{selectedNodeDetails.title}</strong>
-            </div>
-            <button type="button" onClick={() => setSelectedNode(null)}>x</button>
-          </div>
-          <div className="xpv-drawer-reward">
-            <Gift size={18} />
-            <span>{selectedNodeDetails.reward}</span>
-            {selectedNodeDetails.delta > 0 && <small>{selectedNodeDetails.delta.toLocaleString()} XP left</small>}
-          </div>
-          <div className="xpv-drawer-lanes">
-            {selectedNodeDetails.questSummary.map((lane) => (
-              <div key={lane.id} className={lane.done ? 'done' : ''}>
-                <span>{lane.label}</span>
-                <strong>{lane.progress}%</strong>
-              </div>
-            ))}
-          </div>
-          <div className="xpv-drawer-recommendations">
-            <span>{roadmapLoading ? 'Updating recommendations...' : 'Recommended topics'}</span>
-            <div>
-              {missionRecommendations.map((recommendation) => (
-                <button
-                  key={recommendation.topic}
-                  type="button"
-                  className={recommendation.topic === activeMissionTopic ? 'active' : ''}
-                  onClick={() => setSelectedMissionTopic(recommendation.topic)}
-                >
-                  <strong>{recommendation.topic}</strong>
-                  <small>{recommendation.reason}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className={`xpv-drawer-action-note ${missionNotice?.type || ''}`}>
-            {missionNotice
-              ? missionNotice.text
-              : (selectedNodeDetails.state === 'locked' && nextNode
-                ? `Locked. Continue from ${nextNode.title} with ${activeMissionTopic}.`
-                : `${selectedMissionAction.label} using ${activeMissionTopic}.`)}
-          </div>
-          <button type="button" className="xpv-drawer-cta" onClick={handleContinueMission} disabled={missionLoading}>
-            {missionLoading ? 'Creating...' : selectedCtaLabel}
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
-    </div>
-  );
 };
 
 export default XPRoadmap;
