@@ -28,11 +28,6 @@ const FOOTER_ITEMS = [
 ];
 
 const REACTIVE_SURFACE_SELECTOR = [
-  '.sq-generator-header',
-  '.sq-generator-form',
-  '.sq-quiz-card',
-  '.sq-stat-card',
-  '.sq-empty-state',
   '.solo-quiz-flow .question-card',
   '.solo-quiz-flow .battle-sidebar',
   '.solo-quiz-flow .answer-option',
@@ -120,13 +115,6 @@ const REACTIVE_SURFACE_SELECTOR = [
   '.sp-item-card',
   '.leaderboard-entry',
   '.challenge-card',
-  '.qb-create-generator',
-  '.qb-create-header',
-  '.qb-create-form',
-  '.qb-gm-btn',
-  '.qb-battle-card',
-  '.qb-empty',
-  '.qb-detail-card',
   '.battle-quiz-flow .question-card',
   '.battle-quiz-flow .battle-sidebar',
   '.battle-quiz-flow .answer-option',

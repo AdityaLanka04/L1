@@ -36,9 +36,9 @@ describe('QuizBattle creator', () => {
   });
 
   it.each([
-    ['Classic Highest score wins.', 'classic', 600, '10 min Extended'],
-    ['Speed Battle Highest score wins; completion time breaks a tie.', 'speed', 300, null],
-    ['Blitz 15 seconds per question. Think fast.', 'blitz', 75, null],
+    ['Classic Highest score wins.', 'classic', 600, '10 min'],
+    ['Speed Score first; faster finish breaks a tie.', 'speed', 300, null],
+    ['Blitz 15 seconds per question.', 'blitz', 75, null],
     ['Sudden Death One wrong answer ends your run.', 'sudden_death', 150, null],
   ])('submits the %s rules exactly', async (accessibleName, mode, expectedTime, timerName) => {
     render(<MemoryRouter><QuizBattle /></MemoryRouter>);

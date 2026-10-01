@@ -30,6 +30,8 @@
 .qh-main {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
   padding: 28px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -63,52 +65,6 @@
   transition: background-color 150ms ease, transform 90ms ease;
 }
 
-.qh-context-card {
-  min-height: 88px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  padding: 11px 12px;
-  border: 1px solid var(--qh-border);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
-}
-
-.qh-context-card-label {
-  color: var(--accent);
-  font-size: 7px;
-  font-weight: 800;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-}
-
-.qh-context-card .context-selector-btn {
-  width: 100%;
-  min-width: 0;
-  justify-content: flex-start;
-  padding: 3px 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 10px;
-  letter-spacing: .08em;
-  opacity: 1;
-}
-
-.qh-context-card .context-selector-btn:hover,
-.qh-context-card .context-selector-btn.has-doc {
-  background: transparent;
-  color: var(--accent);
-}
-
-.qh-context-card small {
-  color: var(--text-secondary);
-  font-size: 8px;
-  line-height: 1.4;
-}
-
 .qh-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -130,19 +86,22 @@
 }
 
 .qh-mode-grid {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
   padding-top: 24px;
 }
 
 .qh-mode-card {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 18px;
-  align-items: center;
-  gap: 16px;
-  min-height: 112px;
-  padding: 22px 24px;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  grid-template-rows: auto 1fr;
+  align-content: stretch;
+  gap: 18px;
+  min-height: 300px;
+  padding: 32px;
   border: 1px solid var(--qh-border);
   border-radius: 14px;
   background: color-mix(in srgb, var(--text-primary) 3%, transparent);
@@ -155,8 +114,9 @@
 }
 
 .qh-card-icon {
-  width: 44px;
-  height: 44px;
+  grid-column: 1;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
   border: 1px solid var(--qh-border);
@@ -164,20 +124,23 @@
   color: var(--accent);
 }
 
-.qh-card-copy { display: grid; gap: 6px; min-width: 0; }
+.qh-card-copy { grid-column: 1; align-self: end; display: grid; gap: 8px; min-width: 0; }
 .qh-card-copy strong {
   color: var(--text-primary);
-  font-size: 20px;
+  font-size: clamp(24px, 2.2vw, 32px);
   font-weight: 760;
   letter-spacing: -.02em;
 }
 .qh-card-copy small {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
 .qh-card-arrow {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
   color: var(--accent);
   transition: transform 160ms var(--qh-ease-out);
 }
@@ -196,7 +159,7 @@
     border-color: var(--qh-border-strong);
     background: color-mix(in srgb, var(--accent) 6%, transparent);
   }
-  .qh-mode-card:hover .qh-card-arrow { transform: translate(2px, -2px); }
+  .qh-mode-card:hover .qh-card-arrow { transform: translateX(3px); }
 }
 
 @media (max-width: 900px) {
@@ -210,7 +173,7 @@
 @media (max-width: 560px) {
   .qh-hero { padding-bottom: 22px; }
   .qh-hero h1 { font-size: 34px; }
-  .qh-mode-card { padding: 18px; }
+  .qh-mode-card { min-height: 220px; padding: 22px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

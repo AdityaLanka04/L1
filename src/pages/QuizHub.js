@@ -1,19 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, BookOpen, Brain, CircleHelp, FileInput, Swords } from 'lucide-react';
+import { BookOpen, Brain, ChevronRight, CircleHelp, FileInput, Swords } from 'lucide-react';
 import './QuizHub.css';
 import SocialHubChrome from '../components/SocialHubChrome';
 import ImportExportModal from '../components/ImportExportModal';
-import ContextSelector from '../components/ContextSelector';
-import ContextPanel from '../components/ContextPanel';
-import contextService from '../services/contextService';
 
 const QuizHub = () => {
   const navigate = useNavigate();
   const [showImportExport, setShowImportExport] = useState(false);
-  const [contextPanelOpen, setContextPanelOpen] = useState(false);
-  const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
-  const [userDocCount, setUserDocCount] = useState(0);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -23,17 +17,6 @@ const QuizHub = () => {
       document.documentElement.style.overflow = '';
     };
   }, []);
-
-  useEffect(() => {
-    contextService.listDocuments()
-      .then((data) => setUserDocCount(data.user_docs?.length || 0))
-      .catch(() => {});
-  }, []);
-
-  const handleHsModeToggle = (value) => {
-    setHsMode(value);
-    localStorage.setItem('hs_mode_enabled', String(value));
-  };
 
   const openMode = (path) => navigate(path);
 
@@ -49,24 +32,11 @@ const QuizHub = () => {
     </button>
   );
 
-  const sidebarTail = (
-    <div className="qh-context-card">
-      <span className="qh-context-card-label">Study context</span>
-      <ContextSelector
-        hsMode={hsMode}
-        docCount={userDocCount}
-        onOpen={() => setContextPanelOpen(true)}
-      />
-      <small>{hsMode ? 'Curriculum context is active' : userDocCount ? `${userDocCount} source${userDocCount === 1 ? '' : 's'} available` : 'Add a source when you need one'}</small>
-    </div>
-  );
-
   return (
     <div className="qh with-social-chrome">
       <SocialHubChrome
         brandKicker="Quiz"
         sidebarLead={sidebarLead}
-        sidebarTail={sidebarTail}
         sideSections={[
           {
             label: 'Quiz studio',
@@ -98,7 +68,7 @@ const QuizHub = () => {
                   <strong>{title}</strong>
                   <small>{copy}</small>
                 </span>
-                <ArrowUpRight className="qh-card-arrow" size={18} />
+                <ChevronRight className="qh-card-arrow" size={22} />
               </button>
             ))}
           </div>
@@ -121,14 +91,6 @@ const QuizHub = () => {
             alert('Successfully converted questions!');
           }
         }}
-      />
-
-      <ContextPanel
-        isOpen={contextPanelOpen}
-        onClose={() => setContextPanelOpen(false)}
-        hsMode={hsMode}
-        onHsModeToggle={handleHsModeToggle}
-        onDocUploaded={() => setUserDocCount((count) => count + 1)}
       />
     </div>
   );

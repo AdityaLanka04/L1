@@ -2,10 +2,9 @@ import { notificationsEnabled } from '../utils/notificationPresentation';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Swords, Users, Clock, X, Check, Zap, Trophy, Shield,
-  Flame, Crown, Sparkles, ChevronRight, BookOpen, Database,
-  Gauge, ArrowRight, AlertCircle, LoaderCircle, ArrowLeft
+  Swords, Clock, Trophy, Flame, ChevronRight, Database, AlertCircle, LoaderCircle
 } from 'lucide-react';
+import '../styles/quizSurface.css';
 import './QuizBattle.css';
 import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config';
@@ -248,16 +247,6 @@ const QuizBattle = () => {
     } finally { battleActionRef.current = false; setBattleBusy(false); }
   };
 
-  const getBattleStatusColor = useCallback((status) => {
-    const colors = {
-      pending: 'var(--qb-warning)',
-      active: 'var(--qb-accent)',
-      completed: 'var(--qb-success)',
-      expired: 'var(--qb-danger)'
-    };
-    return colors[status] || 'var(--qb-text-secondary)';
-  }, []);
-
   const getBattleWinner = useCallback((battle) => {
     if (battle.status !== 'completed') return null;
     if (battle.your_result) return battle.your_result;
@@ -266,28 +255,8 @@ const QuizBattle = () => {
     return 'draw';
   }, []);
 
-  const renderAvatar = useCallback((user) => {
-    const profilePicture = user.picture_url || user.picture || user.profile_picture;
-    const displayName = user.username || user.email || 'U';
-    const initial = (user.first_name?.[0] || displayName.charAt(0)).toUpperCase();
-
-    if (profilePicture) {
-      return (
-        <div className="qb-opponent-avatar">
-          <img
-            src={profilePicture}
-            alt={displayName}
-            referrerPolicy="no-referrer"
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-        </div>
-      );
-    }
-
-    return <div className="qb-opponent-avatar">{initial}</div>;
-  }, []);
-
   const filters = useMemo(() => ['pending', 'active', 'completed', 'all'], []);
+  const filterLabel = (filter) => `${filter.charAt(0).toUpperCase()}${filter.slice(1)}`;
 
   const selectBattleView = (filter) => {
     setActiveView('battles');
@@ -295,14 +264,30 @@ const QuizBattle = () => {
   };
 
   const sideSections = [{
-    label: 'Battle Workspace',
+    label: 'Battles',
     items: filters.map((filter) => ({
-      label: `${filter.charAt(0).toUpperCase()}${filter.slice(1)} battles`,
+      label: `${filterLabel(filter)} battles`,
       icon: filter === 'pending' ? Clock : filter === 'active' ? Flame : filter === 'completed' ? Trophy : Database,
       active: activeView === 'battles' && statusFilter === filter,
       onClick: () => selectBattleView(filter),
     })),
   }];
+
+  const opponentName = (user) => user?.first_name || user?.username || 'Opponent';
+  const resultTag = { win: ['Victory', 'is-good'], loss: ['Defeat', 'is-bad'], draw: ['Draw', 'is-accent'] };
+
+  const gameModes = [
+    { id: 'classic', name: 'Classic', desc: 'Highest score wins.' },
+    { id: 'speed', name: 'Speed', desc: 'Score first; faster finish breaks a tie.' },
+    { id: 'blitz', name: 'Blitz', desc: '15 seconds per question.' },
+    { id: 'sudden_death', name: 'Sudden Death', desc: 'One wrong answer ends your run.' },
+  ];
+  const timeLimits = [
+    { val: 120, label: '2 min' },
+    { val: 300, label: '5 min' },
+    { val: 600, label: '10 min' },
+    { val: 900, label: '15 min' },
+  ];
 
   return (
     <div className="qb-page with-social-chrome">
@@ -311,8 +296,8 @@ const QuizBattle = () => {
         collapsed={sidebarCollapsed}
         onCollapsedChange={setSidebarCollapsed}
         sidebarLead={(
-          <button className="qb-sidebar-create" type="button" onClick={() => setActiveView('create')}>
-            <Swords size={16} />
+          <button className="qz-side-primary" type="button" onClick={() => setActiveView('create')}>
+            <Swords size={15} />
             <span>Create battle</span>
           </button>
         )}
@@ -320,397 +305,196 @@ const QuizBattle = () => {
         collapsedLeadItems={[{
           label: 'Create battle', icon: Swords, active: activeView === 'create', onClick: () => setActiveView('create'),
         }]}
-        collapsedTailItems={[{ label: 'Quiz modes', icon: ArrowLeft, onClick: () => navigate('/quiz-hub') }]}
-        sidebarTail={(
-          <button className="qb-sidebar-return" type="button" onClick={() => navigate('/quiz-hub')}>
-            <ArrowLeft size={15} />
-            <span>Quiz modes</span>
-          </button>
-        )}
       >
-        <main className="qb-content">
-          <div className="qb-container">
-            {activeView === 'create' ? (
-              <div className="qb-create-generator">
-                <div className="qb-create-header">
-                  <div className="qb-create-heading">
-                    <div className="qb-create-heading-top">
-                      <span className="qb-create-kicker">1v1 battle brief</span>
-                      <button type="button" onClick={() => setActiveView('battles')}>
-                        <ArrowLeft size={13} /> Battles
-                      </button>
-                    </div>
-                    <Swords size={30} className="qb-create-icon" />
-                    <h1 className="qb-create-title plain-page-title">Create Battle</h1>
+        <main className="qz-main">
+          {activeView === 'create' ? (
+            <>
+              <header className="qz-hero">
+                <div>
+                  <h1 className="plain-page-title">Create Battle</h1>
+                  <p>Challenge a friend to a live 1v1 quiz.</p>
+                </div>
+              </header>
 
-                  </div>
-                  <div className="qb-live-brief" aria-live="polite">
-                    <div className="qb-live-match">
-                      <div><span>You</span><strong>Ready</strong></div>
-                      <em>vs</em>
-                      <div>
-                        <span>Opponent</span>
-                        <strong>{friends.find(friend => String(friend.id) === String(selectedFriend))?.username || 'Choose a friend'}</strong>
-                      </div>
-                    </div>
-                    <div className="qb-live-topic">
-                      <span>Battle topic</span>
-                      <strong>{subject.trim() || 'Waiting for a subject'}</strong>
-                    </div>
-                    <div className="qb-live-specs">
-                      <span><strong>{questionCount}</strong> questions</span>
-                      <span><strong>{difficulty}</strong> level</span>
-                      <span><strong>{formatBattleMode(gameMode)}</strong> mode</span>
-                    </div>
+              <form onSubmit={handleCreateBattle} className="qz-panel qz-form">
+                <div className="qz-row">
+                  <label className="qz-field">
+                    <span className="qz-label">Opponent</span>
+                    <select value={selectedFriend} onChange={(e) => setSelectedFriend(e.target.value)} required>
+                      <option value="">{friends.length ? 'Select a friend…' : 'Add friends in Social Hub first'}</option>
+                      {friends.map(f => (
+                        <option key={f.id} value={f.id}>
+                          {f.first_name && f.last_name ? `${f.first_name} ${f.last_name}` : f.username}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="qz-field">
+                    <span className="qz-label">Topic</span>
+                    <input
+                      type="text"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="e.g., Calculus, World History"
+                      maxLength="100"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div className="qz-row">
+                  <label className="qz-field">
+                    <span className="qz-label">Difficulty</span>
+                    <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </label>
+                  <label className="qz-field">
+                    <span className="qz-label">Questions (5–20)</span>
+                    <input
+                      type="number"
+                      value={questionCount}
+                      onChange={(e) => setQuestionCount(Math.min(20, Math.max(5, parseInt(e.target.value) || 5)))}
+                      min="5"
+                      max="20"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div className="qz-field">
+                  <span className="qz-label">Game mode</span>
+                  <div className="qz-choices" style={{ '--qz-cols': 4 }} role="group" aria-label="Game mode">
+                    {gameModes.map(mode => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        className={`qz-choice ${gameMode === mode.id ? 'active' : ''}`}
+                        aria-pressed={gameMode === mode.id}
+                        onClick={() => setGameMode(mode.id)}
+                      >
+                        <strong>{mode.name}</strong>
+                        <small>{mode.desc}</small>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <form onSubmit={handleCreateBattle} className="qb-create-form">
-                  <div className="qb-cform-row">
-                    <div className="qb-cform-group">
-                      <label className="qb-cform-label" htmlFor="qb-opponent">
-                        <Users size={13} />
-                        Opponent
-                      </label>
-                      <select
-                        id="qb-opponent"
-                        className="qb-cform-select"
-                        value={selectedFriend}
-                        onChange={(e) => setSelectedFriend(e.target.value)}
-                        required
-                      >
-                        <option value="">Select a friend...</option>
-                        {friends.map(f => (
-                          <option key={f.id} value={f.id}>
-                            {f.first_name && f.last_name
-                              ? `${f.first_name} ${f.last_name}`
-                              : f.username}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="qb-cform-group">
-                      <label className="qb-cform-label" htmlFor="qb-subject">
-                        <BookOpen size={13} />
-                        Subject / Topic
-                      </label>
-                      <input
-                        id="qb-subject"
-                        type="text"
-                        className="qb-cform-input"
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
-                        placeholder="e.g., Mathematics, History..."
-                        maxLength="100"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="qb-cform-row">
-                    <div className="qb-cform-group">
-                      <label className="qb-cform-label" htmlFor="qb-difficulty">
-                        <Gauge size={13} />
-                        Difficulty
-                      </label>
-                      <select
-                        id="qb-difficulty"
-                        className="qb-cform-select"
-                        value={difficulty}
-                        onChange={(e) => setDifficulty(e.target.value)}
-                      >
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                      </select>
-                    </div>
-
-                    <div className="qb-cform-group">
-                      <label className="qb-cform-label" htmlFor="qb-question-count">
-                        <Database size={13} />
-                        Questions (5–20)
-                      </label>
-                      <input
-                        id="qb-question-count"
-                        type="number"
-                        className="qb-cform-input"
-                        value={questionCount}
-                        onChange={(e) => setQuestionCount(Math.min(20, Math.max(5, parseInt(e.target.value) || 5)))}
-                        min="5"
-                        max="20"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="qb-cform-group">
-                    <label className="qb-cform-label">
-                      <Swords size={13} />
-                      Game Mode
-                    </label>
-                    <div className="qb-game-mode-grid" role="group" aria-label="Game mode">
-                      <button
-                        type="button"
-                        className={`qb-gm-btn ${gameMode === 'classic' ? 'active' : ''}`}
-                        aria-pressed={gameMode === 'classic'}
-                        onClick={() => setGameMode('classic')}
-                      >
-                        <Trophy size={20} className="qb-gm-icon" />
-                        <span className="qb-gm-name">Classic</span>
-                        <p className="qb-gm-desc">Highest score wins.</p>
-                      </button>
-
-                      <button
-                        type="button"
-                        className={`qb-gm-btn ${gameMode === 'speed' ? 'active' : ''}`}
-                        aria-pressed={gameMode === 'speed'}
-                        onClick={() => setGameMode('speed')}
-                      >
-                        <Zap size={20} className="qb-gm-icon" />
-                        <span className="qb-gm-name">Speed Battle</span>
-                        <p className="qb-gm-desc">Highest score wins; completion time breaks a tie.</p>
-                      </button>
-
-                      <button
-                        type="button"
-                        className={`qb-gm-btn ${gameMode === 'blitz' ? 'active' : ''}`}
-                        aria-pressed={gameMode === 'blitz'}
-                        onClick={() => setGameMode('blitz')}
-                      >
-                        <Flame size={20} className="qb-gm-icon" />
-                        <span className="qb-gm-name">Blitz</span>
-                        <p className="qb-gm-desc">15 seconds per question. Think fast.</p>
-                      </button>
-
-                      <button
-                        type="button"
-                        className={`qb-gm-btn ${gameMode === 'sudden_death' ? 'active' : ''}`}
-                        aria-pressed={gameMode === 'sudden_death'}
-                        onClick={() => setGameMode('sudden_death')}
-                      >
-                        <Shield size={20} className="qb-gm-icon" />
-                        <span className="qb-gm-name">Sudden Death</span>
-                        <p className="qb-gm-desc">One wrong answer ends your run.</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {gameMode === 'classic' && (
-                    <div className="qb-cform-group">
-                      <label className="qb-cform-label">
-                        <Clock size={13} />
-                        Time Limit
-                      </label>
-                      <div className="qb-time-opt-grid" role="group" aria-label="Classic time limit">
-                        {[
-                          { val: 120,  label: '2 min',  desc: 'Quick' },
-                          { val: 300,  label: '5 min',  desc: 'Standard' },
-                          { val: 600,  label: '10 min', desc: 'Extended' },
-                          { val: 900,  label: '15 min', desc: 'Marathon' },
-                        ].map(({ val, label, desc }) => (
-                          <button
-                            key={val}
-                            type="button"
-                            className={`qb-time-opt-btn ${classicTimeLimit === val ? 'active' : ''}`}
-                            aria-pressed={classicTimeLimit === val}
-                            onClick={() => setClassicTimeLimit(val)}
-                          >
-                            <span className="qb-time-opt-val">{label}</span>
-                            <span className="qb-time-opt-desc">{desc}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="qb-form-error" role="alert">
-                      <AlertCircle size={16} />
-                      <span>{error}</span>
-                    </div>
-                  )}
-
-                  <button type="submit" className="qb-cform-submit" disabled={creating}>
-                    {creating ? <LoaderCircle size={18} className="qb-inline-spinner" /> : <Swords size={18} />}
-                    <span>{creating ? 'Sending challenge…' : 'Send challenge'}</span>
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <>
-                <section className="qb-welcome-section">
-                  <div className="qb-welcome-left">
-                    <div className="qb-view-kicker">Live Arena</div>
-                    <h1 className="qb-view-title plain-page-title">Quiz Battles</h1>
-
-                    <div className={`qb-connection-status ${isConnected ? 'is-live' : ''}`}>
-                      <span aria-hidden="true" />
-                      {isConnected ? 'Live updates connected' : 'Refreshing every 10 seconds'}
-                    </div>
-                    <div className="qb-mobile-filters" aria-label="Filter battles">
-                      {filters.map(filter => (
+                {gameMode === 'classic' && (
+                  <div className="qz-field">
+                    <span className="qz-label">Time limit</span>
+                    <div className="qz-choices" style={{ '--qz-cols': 4 }} role="group" aria-label="Classic time limit">
+                      {timeLimits.map(({ val, label }) => (
                         <button
-                          key={filter}
+                          key={val}
                           type="button"
-                          className={statusFilter === filter ? 'active' : ''}
-                          onClick={() => setStatusFilter(filter)}
+                          className={`qz-choice ${classicTimeLimit === val ? 'active' : ''}`}
+                          aria-pressed={classicTimeLimit === val}
+                          onClick={() => setClassicTimeLimit(val)}
                         >
-                          {filter}
+                          <strong>{label}</strong>
                         </button>
                       ))}
                     </div>
                   </div>
-                  <button className="qb-create-btn" onClick={() => setActiveView('create')}>
-                    CREATE BATTLE
+                )}
+
+                {error && (
+                  <div className="qz-error" role="alert">
+                    <AlertCircle size={16} />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <div className="qb-form-actions">
+                  <button type="submit" className="qz-primary" disabled={creating}>
+                    {creating ? <LoaderCircle size={16} className="qz-spin" /> : <Swords size={16} />}
+                    <span>{creating ? 'Sending challenge…' : 'Send challenge'}</span>
                   </button>
-                </section>
+                  <button type="button" className="qz-secondary" onClick={() => setActiveView('battles')}>Cancel</button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <header className="qz-hero">
+                <div>
+                  <h1 className="plain-page-title">Quiz Battles</h1>
+                  <p>{filterLabel(statusFilter)} battles</p>
+                </div>
+              </header>
 
-                {loading ? (
-                  <div className="qb-loading">
-                    <div className="qb-spinner"></div>
-                    <p className="qb-loading-text">Loading battles...</p>
-                  </div>
-                ) : error ? (
-                  <div className="qb-error-state">
-                    <AlertCircle size={48} className="qb-error-icon" />
-                    <p className="qb-error-text">{error}</p>
-                    <button className="qb-retry-btn" onClick={fetchBattles}>
-                      <ChevronRight size={18} />
-                      Retry
-                    </button>
-                  </div>
-                ) : battles.length === 0 ? (
-                  <div className="qb-empty">
-                    <Swords size={72} className="qb-empty-icon" />
-                    <h3 className="qb-empty-title">No Battles Found</h3>
-                    <p className="qb-empty-desc">
-                      Challenge a friend to start your first battle and show off your knowledge!
-                    </p>
-                    <button className="qb-empty-action" type="button" onClick={() => setActiveView('create')}>
-                      Create a battle <ArrowRight size={15} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="qb-battle-grid">
-                    {battles.map((battle) => {
-                      const winner = getBattleWinner(battle);
-                      const statusColor = getBattleStatusColor(battle.status);
+              <div className="qb-mobile-filters" aria-label="Filter battles">
+                {filters.map(filter => (
+                  <button
+                    key={filter}
+                    type="button"
+                    className={statusFilter === filter ? 'active' : ''}
+                    onClick={() => setStatusFilter(filter)}
+                  >
+                    {filterLabel(filter)}
+                  </button>
+                ))}
+              </div>
 
-                      return (
-                        <article key={battle.id} className="qb-battle-card">
-                          <div className="qb-battle-header">
-                            <div className="qb-battle-status" style={{ color: statusColor }}>
-                              {battle.status.toUpperCase()}
-                            </div>
-                            {winner && (
-                              <div className={`qb-battle-result ${winner}`}>
-                                {winner === 'win' ? (
-                                  <><Crown size={16} />Victory!</>
-                                ) : winner === 'draw' ? (
-                                  <><Shield size={16} />Draw</>
-                                ) : (
-                                  <><X size={16} />Defeat</>
-                                )}
-                              </div>
-                            )}
+              {loading ? (
+                <div className="qz-panel qz-empty"><LoaderCircle size={22} className="qz-spin" /><p>Loading battles…</p></div>
+              ) : error ? (
+                <div className="qz-panel qz-empty">
+                  <strong>Could not load battles</strong>
+                  <p>{error}</p>
+                  <button className="qz-secondary" type="button" onClick={fetchBattles}>Retry</button>
+                </div>
+              ) : battles.length === 0 ? (
+                <div className="qz-panel qz-empty">
+                  <strong>No {statusFilter === 'all' ? '' : `${statusFilter} `}battles</strong>
+                  <p>Use Create battle to challenge a friend.</p>
+                </div>
+              ) : (
+                <div className="qz-list">
+                  {battles.map((battle) => {
+                    const winner = getBattleWinner(battle);
+                    const [statusLabel, statusTone] = winner ? resultTag[winner] : [battle.status, battle.status === 'active' ? 'is-accent' : ''];
+                    const showScores = battle.status === 'active' || battle.status === 'completed';
+                    return (
+                      <article key={battle.id} className="qz-panel qz-item">
+                        <div className="qz-item-main">
+                          <h3 className="qz-item-title">{battle.subject} · vs {opponentName(battle.opponent)}</h3>
+                          <div className="qz-meta">
+                            <span className="qz-cap">{battle.difficulty}</span>
+                            <span>{battle.question_count} questions</span>
+                            <span>{battle.game_mode === 'blitz' ? '15 sec / question' : `${Math.floor(battle.time_limit_seconds / 60)} min`}</span>
+                            <span>{formatBattleMode(battle.game_mode)}</span>
                           </div>
-
-                          <div className="qb-opponent-section">
-                            <div className="qb-opponent-header">
-                              {renderAvatar(battle.opponent)}
-                              <div className="qb-opponent-info">
-                                <h4 className="qb-opponent-name">
-                                  VS {battle.opponent.first_name || battle.opponent.username}
-                                </h4>
-                                <div className="qb-battle-subject">
-                                  <Sparkles size={16} />
-                                  {battle.subject}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="qb-details-grid">
-                            <div className="qb-detail-card">
-                              <Gauge size={18} className="qb-detail-icon" />
-                              <div className="qb-detail-label">Difficulty</div>
-                              <div className="qb-detail-value">{battle.difficulty}</div>
-                            </div>
-                            <div className="qb-detail-card">
-                              <Database size={18} className="qb-detail-icon" />
-                              <div className="qb-detail-label">Questions</div>
-                              <div className="qb-detail-value">{battle.question_count}</div>
-                            </div>
-                            <div className="qb-detail-card">
-                              <Clock size={18} className="qb-detail-icon" />
-                              <div className="qb-detail-label">Time</div>
-                              <div className="qb-detail-value">
-                                {battle.game_mode === 'blitz' ? '15 sec / question' : `${Math.floor(battle.time_limit_seconds / 60)} min`}
-                              </div>
-                            </div>
-                            <div className="qb-detail-card">
-                              <Swords size={18} className="qb-detail-icon" />
-                              <div className="qb-detail-label">Mode</div>
-                              <div className="qb-detail-value">{formatBattleMode(battle.game_mode)}</div>
-                            </div>
-                          </div>
-
-                          <div className="qb-scores-container">
-                            <div className="qb-scores-grid">
-                              <div className="qb-score-box">
-                                <span className="qb-score-label">Your Score</span>
-                                <span className="qb-score-value">{battle.your_score || 0}</span>
-                                {battle.your_completed && <Check size={20} className="qb-completed-icon" />}
-                              </div>
-                              <div className="qb-vs-divider">VS</div>
-                              <div className="qb-score-box">
-                                <span className="qb-score-label">Opponent</span>
-                                <span className="qb-score-value">{battle.opponent_score || 0}</span>
-                                {battle.opponent_completed && <Check size={20} className="qb-completed-icon" />}
-                              </div>
-                            </div>
-                          </div>
-
+                        </div>
+                        <div className="qz-item-side">
+                          {showScores && (
+                            <span className="qz-score">{battle.your_score || 0} – {battle.opponent_score || 0}</span>
+                          )}
+                          <span className={`qz-tag ${statusTone}`}>{statusLabel}</span>
                           {battle.status === 'pending' && !battle.is_challenger && (
-                            <button className="qb-action-btn" onClick={() => handleAcceptBattle(battle.id)}>
-                              <Zap size={18} />
-                              Accept Challenge
-                              <ArrowRight size={16} />
-                            </button>
+                            <button className="qz-primary" type="button" onClick={() => handleAcceptBattle(battle.id)}>Accept</button>
                           )}
                           {battle.status === 'active' && !battle.your_completed && (
-                            <button className="qb-action-btn" onClick={() => navigate(`/quiz-battle/${battle.id}`)}>
-                              <Flame size={18} />
-                              Continue Battle
-                              <ArrowRight size={16} />
+                            <button className="qz-primary" type="button" onClick={() => navigate(`/quiz-battle/${battle.id}`)}>
+                              Continue <ChevronRight size={15} />
                             </button>
                           )}
                           {battle.status === 'completed' && (
-                            <button
-                              className="qb-action-btn"
-                              onClick={() => navigate(`/quiz-battle/${battle.id}`)}
-                              style={{
-                                background: winner === 'win'
-                                  ? 'var(--qb-gradient-victory)'
-                                  : winner === 'loss'
-                                  ? 'var(--qb-gradient-defeat)'
-                                  : 'var(--qb-gradient-draw)'
-                              }}
-                            >
-                              <Trophy size={18} />
-                              View Results
-                              <ChevronRight size={16} />
+                            <button className="qz-secondary" type="button" onClick={() => navigate(`/quiz-battle/${battle.id}`)}>
+                              Results <ChevronRight size={15} />
                             </button>
                           )}
-                        </article>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
         </main>
       </SocialHubChrome>
 
