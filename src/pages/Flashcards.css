@@ -6745,26 +6745,13 @@
 }
 
 .flashcards-page .fc-generator-workspace .fc-visibility-btn::after {
-  position: absolute;
-  right: 10px;
-  bottom: 0;
-  left: 10px;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: #d8b48c;
-  content: "";
-  clip-path: inset(0 50% 0 50%);
-  transition: clip-path 180ms ease;
+  content: none;
 }
 
 .flashcards-page .fc-generator-workspace .fc-visibility-btn.active {
   border-color: rgba(222, 184, 135, .48);
   background: rgba(222, 184, 135, .1);
   color: #f2d0a6;
-}
-
-.flashcards-page .fc-generator-workspace .fc-visibility-btn.active::after {
-  clip-path: inset(0);
 }
 
 .flashcards-page .fc-generator-workspace .fc-visibility-hint {
@@ -8747,21 +8734,7 @@
 }
 
 .flashcards-page .fc-mode-btn::after {
-  content: '';
-  position: absolute;
-  right: 14px;
-  bottom: -1px;
-  left: 14px;
-  z-index: 2;
-  height: 2px;
-  pointer-events: none;
-  background: var(--accent);
-  clip-path: inset(0 50% 0 50%);
-  transition: clip-path 180ms cubic-bezier(.23, 1, .32, 1);
-}
-
-.flashcards-page .fc-mode-btn.active::after {
-  clip-path: inset(0 0 0 0);
+  content: none;
 }
 
 .flashcards-page .fc-mode-btn:active {
@@ -9481,13 +9454,18 @@
 }
 
 /* Quiz options are equal, readable, and use restrained feedback colors. */
+.flashcards-page.fc-focus-shell .fc-study-content:has(.fc-study-mcq-area) {
+  justify-content: center;
+  padding-top: 0;
+}
+
 .flashcards-page.fc-focus-shell .fc-study-mcq-area {
-  display: grid;
-  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  display: flex;
+  flex-direction: column;
   align-items: stretch;
-  gap: 12px;
-  width: min(1060px, 100%);
-  margin: 0 auto;
+  gap: 14px;
+  width: min(880px, 100%);
+  margin: auto;
 }
 
 .flashcards-page.fc-focus-shell .fc-mcq-question-container,
@@ -9498,8 +9476,30 @@
 }
 
 .flashcards-page.fc-focus-shell .fc-study-question-card {
-  min-height: 100%;
-  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 0;
+  padding: 28px 32px;
+  text-align: center;
+}
+
+.flashcards-page.fc-focus-shell .fc-study-question-card .fc-study-question-text {
+  text-align: center;
+}
+
+.flashcards-page.fc-focus-shell .fc-study-mcq-area .fc-mcq-question-container,
+.flashcards-page.fc-focus-shell .fc-study-mcq-area .fc-study-question-card {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.flashcards-page.fc-focus-shell .fc-study-mcq-area .fc-study-question-card {
+  height: auto;
+  min-height: 170px;
 }
 
 .flashcards-page.fc-focus-shell .fc-mcq-options {
@@ -9511,10 +9511,16 @@
 }
 
 .flashcards-page.fc-focus-shell .fc-mcq-option {
-  min-height: 132px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 112px;
   margin: 0;
-  padding: 16px;
-  align-items: flex-start;
+  padding: 18px 20px;
+  text-align: center;
   border: 1px solid var(--fc-work-border);
   border-radius: 12px;
   color: var(--text-primary);
@@ -9534,9 +9540,30 @@
 }
 
 .flashcards-page.fc-focus-shell .fc-mcq-text {
+  width: 100%;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
+  text-align: center;
+}
+
+.flashcards-page.fc-focus-shell .fc-mcq-option > .fc-mcq-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.flashcards-page.fc-focus-shell .fc-mcq-option > .fc-mcq-text {
+  flex-shrink: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.flashcards-page.fc-focus-shell .fc-study-mcq-area .fc-next-question-btn {
+  align-self: center;
+  width: min(320px, 100%);
+  min-height: 46px;
+  margin: 4px 0 0;
 }
 
 .flashcards-page.fc-focus-shell .fc-mcq-option.correct {
@@ -9721,36 +9748,6 @@
 .flashcards-page.fc-focus-shell .fc-result-stat-num {
   margin-bottom: 3px;
   font-size: 30px;
-}
-
-.flashcards-page.fc-focus-shell .fc-results-score {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.flashcards-page.fc-focus-shell .fc-results-score-pct {
-  color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
-  font-size: clamp(44px, 4.4vw, 60px);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -.04em;
-}
-
-.flashcards-page.fc-focus-shell .fc-results-score-lbl {
-  color: var(--fc-text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
-.flashcards-page.fc-focus-shell .fc-results-badge {
-  padding: 5px 14px;
-  line-height: 1.4;
-  box-shadow: none;
 }
 
 .flashcards-page.fc-focus-shell .fc-result-stat {

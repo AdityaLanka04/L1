@@ -2230,7 +2230,9 @@ const Flashcards = () => {
     }
   };
 
-  const currentStudyCards = studySettings.shuffle ? shuffledCards : flashcards;
+  // Same list the MCQ options and handleNextMCQ use (it carries the
+  // marked-for-review-first order even when shuffle is off).
+  const currentStudyCards = shuffledCards.length > 0 ? shuffledCards : flashcards;
 
   const returnToFlashcardLibrary = () => {
     if (customCreateMode) exitCustomCreateMode();
@@ -2685,7 +2687,7 @@ const Flashcards = () => {
         setCurrentCard(currentCard + 1);
         setIsFlipped(false);
       } else {
-        setShowStudyResults(true);
+        exitStudyMode();
       }
     };
 
@@ -2698,91 +2700,6 @@ const Flashcards = () => {
     const correctTimes = Math.min(activeCard?.correct_count || 0, reviewedTimes);
     
     
-    if (showStudyResults) {
-      const totalReviewed = studySessionStats.correct + studySessionStats.incorrect;
-      const knownPercentage = totalReviewed > 0 ? Math.round((studySessionStats.correct / totalReviewed) * 100) : 0;
-      const performanceTier = totalReviewed === 0 ? null
-        : knownPercentage >= 90 ? { label: 'Perfect', color: '#22c55e' }
-        : knownPercentage >= 70 ? { label: 'Great', color: 'var(--fc-accent)' }
-        : knownPercentage >= 50 ? { label: 'Good', color: '#f59e0b' }
-        : { label: 'Keep Going', color: 'var(--fc-danger)' };
-
-      return renderFocusChrome(
-          <div className="fc-study-mode">
-            <div className="fc-results">
-              <div className="fc-results-card">
-                <div className="fc-results-orb fc-results-orb--tl" />
-                <div className="fc-results-orb fc-results-orb--br" />
-
-                <div className="fc-results-header">
-                  <h2>Review Complete!</h2>
-                  <p className="fc-results-subtitle">{currentSetInfo?.setTitle || 'Preview Session'}</p>
-                </div>
-
-                <div className="fc-results-score-section">
-                  <div className="fc-results-score">
-                    <span className="fc-results-score-pct">{knownPercentage}%</span>
-                    <span className="fc-results-score-lbl">known</span>
-                  </div>
-                  {performanceTier && (
-                    <div className="fc-results-badge" style={{ '--badge-color': performanceTier.color }}>
-                      {performanceTier.label}
-                    </div>
-                  )}
-                </div>
-
-                <div className="fc-results-stats">
-                  <div className="fc-result-stat correct">
-                    <div className="fc-result-stat-icon">{FC_ICONS.check}</div>
-                    <div className="fc-result-stat-num">{studySessionStats.correct}</div>
-                    <div className="fc-result-stat-label">I Know This</div>
-                  </div>
-                  <div className="fc-result-stat incorrect">
-                    <div className="fc-result-stat-icon">{FC_ICONS.x}</div>
-                    <div className="fc-result-stat-num">{studySessionStats.incorrect}</div>
-                    <div className="fc-result-stat-label">Don't Know</div>
-                  </div>
-                  <div className="fc-result-stat skipped">
-                    <div className="fc-result-stat-icon">{FC_ICONS.eye}</div>
-                    <div className="fc-result-stat-num">{totalReviewed}</div>
-                    <div className="fc-result-stat-label">Cards Reviewed</div>
-                  </div>
-                </div>
-
-                {totalReviewed === 0 && (
-                  <div className="fc-results-message">
-                    <p>You viewed the cards but didn't mark any as known or unknown. Try reviewing them to track your progress.</p>
-                  </div>
-                )}
-
-                <div className="fc-results-actions">
-                  <button className="fc-btn fc-btn-secondary" onClick={restartStudy}>
-                    {FC_ICONS.refresh} Review Again
-                  </button>
-                  <button
-                    className="fc-btn fc-btn-primary"
-                    onClick={() => {
-                      setPreviewMode(false);
-                      setShowStudyResults(false);
-                      setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
-                      setCurrentCard(0);
-                      const cards = studySettings.shuffle ? [...previewCards].sort(() => Math.random() - 0.5) : previewCards;
-                      setShuffledCards(cards);
-                      generateMCQOptions(cards, 0);
-                      setStudyMode(true);
-                    }}
-                  >
-                    {FC_ICONS.target} Start Quiz
-                  </button>
-                  <button className="fc-btn fc-btn-secondary" onClick={exitStudyMode}>
-                    Exit
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-      );
-    }
     
     return renderFocusChrome(
         <div className="fc-study-mode">
@@ -2823,10 +2740,7 @@ const Flashcards = () => {
                 {FC_ICONS.bookmark}
                 <span>{previewCards[currentCard]?.marked_for_review ? 'In Review' : 'Mark Review'}</span>
               </button>
-              <button className="fc-exit-btn fc-exit-styled" onClick={() => {
-
-                setShowStudyResults(true);
-              }}>
+              <button className="fc-exit-btn fc-exit-styled" onClick={exitStudyMode}>
                 EXIT {FC_ICONS.chevronRight}
               </button>
             </div>

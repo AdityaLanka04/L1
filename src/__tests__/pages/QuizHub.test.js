@@ -78,14 +78,16 @@ describe('QuizHub', () => {
       expect(screen.getByTestId('context-panel')).toBeInTheDocument();
     });
 
-    it('renders Solo Practice section text', async () => {
+    it('renders the Solo Quiz card with its description', async () => {
       await renderQuizHub();
-      expect(screen.getByText(/solo practice/i)).toBeInTheDocument();
+      const solo = screen.getByRole('button', { name: /solo quiz/i });
+      expect(solo).toHaveTextContent(/at your own pace/i);
     });
 
-    it('renders 1v1 Battles section text', async () => {
+    it('renders the Quiz Battles card with its description', async () => {
       await renderQuizHub();
-      expect(screen.getByText(/1v1/i)).toBeInTheDocument();
+      const battle = screen.getByRole('button', { name: /quiz battles/i });
+      expect(battle).toHaveTextContent(/1v1/i);
     });
 
     it('does not show import/export modal by default', async () => {
@@ -96,27 +98,16 @@ describe('QuizHub', () => {
 
   
   describe('Navigation', () => {
-    it('navigates to /solo-quiz when Solo Practice section is clicked', async () => {
+    it('navigates to /solo-quiz when the Solo Quiz card is clicked', async () => {
       await renderQuizHub();
-      const soloSection = screen.getByText(/solo practice/i).closest('section');
-      if (soloSection) {
-        await act(async () => { fireEvent.click(soloSection); });
-        expect(mockNavigate).toHaveBeenCalledWith('/solo-quiz');
-      }
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: /solo quiz/i })); });
+      expect(mockNavigate).toHaveBeenCalledWith('/solo-quiz');
     });
 
-    it('navigates to /quiz-battles when 1v1 Battles section is clicked', async () => {
+    it('navigates to /quiz-battles when the Quiz Battles card is clicked', async () => {
       await renderQuizHub();
-      const battleSection = screen.getByText(/1v1/i).closest('section');
-      if (battleSection) {
-        await act(async () => { fireEvent.click(battleSection); });
-        expect(mockNavigate).toHaveBeenCalledWith('/quiz-battles');
-      }
-    });
-
-    it('has a "Start Solo Quiz" CTA button', async () => {
-      await renderQuizHub();
-      expect(screen.getByText(/start solo quiz/i)).toBeInTheDocument();
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: /quiz battles/i })); });
+      expect(mockNavigate).toHaveBeenCalledWith('/quiz-battles');
     });
   });
 

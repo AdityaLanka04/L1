@@ -1,17 +1,6 @@
-/*
- * THESIS: Quiz is a decision desk, not a detached arena; two testing routes share one calm workspace.
- * OWN-WORLD: Friends' warm graphite shell, indexed cards, slim accent rails and a single geometric field.
- * STORY: confirm the learning context, choose solo or live pressure, then enter the existing quiz flow.
- * FIRST VIEWPORT: exact shared sidebar, restrained hero, compact context toolbar and two equal route cards.
- * FORM: an Operate-mode extension of SocialHubChrome; the existing Friends/Notes system remains authoritative.
- */
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ArrowUpRight, BookOpen, Brain, CircleHelp, FileInput,
-  Radio, Swords, Timer, Zap
-} from 'lucide-react';
+import { ArrowUpRight, BookOpen, Brain, CircleHelp, FileInput, Swords } from 'lucide-react';
 import './QuizHub.css';
 import SocialHubChrome from '../components/SocialHubChrome';
 import ImportExportModal from '../components/ImportExportModal';
@@ -22,7 +11,6 @@ import contextService from '../services/contextService';
 const QuizHub = () => {
   const navigate = useNavigate();
   const [showImportExport, setShowImportExport] = useState(false);
-  const [hoveredSection, setHoveredSection] = useState(null);
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
   const [userDocCount, setUserDocCount] = useState(0);
@@ -48,11 +36,11 @@ const QuizHub = () => {
   };
 
   const openMode = (path) => navigate(path);
-  const handleModeKeyDown = (event, path) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
-    openMode(path);
-  };
+
+  const modes = [
+    { key: 'solo', icon: Brain, title: 'Solo Quiz', copy: 'Practice any topic at your own pace.', path: '/solo-quiz' },
+    { key: 'battle', icon: Swords, title: 'Quiz Battles', copy: 'Challenge a friend to a live 1v1 quiz.', path: '/quiz-battles' },
+  ];
 
   const sidebarLead = (
     <button className="qh-side-primary" type="button" onClick={() => openMode('/solo-quiz')}>
@@ -99,119 +87,21 @@ const QuizHub = () => {
       >
         <main className="qh-main">
           <header className="qh-hero">
-
             <h1 className="plain-page-title">Quiz Hub</h1>
-
           </header>
 
-          <section className="qh-workspace" aria-labelledby="qh-routes-heading">
-            <div className="qh-toolbar">
-              <div>
-                <span>Practice routes</span>
-                <strong id="qh-routes-heading">Select the pressure that fits this session</strong>
-              </div>
-              <div className="qh-toolbar-status" aria-live="polite">
-                <span>{hoveredSection === 'battle' ? 'Live challenge' : 'Independent practice'}</span>
-                <strong>{hoveredSection === 'battle' ? 'Same questions · two players' : 'Your topic · your pace'}</strong>
-              </div>
-            </div>
-
-            <div className="qh-mode-grid">
-              <section
-                className="qh-mode-card qh-mode-card--solo"
-                role="link"
-                tabIndex="0"
-                aria-label="Start Solo Practice"
-                onClick={() => openMode('/solo-quiz')}
-                onKeyDown={(event) => handleModeKeyDown(event, '/solo-quiz')}
-                onFocus={() => setHoveredSection('solo')}
-                onBlur={() => setHoveredSection(null)}
-                onPointerEnter={() => setHoveredSection('solo')}
-                onPointerLeave={() => setHoveredSection(null)}
-              >
-                <span className="qh-card-spine" aria-hidden="true"><i /></span>
-                <div className="qh-card-header">
-                  <span className="qh-card-index">01</span>
-                  <span className="qh-card-heading">
-                    <small>Practice independently</small>
-                    <strong>Solo Practice</strong>
-                  </span>
-                  <span className="qh-card-icon"><Brain size={20} /></span>
-                </div>
-
-                <div className="qh-card-workarea">
-                  <div className="qh-question-preview" aria-hidden="true">
-                    <span className="qh-preview-label">Question preview</span>
-                    <span className="qh-preview-prompt" />
-                    <span className="qh-preview-option is-selected"><i>A</i><b /></span>
-                    <span className="qh-preview-option"><i>B</i><b /></span>
-                    <span className="qh-preview-option"><i>C</i><b /></span>
-                  </div>
-                  <div className="qh-card-copy">
-                    <h2>Solo Quiz</h2>
-
-                  </div>
-                </div>
-
-                <div className="qh-card-footer">
-                  <span className="qh-card-spec"><Timer size={13} />Flexible timing</span>
-                  <span className="qh-card-spec"><Zap size={13} />Adaptive option</span>
-                  <span className="qh-card-action">Start Solo Quiz <ArrowUpRight size={16} /></span>
-                </div>
-              </section>
-
-              <section
-                className="qh-mode-card qh-mode-card--battle"
-                role="link"
-                tabIndex="0"
-                aria-label="Enter 1v1 Battles"
-                onClick={() => openMode('/quiz-battles')}
-                onKeyDown={(event) => handleModeKeyDown(event, '/quiz-battles')}
-                onFocus={() => setHoveredSection('battle')}
-                onBlur={() => setHoveredSection(null)}
-                onPointerEnter={() => setHoveredSection('battle')}
-                onPointerLeave={() => setHoveredSection(null)}
-              >
-                <span className="qh-card-spine" aria-hidden="true"><i /></span>
-                <div className="qh-card-header">
-                  <span className="qh-card-index">02</span>
-                  <span className="qh-card-heading">
-                    <small>Challenge a connection</small>
-                    <strong>1v1 Battles</strong>
-                  </span>
-                  <span className="qh-card-icon"><Swords size={20} /></span>
-                </div>
-
-                <div className="qh-card-workarea">
-                  <div className="qh-versus-preview" aria-hidden="true">
-                    <div><small>You</small><strong>?</strong></div>
-                    <span className="qh-live-signal">
-                      <i /><i /><i /><i />
-                      <b>vs</b>
-                    </span>
-                    <div><small>Friend</small><strong>?</strong></div>
-                  </div>
-                  <div className="qh-card-copy">
-                    <h2 className="plain-page-title">Quiz Battles</h2>
-
-                  </div>
-                </div>
-
-                <div className="qh-card-footer">
-                  <span className="qh-card-spec"><Radio size={13} />Live status</span>
-                  <span className="qh-card-spec"><Zap size={13} />Four battle modes</span>
-                  <span className="qh-card-action">Enter battle arena <ArrowUpRight size={16} /></span>
-                </div>
-              </section>
-            </div>
-
-            <div className="qh-context-note">
-              <span>Both modes use your selected learning context.</span>
-              <button type="button" onClick={() => setContextPanelOpen(true)}>
-                Review context <ArrowUpRight size={13} />
+          <div className="qh-mode-grid">
+            {modes.map(({ key, icon: Icon, title, copy, path }) => (
+              <button key={key} type="button" className="qh-mode-card" onClick={() => openMode(path)}>
+                <span className="qh-card-icon"><Icon size={20} /></span>
+                <span className="qh-card-copy">
+                  <strong>{title}</strong>
+                  <small>{copy}</small>
+                </span>
+                <ArrowUpRight className="qh-card-arrow" size={18} />
               </button>
-            </div>
-          </section>
+            ))}
+          </div>
         </main>
       </SocialHubChrome>
 
