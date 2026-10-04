@@ -20,12 +20,14 @@ import HapticTouchable from '../../components/HapticTouchable';
 import { cbTileShadow, cbModalShadow, cbTileBorder } from '../../components/NeumorphicTexture';
 import {
   createFolder,
+  detectWeakSpots,
   invokeNotesAgent,
   moveNoteToFolder,
   moveNoteToTrash,
   toggleFavorite,
   transcribeAudio,
   updateNote,
+  type WeaknessFocus,
 } from '../../services/api';
 import {
   BUILT_IN_NOTE_TEMPLATES,
@@ -173,6 +175,32 @@ export default function NoteEditorScreen({
 
   const [newFolderName, setNewFolderName] = useState('');
   const [folderCreating, setFolderCreating] = useState(false);
+
+  // Weak-spot detection: is this note about a topic the student keeps getting
+  // wrong (services/weakness_model.py)? Offer to tailor it if so, like web.
+  const [weakSpots, setWeakSpots] = useState<WeaknessFocus[]>([]);
+  const [weakSpotDismissed, setWeakSpotDismissed] = useState(false);
+  const [tailoringWeakSpot, setTailoringWeakSpot] = useState(false);
+
+  useEffect(() => {
+    const plain = `${title} ${bodyText}`.trim();
+    if (!user.username || plain.length < 12) {
+      setWeakSpots([]);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      detectWeakSpots(user.username, title, bodyText)
+        .then((matches) => { if (!cancelled) setWeakSpots(matches); })
+        .catch(() => {
+          // silenced: detection is an optional hint
+        });
+    }, 1400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [title, bodyText, user.username]);
 
   useEffect(() => {
     setFolderOptions(folders);
@@ -461,6 +489,33 @@ export default function NoteEditorScreen({
     }
   };
 
+  const tailorNoteToWeakSpot = async () => {
+    if (tailoringWeakSpot) return;
+    setTailoringWeakSpot(true);
+    try {
+      const result = await invokeNotesAgent({
+        userId: user.username,
+        action: 'weak_spot',
+        topic: title,
+        content: bodyText,
+        context: bodyText,
+      });
+      const addition = String(result?.content || '').trim();
+      if (result?.success === false || !addition) {
+        Alert.alert('Nothing to tailor', result?.error || "This note isn't about a topic you've been getting wrong yet.");
+        return;
+      }
+      setBodyText((current) => (current.trim() ? `${current.trimEnd()}\n\n${addition}` : addition));
+      setWeakSpotDismissed(true);
+      const topic = result?.weakness_focus?.[0]?.topic || weakSpots[0]?.topic;
+      Alert.alert('Note tailored', topic ? `Added a section aimed at what you've been missing in ${topic}.` : "Added a section aimed at what you've been missing.");
+    } catch {
+      Alert.alert('Error', 'Could not tailor this note right now.');
+    } finally {
+      setTailoringWeakSpot(false);
+    }
+  };
+
   const applyAiSuggestion = (mode: 'replace' | 'append') => {
     if (!aiSuggestion.trim()) return;
     setBodyText((current) => (
@@ -586,6 +641,28 @@ export default function NoteEditorScreen({
               style={[styles.titleInput, { fontFamily: resolveNoteFont(customFont, 'title') }]}
             />
             <View style={styles.titleRule} />
+            {weakSpots.length > 0 && !weakSpotDismissed ? (
+              <View style={styles.weakSpot} accessibilityRole="summary">
+                <Text style={styles.weakSpotKicker}>Weak spot detected</Text>
+                <View style={styles.weakSpotTopics}>
+                  {weakSpots.map((spot) => (
+                    <View key={spot.topic} style={styles.weakSpotTopic}>
+                      <Text style={styles.weakSpotTopicText} numberOfLines={1}>{spot.topic}</Text>
+                      <Text style={styles.weakSpotScore}>{Math.round(Number(spot.weakness_score) || 0)}/100</Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.weakSpotHint}>You've been missing questions on this. Add a section aimed at exactly those mistakes.</Text>
+                <View style={styles.weakSpotActions}>
+                  <HapticTouchable style={styles.weakSpotTailor} onPress={tailorNoteToWeakSpot} disabled={tailoringWeakSpot} haptic="medium">
+                    <Text style={styles.weakSpotTailorText}>{tailoringWeakSpot ? 'Tailoring…' : 'Tailor this note'}</Text>
+                  </HapticTouchable>
+                  <HapticTouchable style={styles.weakSpotDismiss} onPress={() => setWeakSpotDismissed(true)} haptic="selection" accessibilityLabel="Dismiss weak spot suggestion">
+                    <Text style={styles.weakSpotDismissText}>Not now</Text>
+                  </HapticTouchable>
+                </View>
+              </View>
+            ) : null}
             <TextInput
               value={bodyText}
               onChangeText={setBodyText}
@@ -946,6 +1023,83 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
     safe: {
       flex: 1,
       backgroundColor: theme.bgPrimary,
+    },
+    weakSpot: {
+      gap: 8,
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: rgbaFromHex(theme.accent, 0.35),
+      backgroundColor: softAccent,
+    },
+    weakSpotKicker: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 10,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: theme.accentHover,
+    },
+    weakSpotTopics: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    weakSpotTopic: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      maxWidth: 260,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: rgbaFromHex(theme.borderStrong, 0.86),
+      backgroundColor: paper,
+    },
+    weakSpotTopicText: {
+      flexShrink: 1,
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 11.5,
+      color: theme.textPrimary,
+    },
+    weakSpotScore: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 11.5,
+      color: theme.accentHover,
+    },
+    weakSpotHint: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.textSecondary,
+    },
+    weakSpotActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    weakSpotTailor: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: theme.accent,
+    },
+    weakSpotTailorText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 12,
+      color: theme.bgPrimary,
+    },
+    weakSpotDismiss: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: rgbaFromHex(theme.borderStrong, 0.86),
+    },
+    weakSpotDismissText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 12,
+      color: theme.textSecondary,
     },
     navBar: {
       flexDirection: 'row',
