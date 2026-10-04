@@ -13,7 +13,7 @@ import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
-type Props = { user: AuthUser; onBack: () => void };
+type Props = { user: AuthUser; onBack: () => void; onOpenTopic?: (topic: string) => void };
 type Bucket = 'mastered' | 'progressing' | 'needs_work';
 type Filter = 'all' | Bucket;
 type Topic = {
@@ -46,7 +46,7 @@ function fmtLastPracticed(iso?: string | null) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-export default function TopicsHubScreen({ user, onBack }: Props) {
+export default function TopicsHubScreen({ user, onBack, onOpenTopic }: Props) {
   const { selectedTheme } = useAppTheme();
   const layout = useResponsiveLayout();
   const insets = useSafeAreaInsets();
@@ -78,10 +78,11 @@ export default function TopicsHubScreen({ user, onBack }: Props) {
   const topics: Topic[] = useMemo(() => {
     if (!overview) return [];
     if (filter === 'all') {
+      // Weakest first, where another session makes the biggest difference.
       return [
-        ...overview.topic_breakdown.mastered,
-        ...overview.topic_breakdown.progressing,
         ...overview.topic_breakdown.needs_work,
+        ...overview.topic_breakdown.progressing,
+        ...overview.topic_breakdown.mastered,
       ];
     }
     return overview.topic_breakdown[filter] || [];
@@ -163,7 +164,7 @@ export default function TopicsHubScreen({ user, onBack }: Props) {
                 <Text style={s.listMeta}>{topics.length} topics</Text>
               </View>
               {topics.length ? topics.map((topic, index) => (
-                <TopicRow key={`${topic.topic}-${index}`} index={index} topic={topic} styles={s} />
+                <TopicRow key={`${topic.topic}-${index}`} index={index} topic={topic} styles={s} onPress={onOpenTopic ? () => onOpenTopic(topic.topic) : undefined} chevronColor={selectedTheme.textSecondary} />
               )) : <Text style={s.emptyInline}>No topics in this category yet.</Text>}
             </View>
           </>
@@ -183,11 +184,11 @@ function Summary({ icon, label, value, styles }: { icon: React.ComponentProps<ty
   );
 }
 
-function TopicRow({ index, topic, styles }: { index: number; topic: Topic; styles: ReturnType<typeof createStyles> }) {
+function TopicRow({ index, topic, styles, onPress, chevronColor }: { index: number; topic: Topic; styles: ReturnType<typeof createStyles>; onPress?: () => void; chevronColor: string }) {
   const masteryPct = Math.max(0, Math.min(100, Math.round((topic.mastery_level || 0) * 100)));
   const bucket: Bucket = masteryPct >= 80 ? 'mastered' : masteryPct >= 50 ? 'progressing' : 'needs_work';
   return (
-    <View style={styles.topicRow}>
+    <HapticTouchable style={styles.topicRow} onPress={onPress} disabled={!onPress} haptic="selection" accessibilityLabel={`Open ${topic.topic}`}>
       <View style={styles.topicRank}><Text style={styles.topicRankText}>{String(index + 1).padStart(2, '0')}</Text></View>
       <View style={styles.topicBody}>
         <View style={styles.topicTitleRow}>
@@ -202,7 +203,8 @@ function TopicRow({ index, topic, styles }: { index: number; topic: Topic; style
           <Text style={styles.strugglesText} numberOfLines={1}>struggles with: {topic.struggles_with!.slice(0, 2).join(', ')}</Text>
         )}
       </View>
-    </View>
+      {onPress ? <Ionicons name="chevron-forward" size={16} color={chevronColor} /> : null}
+    </HapticTouchable>
   );
 }
 

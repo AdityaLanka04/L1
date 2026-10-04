@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NavigationContainer, useFocusEffect, useNavigationContainerRef } from '@react-navigation/native';
 import { NavigationIndependentTree } from '@react-navigation/core';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts, Inter_700Bold } from '@expo-google-fonts/inter';
 import { AuthUser } from '../services/auth';
@@ -16,7 +16,7 @@ import AIChatScreen from '../screens/AIChatScreen';
 import SocialScreen from '../screens/SocialScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import MoreScreen from '../screens/MoreScreen';
-import FlashcardsScreen from '../screens/FlashcardsScreen';
+import FlashcardsScreen, { MissedCardsDeck } from '../screens/FlashcardsScreen';
 import NotesScreen from '../screens/NotesScreen';
 import AIMediaNotesScreen from '../screens/AIMediaNotesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -24,7 +24,9 @@ import QuestionBankScreen from '../screens/QuestionBankScreen';
 import KnowledgeMapsScreen from '../screens/KnowledgeMapsScreen';
 import XpAnalyticsScreen from '../screens/XpAnalyticsScreen';
 import XpHistoryScreen from '../screens/XpHistoryScreen';
-import WeaknessPracticeScreen from '../screens/WeaknessPracticeScreen';
+import WeaknessPracticeScreen, { WeaknessLinks } from '../screens/WeaknessPracticeScreen';
+import WeaknessTipsScreen from '../screens/WeaknessTipsScreen';
+import SoloQuizScreen, { SoloQuizAutoStart } from '../screens/social/SoloQuizScreen';
 import TopicsHubScreen from '../screens/TopicsHubScreen';
 import KnowledgeHubScreen from '../screens/KnowledgeHubScreen';
 import SlideExplorerScreen from '../screens/SlideExplorerScreen';
@@ -46,8 +48,8 @@ type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 // Visual breathing room between a focused input (e.g. the AI chat composer) and the keyboard's top edge.
 const KEYBOARD_GAP = 12;
 type RootStackParamList = {
-  Main: { selectedTab?: number; tabRequestKey?: number } | undefined;
-  Flashcards: undefined;
+  Main: { selectedTab?: number; tabRequestKey?: number; chatPrompt?: string; chatPromptKey?: number } | undefined;
+  Flashcards: { missedCards?: MissedCardsDeck } | undefined;
   Notes: undefined;
   AIMedia: undefined;
   Settings: undefined;
@@ -59,6 +61,8 @@ type RootStackParamList = {
   XpAnalytics: undefined;
   XpHistory: undefined;
   WeaknessPractice: undefined;
+  WeaknessTips: { topic: string };
+  SoloQuiz: SoloQuizAutoStart | undefined;
   TopicsHub: undefined;
   LearningPaths: undefined;
   Leaderboard: undefined;
@@ -82,10 +86,11 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 type AppTarget = 'flashcards' | 'notes' | 'aimedia' | 'settings' | 'questionBank' | 'knowledgeMaps' | 'knowledgeHub' | 'slideExplorer' | 'canvasHub' | 'xpAnalytics' | 'weaknessPractice' | 'topicsHub' | 'learningPaths' | 'leaderboard' | 'rlInsights' | 'achievements' | 'notifications' | 'calendar' | 'activityTimeline';
 
-function MainTabs({ user, onLogout, onUserUpdate, onRetakeQuiz, onNavigate, requestedTab, tabRequestKey }: Props & {
+function MainTabs({ user, onLogout, onUserUpdate, onRetakeQuiz, onNavigate, requestedTab, tabRequestKey, chatPrompt }: Props & {
   onNavigate: (screen: AppTarget) => void;
   requestedTab?: number;
   tabRequestKey?: number;
+  chatPrompt?: { text: string; key: number };
 }) {
   const insets = useSafeAreaInsets();
   const { selectedTheme } = useAppTheme();
@@ -180,7 +185,7 @@ function MainTabs({ user, onLogout, onUserUpdate, onRetakeQuiz, onNavigate, requ
             overdrag={false}
             scrollEnabled={true}
           >
-            <View key="0" collapsable={false} style={s.page}><AIChatScreen user={user} /></View>
+            <View key="0" collapsable={false} style={s.page}><AIChatScreen user={user} initialPrompt={chatPrompt} /></View>
             <View key="1" collapsable={false} style={s.page}><MoreScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} /></View>
             <View key="2" collapsable={false} style={s.page}><HomeScreen user={user} onNavigate={onNavigate} onNavigateToAI={() => goTo(0)} onSwipeLeftPage={() => goTo(3)} onSwipeRightPage={() => goTo(1)} /></View>
             <View key="3" collapsable={false} style={s.page}><SocialScreen user={user} onOpenLeaderboard={() => onNavigate('leaderboard')} /></View>
@@ -226,6 +231,20 @@ function MainTabs({ user, onLogout, onUserUpdate, onRetakeQuiz, onNavigate, requ
   );
 }
 
+// Where weakness screens send the student next -- the mobile counterparts of
+// the web Weak Areas page's links (topic tips, quiz, AI chat, missed cards).
+function weaknessLinks(navigation: NativeStackNavigationProp<RootStackParamList>): WeaknessLinks {
+  return {
+    openTopic: (topic) => navigation.push('WeaknessTips', { topic }),
+    quiz: (autoStart) => navigation.push('SoloQuiz', autoStart),
+    askChat: (prompt) => navigation.popTo('Main', { selectedTab: 0, tabRequestKey: Date.now(), chatPrompt: prompt, chatPromptKey: Date.now() }),
+    reviewCards: (deck) => navigation.push('Flashcards', { missedCards: deck }),
+    flashcards: () => navigation.navigate('Flashcards'),
+    topicsHub: () => navigation.navigate('TopicsHub'),
+    rlInsights: () => navigation.navigate('RLInsights'),
+  };
+}
+
 export default function TabNavigator({ user, onLogout, onUserUpdate, onRetakeQuiz }: Props) {
   const { selectedTheme } = useAppTheme();
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
@@ -266,6 +285,7 @@ export default function TabNavigator({ user, onLogout, onUserUpdate, onRetakeQui
                 onRetakeQuiz={onRetakeQuiz}
                 requestedTab={route.params?.selectedTab}
                 tabRequestKey={route.params?.tabRequestKey}
+                chatPrompt={route.params?.chatPrompt && route.params.chatPromptKey ? { text: route.params.chatPrompt, key: route.params.chatPromptKey } : undefined}
                 onNavigate={(screen) => {
                   if (screen === 'flashcards') navigation.navigate('Flashcards');
                   if (screen === 'notes') navigation.navigate('Notes');
@@ -291,8 +311,13 @@ export default function TabNavigator({ user, onLogout, onUserUpdate, onRetakeQui
             )}
           </Stack.Screen>
           <Stack.Screen name="Flashcards">
-            {({ navigation }) => (
-              <ScreenErrorBoundary label="Flashcards"><FlashcardsScreen user={user} onBack={() => navigation.goBack()} /></ScreenErrorBoundary>
+            {({ navigation, route }) => (
+              <ScreenErrorBoundary label="Flashcards"><FlashcardsScreen user={user} onBack={() => navigation.goBack()} missedCards={route.params?.missedCards} /></ScreenErrorBoundary>
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="SoloQuiz">
+            {({ navigation, route }) => (
+              <ScreenErrorBoundary label="Solo Quiz"><SoloQuizScreen user={user} onBack={() => navigation.goBack()} autoStart={route.params} /></ScreenErrorBoundary>
             )}
           </Stack.Screen>
           <Stack.Screen name="Notes">
@@ -396,15 +421,14 @@ export default function TabNavigator({ user, onLogout, onUserUpdate, onRetakeQui
           <Stack.Screen name="WeaknessPractice">
             {({ navigation }) => (
               <ScreenErrorBoundary label="Weakness Practice">
-                <WeaknessPracticeScreen
-                  user={user}
-                  onBack={() => navigation.goBack()}
-                  onNavigate={(screen) => {
-                    if (screen === 'rlInsights') navigation.navigate('RLInsights');
-                    if (screen === 'topicsHub') navigation.navigate('TopicsHub');
-                    if (screen === 'activityTimeline') navigation.navigate('ActivityTimeline');
-                  }}
-                />
+                <WeaknessPracticeScreen user={user} onBack={() => navigation.goBack()} links={weaknessLinks(navigation)} />
+              </ScreenErrorBoundary>
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="WeaknessTips">
+            {({ navigation, route }) => (
+              <ScreenErrorBoundary label="Weakness Tips">
+                <WeaknessTipsScreen user={user} topic={route.params.topic} onBack={() => navigation.goBack()} links={weaknessLinks(navigation)} />
               </ScreenErrorBoundary>
             )}
           </Stack.Screen>
@@ -415,7 +439,7 @@ export default function TabNavigator({ user, onLogout, onUserUpdate, onRetakeQui
           </Stack.Screen>
           <Stack.Screen name="TopicsHub">
             {({ navigation }) => (
-              <ScreenErrorBoundary label="Topics Hub"><TopicsHubScreen user={user} onBack={() => navigation.goBack()} /></ScreenErrorBoundary>
+              <ScreenErrorBoundary label="Topics Hub"><TopicsHubScreen user={user} onBack={() => navigation.goBack()} onOpenTopic={(topic) => navigation.navigate('WeaknessTips', { topic })} /></ScreenErrorBoundary>
             )}
           </Stack.Screen>
           <Stack.Screen name="Calendar">
