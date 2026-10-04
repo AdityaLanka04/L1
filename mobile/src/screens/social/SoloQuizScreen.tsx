@@ -19,7 +19,10 @@ import { useAppTheme } from '../../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../../utils/theme';
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 
-type Props = { user: AuthUser; onBack: () => void };
+// Weak Areas' "Quiz me on it" opens a quiz on one topic straight away,
+// like the web's SoloQuiz autoStart state.
+export type SoloQuizAutoStart = { topic: string; difficulty?: 'easy' | 'medium' | 'hard'; questionCount?: number };
+type Props = { user: AuthUser; onBack: () => void; autoStart?: SoloQuizAutoStart };
 type Stage = 'generator' | 'loading' | 'session' | 'review' | 'history' | 'stats';
 type Difficulty = 'adaptive' | 'easy' | 'medium' | 'hard';
 type QuizMode = 'standard' | 'sequential' | 'instant';
@@ -42,7 +45,7 @@ function readableResults(rows: any[], questions: SoloQuizQuestion[]): AnsweredRe
   });
 }
 
-export default function SoloQuizScreen({ user, onBack }: Props) {
+export default function SoloQuizScreen({ user, onBack, autoStart }: Props) {
   const { selectedTheme } = useAppTheme();
   const layout = useResponsiveLayout();
   const s = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
@@ -56,7 +59,7 @@ export default function SoloQuizScreen({ user, onBack }: Props) {
   // Landing is the quiz list (mirrors Battles: main page = the list, with a
   // "create" CTA up top; the generator/create form is a destination you tap
   // into, not the default page).
-  const [stage, setStage] = useState<Stage>('history');
+  const [stage, setStage] = useState<Stage>(autoStart?.topic ? 'loading' : 'history');
   const [error, setError] = useState('');
 
   // Generator form
@@ -103,8 +106,9 @@ export default function SoloQuizScreen({ user, onBack }: Props) {
     if (next !== 'generator') loadHistory();
   };
 
-  const startQuiz = async () => {
-    if (!subject.trim()) {
+  const startQuiz = async (override?: { subject: string; difficulty: Difficulty; questionCount: number }) => {
+    const quizSubject = (override?.subject ?? subject).trim();
+    if (!quizSubject) {
       setError('Enter a subject to begin your quiz');
       return;
     }
@@ -112,9 +116,9 @@ export default function SoloQuizScreen({ user, onBack }: Props) {
     setStage('loading');
     try {
       const created = await createSoloQuiz({
-        subject: subject.trim(),
-        difficulty,
-        question_count: questionCount,
+        subject: quizSubject,
+        difficulty: override?.difficulty ?? difficulty,
+        question_count: override?.questionCount ?? questionCount,
       });
       if (!created.quiz_id) throw new Error('Could not generate questions. Try a different topic.');
       const data = await getSoloQuiz(created.quiz_id);
@@ -129,6 +133,20 @@ export default function SoloQuizScreen({ user, onBack }: Props) {
       setStage('generator');
     }
   };
+
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!autoStart?.topic || autoStarted.current) return;
+    autoStarted.current = true;
+    const next = { subject: autoStart.topic, difficulty: autoStart.difficulty ?? 'medium', questionCount: autoStart.questionCount ?? 10 };
+    setSubject(next.subject);
+    setDifficulty(next.difficulty);
+    setQuestionCount(next.questionCount);
+    setQuestionCountText(String(next.questionCount));
+    startQuiz(next);
+    // Runs once for the topic this screen was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectAnswer = async (questionId: number, optionIndex: number) => {
     if (savingRef.current) return;
@@ -315,7 +333,7 @@ export default function SoloQuizScreen({ user, onBack }: Props) {
 
           <HapticTouchable
             style={[s.launchBtn, !subject.trim() && s.launchBtnDisabled]}
-            onPress={startQuiz}
+            onPress={() => startQuiz()}
             disabled={!subject.trim()}
             haptic="medium"
           >

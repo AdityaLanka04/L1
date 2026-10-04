@@ -116,7 +116,11 @@ type ManualDraftCard = {
 type Difficulty = 'adaptive' | 'easy' | 'medium' | 'hard';
 type CreateMode = 'ai' | 'manual';
 
-type Props = { user: AuthUser; onBack?: () => void };
+// Opened from Weak Areas' "Review missed cards": jump straight into studying
+// just the cards the student still gets wrong on one topic.
+export type MissedCardsDeck = { title: string; cards: { id: number; question: string; answer: string; difficulty?: string }[] };
+
+type Props = { user: AuthUser; onBack?: () => void; missedCards?: MissedCardsDeck };
 type FlashcardsStackParamList = {
   FlashcardsSets: undefined;
   FlashcardsCreate: { mode?: CreateMode } | undefined;
@@ -1717,7 +1721,7 @@ function FlashcardsSets({
   );
 }
 
-export default function FlashcardsScreen({ user, onBack }: Props) {
+export default function FlashcardsScreen({ user, onBack, missedCards }: Props) {
   const { selectedTheme } = useAppTheme();
   const layout = useResponsiveLayout();
   CURRENT_LAYOUT = layout;
@@ -1725,11 +1729,24 @@ export default function FlashcardsScreen({ user, onBack }: Props) {
   s = createStyles(layout);
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
   const [refreshTick, setRefreshTick] = useState(0);
+  const [missedStudy] = useState(() => (missedCards?.cards.length ? {
+    set: {
+      id: 0,
+      title: missedCards.title,
+      description: 'Cards you have not fixed yet',
+      card_count: missedCards.cards.length,
+      accuracy_percentage: 0,
+      source_type: 'review',
+      created_at: new Date().toISOString(),
+    } as FlashcardSet,
+    cards: missedCards.cards.map((card) => ({ ...card, difficulty: card.difficulty || 'medium' })) as Flashcard[],
+  } : null));
 
   if (!fontsLoaded) return null;
 
   return (
     <FlashcardsStack.Navigator
+      initialRouteName={missedStudy ? 'FlashcardsStudy' : 'FlashcardsSets'}
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
@@ -1770,7 +1787,7 @@ export default function FlashcardsScreen({ user, onBack }: Props) {
           />
         )}
       </FlashcardsStack.Screen>
-      <FlashcardsStack.Screen name="FlashcardsStudy">
+      <FlashcardsStack.Screen name="FlashcardsStudy" initialParams={missedStudy ?? undefined}>
         {({ route, navigation }) => (
           <StudyView
             set={route.params.set}

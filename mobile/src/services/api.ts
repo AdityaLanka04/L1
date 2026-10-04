@@ -1376,6 +1376,9 @@ export type RecentMistake = {
   occurred_at: string | null;
   has_explanation: boolean;
   reviewed: boolean;
+  // A mistake counts as fixed once the same card/question was later answered correctly.
+  resolved?: boolean;
+  flashcard_id?: number | null;
 };
 
 export type RecentMistakeTopic = { topic: string; accuracy: number | null; total_attempts: number; total_wrong: number };
@@ -1401,6 +1404,128 @@ export async function explainMistake(userId: string, mistakeId: number, source: 
     await readApiError(res, 'Could not generate an explanation');
   }
   return res.json() as Promise<{ success: boolean; content: string; cached: boolean }>;
+}
+
+// ── Weakness model (services/weakness_model.py) ─────────────────────────
+// One row per topic from /study_insights/strengths_weaknesses -- the same
+// BKT-backed weakness score the web Weak Areas page, the AI tutor and the
+// note generator all read.
+export type WeakAreaCategory = 'critical' | 'needs_practice' | 'improving';
+export type WeakArea = {
+  topic: string;
+  label?: string;
+  category: WeakAreaCategory;
+  accuracy: number;
+  total_attempts: number;
+  total_wrong: number;
+  weakness_score: number;
+  priority: number;
+  status: string;
+  last_practiced: string | null;
+  sources: string[];
+  score_model?: 'bkt' | string;
+  mastery?: number;
+  model_observations?: number;
+  confidence?: 'low' | 'medium' | 'high' | string;
+  trend?: 'improving' | 'slipping' | 'steady' | string;
+};
+export type WeakAreasResponse = {
+  status: string;
+  weak_areas: Partial<Record<WeakAreaCategory, WeakArea[]>>;
+  summary?: { critical_count?: number; needs_practice_count?: number; improving_count?: number; total_topics?: number; overall_accuracy?: number };
+};
+
+export async function getWeakAreas(userId: string): Promise<WeakAreasResponse> {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/study_insights/strengths_weaknesses?user_id=${encodeURIComponent(userId)}`, { headers });
+  if (!res.ok) await readApiError(res, 'Your diagnosis could not be refreshed.');
+  return res.json();
+}
+
+export type StudyActivity = { type: string; topic: string | null; ts: string | null; detail?: string };
+
+export async function getStudyActivityFeed(userId: string): Promise<{ activities: StudyActivity[] }> {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/study_insights/activity_feed?user_id=${encodeURIComponent(userId)}`, { headers });
+  if (!res.ok) await readApiError(res, 'Recent learning activity is unavailable right now.');
+  return res.json();
+}
+
+export type TopicSuggestion = { title: string; description: string; priority: 'high' | 'medium' | 'low' | string };
+export type TopicSuggestionsResponse = {
+  topic: string;
+  suggestions: TopicSuggestion[];
+  study_tips: string[];
+  stats: { attempts: number; accuracy: number; wrong: number };
+};
+
+export async function getTopicSuggestions(userId: string, topic: string): Promise<TopicSuggestionsResponse | null> {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/study_insights/topic_suggestions?user_id=${encodeURIComponent(userId)}&topic=${encodeURIComponent(topic)}`, { headers });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export type SimilarQuestion = { question_text: string; difficulty: string; user_answer: string | null; correct_answer: string | null; is_new: boolean };
+
+export async function getSimilarQuestions(userId: string, topic: string): Promise<{ total_found: number; similar_questions: SimilarQuestion[] } | null> {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/study_insights/similar_questions?user_id=${encodeURIComponent(userId)}&topic=${encodeURIComponent(topic)}`, { headers });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export type WeaknessProfileConcept = {
+  concept_id: string;
+  concept_name?: string;
+  p_mastery: number;
+  mastery_trend_label?: 'improving' | 'declining' | 'stable' | string;
+  evidence?: string;
+  struggle_sources?: string[];
+};
+export type WeaknessProfileBadge = { badge_id: string; name: string; description?: string; icon?: string; earned: boolean };
+export type WeaknessProfile = {
+  stats?: {
+    total_points?: number;
+    weekly_points?: number;
+    daily_streak?: number;
+    concepts_mastered?: number;
+    concepts_in_progress?: number;
+    total_study_time_hours?: number;
+    weakest_subject?: string | null;
+    strongest_subject?: string | null;
+    avg_session_length_min?: number;
+    improvement_rate?: number;
+  };
+  weak_concepts?: WeaknessProfileConcept[];
+  badges?: WeaknessProfileBadge[];
+  weekly_activity?: { date: string; interactions: number }[];
+  mastery_over_time?: { date: string; avg_p_mastery: number }[];
+  heatmap?: { concept_id: string; concept_name?: string; p_mastery: number; color?: string }[];
+  struggling_today?: string[];
+};
+
+export async function getWeaknessProfile(userId: string): Promise<WeaknessProfile | null> {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/intelligence/weakness/profile?user_id=${encodeURIComponent(userId)}`, { headers });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// A tracked weak topic that a chat answer or note was tailored to.
+export type WeaknessFocus = { topic: string; weakness_score: number; [key: string]: unknown };
+
+// Which tracked weak topics a note's text is about (POST /weaknesses/detect).
+export async function detectWeakSpots(userId: string, title: string, text: string): Promise<WeaknessFocus[]> {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/weaknesses/detect`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, title, text: text.slice(0, 12000) }),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data?.matches) ? data.matches : [];
 }
 
 // ── Social ────────────────────────────────────────────────────────────
