@@ -867,6 +867,7 @@ async def get_recent_mistakes(
                     "has_explanation": bool(wa.ai_explanation),
                     "reviewed": bool(wa.reviewed),
                     "resolved": wa.id in fixed_ids,
+                    "flashcard_id": wa.flashcard_id,
                 })
 
         if source in ("all", "chat"):
@@ -892,6 +893,7 @@ async def get_recent_mistakes(
                     "has_explanation": False,
                     "reviewed": False,
                     "resolved": False,
+                    "flashcard_id": None,
                 })
 
         items.sort(key=lambda i: i["occurred_at"] or "", reverse=True)

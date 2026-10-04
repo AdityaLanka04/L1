@@ -375,3 +375,17 @@ def test_recent_mistakes_flags_flashcard_misses_fixed_before_tracking_existed(db
     db.commit()
 
     assert _fixed_mistake_ids(db, logs) == {logs[0].id}
+
+
+def test_recent_mistakes_returns_card_ids_for_missed_card_review(db, user):
+    """Mobile's "Review missed cards" studies the exact open cards, so each
+    flashcard mistake carries its card id and whether it has been fixed."""
+    import json
+    from routes.weakness import get_recent_mistakes
+
+    review(db, user, False)
+    response = asyncio.run(get_recent_mistakes(user_id=str(user.id), limit=20, source="all", db=db, token="t"))
+    mistakes = json.loads(response.body)["mistakes"]
+    card_mistakes = [m for m in mistakes if m["source"] == "flashcard"]
+    assert card_mistakes and all(m["flashcard_id"] for m in card_mistakes)
+    assert all(m["resolved"] is False for m in card_mistakes)
