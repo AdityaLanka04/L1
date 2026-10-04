@@ -21,7 +21,7 @@ import {
   createChatSession, askAI, askAIWithFile, getChatSessions, getChatMessages, getSearchHubSuggestions,
   getConversationStarters,
   renameChatSession, deleteChatSession, submitChatFeedback, getFriends, shareContent, getChatShareLink, WEB_URL,
-  createChatFolder, getChatFolders, deleteChatFolder, moveChatToFolder, ChatFolder, Citation,
+  createChatFolder, getChatFolders, deleteChatFolder, moveChatToFolder, ChatFolder, Citation, WeaknessFocus,
 } from '../services/api';
 import { getHsModeEnabled, getDeck } from '../services/contextService';
 import { triggerHaptic } from '../utils/haptics';
@@ -32,9 +32,11 @@ import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 const EDGE_SWIPE_WIDTH = 20;
 
 type ChatAttachment = { uri: string; name: string; type: string };
-type Msg = { id: string; role: 'user' | 'ai'; text: string; attachmentUri?: string; sources?: Citation[] };
+type Msg = { id: string; role: 'user' | 'ai'; text: string; attachmentUri?: string; sources?: Citation[]; weaknessFocus?: WeaknessFocus[] };
 type Session = { id: number; title: string; updated_at: string | null; folder_id?: number | null };
-type Props = { user: AuthUser };
+// initialPrompt: a message handed over from another screen (e.g. Weak Areas'
+// "Explain it in AI Chat"), sent in a fresh chat once per key.
+type Props = { user: AuthUser; initialPrompt?: { text: string; key: number } };
 
 type PromptItem = Msg & { questionNumber: number; messageIndex: number; preview: string };
 
@@ -168,7 +170,7 @@ function buildPromptItems(messages: Msg[]): PromptItem[] {
   }, []);
 }
 
-export default function AIChatScreen({ user }: Props) {
+export default function AIChatScreen({ user, initialPrompt }: Props) {
   const { selectedTheme } = useAppTheme();
   const layout = useResponsiveLayout();
   const enableEdgeSwipe = !layout.isTablet;
@@ -531,11 +533,11 @@ export default function AIChatScreen({ user }: Props) {
     }
   };
 
-  const send = async (text: string = input) => {
+  const send = async (text: string = input, opts: { fresh?: boolean } = {}) => {
     const version = conversationVersionRef.current;
     const trimmed = text.trim();
-    const currentAttachment = attachment;
-    if ((!trimmed && !currentAttachment) || loading) return;
+    const currentAttachment = opts.fresh ? null : attachment;
+    if ((!trimmed && !currentAttachment) || (loading && !opts.fresh)) return;
 
     const questionText = trimmed || 'Please analyze the attached image.';
     const userMessage: Msg = {
@@ -550,7 +552,7 @@ export default function AIChatScreen({ user }: Props) {
     setLoading(true);
 
     try {
-      let currentChatId = chatId;
+      let currentChatId = opts.fresh ? undefined : chatId;
       if (!currentChatId) {
         const session = await createChatSession(user.username, questionText.slice(0, 60));
         currentChatId = session.id;
@@ -568,6 +570,7 @@ export default function AIChatScreen({ user }: Props) {
           role: 'ai',
           text: data.answer,
           sources: Array.isArray(data.sources) && data.sources.length ? data.sources : undefined,
+          weaknessFocus: Array.isArray(data.weakness_focus) && data.weakness_focus.length ? data.weakness_focus : undefined,
         },
       ]);
     } catch (error) {
@@ -588,6 +591,16 @@ export default function AIChatScreen({ user }: Props) {
     setChatId(undefined);
     setInput(''); setAttachment(null); setLoading(false);
   };
+
+  const handledPromptKey = useRef<number | null>(null);
+  useEffect(() => {
+    if (!initialPrompt?.text.trim() || handledPromptKey.current === initialPrompt.key) return;
+    handledPromptKey.current = initialPrompt.key;
+    newChat();
+    send(initialPrompt.text, { fresh: true });
+    // Only a new key should trigger a send.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt?.key]);
 
   const pickAttachment = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -811,7 +824,22 @@ export default function AIChatScreen({ user }: Props) {
                         <Text style={s.userText}>{item.text}</Text>
                       </>
                     ) : (
-                      <MarkdownText>{preprocessText(item.text)}</MarkdownText>
+                      <>
+                        {item.weaknessFocus?.length ? (
+                          <View style={s.weakSpot} accessibilityRole="text">
+                            <Text style={s.weakSpotKicker}>tailored to your weak spot</Text>
+                            <View style={s.weakSpotTopics}>
+                              {item.weaknessFocus.map((spot: WeaknessFocus) => (
+                                <View key={spot.topic} style={s.weakSpotTopic}>
+                                  <Text style={s.weakSpotTopicText} numberOfLines={1}>{spot.topic}</Text>
+                                  <Text style={s.weakSpotScore}>{Math.round(Number(spot.weakness_score) || 0)}/100</Text>
+                                </View>
+                              ))}
+                            </View>
+                          </View>
+                        ) : null}
+                        <MarkdownText>{preprocessText(item.text)}</MarkdownText>
+                      </>
                     )}
                   </View>
                   {!isUser && item.sources?.length ? (
@@ -1346,6 +1374,47 @@ function createStyles(
     backgroundColor: CARD,
     borderWidth: 1,
     borderColor: BORDER,
+  },
+  weakSpot: {
+    gap: 6,
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  weakSpotKicker: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 9,
+    color: GOLD_L,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  weakSpotTopics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  weakSpotTopic: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: 240,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  weakSpotTopicText: {
+    flexShrink: 1,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 11,
+    color: DIM,
+  },
+  weakSpotScore: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 11,
+    color: GOLD_L,
   },
   sourcesRow: {
     flexDirection: 'row',
