@@ -7693,12 +7693,12 @@ sub {
   line-height: 1.5;
 }
 
-/* User prompt: solid Cerbyl gold block with a flat edge. */
+/* User prompt: solid Cerbyl gold block. */
 .ai-chat-page.ac-qb-page .ac-message.user .ac-message-bubble {
   max-width: min(68%, 620px);
-  padding: 12px 16px !important;
+  padding: 12px 18px !important;
   border: 0 !important;
-  border-radius: 2px !important;
+  border-radius: 18px 18px 6px 18px !important;
   background: var(--ac-accent) !important;
   box-shadow: none !important;
   transform: none !important;
@@ -7717,10 +7717,27 @@ sub {
 
 /* "Report an issue": uppercase Inter label with open tracking. */
 .ai-chat-page .ac-answer-feedback.learning-flow > button {
-  padding: 4px 10px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+/* Display formulas: no card — set inline in the accent colour. */
+.ai-chat-page .ac-message-content .math-content .math-display-wrap,
+.ai-chat-page .ac-message-content .math-content .katex-display {
+  margin: 0.9em 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.ai-chat-page .ac-message-content .math-content .katex-display > .katex {
+  font-size: 1.2em !important;
 }
