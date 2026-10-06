@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import SlideExplorer from '../../pages/SlideExplorer';
@@ -14,7 +14,7 @@ const jsonResponse = (body) => ({
   json: async () => body,
 });
 
-describe('SlideExplorer sidebar controls', () => {
+describe('SlideExplorer', () => {
   beforeEach(() => {
     localStorage.setItem('token', 'test-token');
     localStorage.setItem('user_id', 'test-user');
@@ -24,7 +24,7 @@ describe('SlideExplorer sidebar controls', () => {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     }));
-    Object.defineProperty(globalThis, 'crypto', {
+    Object.defineProperty(global, 'crypto', {
       configurable: true,
       value: { randomUUID: jest.fn(() => 'test-session') },
     });
@@ -87,4 +87,46 @@ describe('SlideExplorer sidebar controls', () => {
       expect(document.querySelector('.se-analysis-page')).not.toHaveClass('se-sidebar-hidden');
     });
   });
+
+  it('shows an inline upload error and lets the user retry the same file', async () => {
+    const originalFetch = global.fetch;
+    let attempts = 0;
+    global.fetch = jest.fn((url, options) => {
+      if (String(url).includes('/upload_slides')) {
+        attempts += 1;
+        return Promise.resolve(attempts === 1
+          ? { ok: false, json: async () => ({ detail: 'Upload unavailable' }) }
+          : jsonResponse({}));
+      }
+      return originalFetch(url, options);
+    });
+    render(<MemoryRouter><SlideExplorer /></MemoryRouter>);
+    await screen.findByRole('button', { name: /open deck/i });
+    await userEvent.click(screen.getAllByRole('button', { name: /upload slides/i })[0]);
+    const input = screen.getByLabelText('Choose presentations');
+    const file = new File(['presentation'], 'Biology.pdf', { type: 'application/pdf' });
+    await userEvent.upload(input, file);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Upload unavailable');
+    expect(input.value).toBe('');
+    await waitFor(() => expect(input).not.toBeDisabled());
+    await userEvent.upload(input, new File(['presentation'], 'Biology.pdf', { type: 'application/pdf' }));
+    expect(await screen.findByRole('heading', { name: 'Slides', exact: true })).toBeInTheDocument();
+    expect(attempts).toBe(2);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('rejects a mixed file drop without uploading a partial selection', async () => {
+    render(<MemoryRouter><SlideExplorer /></MemoryRouter>);
+    await screen.findByRole('button', { name: /open deck/i });
+    await userEvent.click(screen.getAllByRole('button', { name: /upload slides/i })[0]);
+    fireEvent.drop(screen.getByRole('button', { name: /drop your presentations/i }), {
+      dataTransfer: { files: [
+        new File(['slides'], 'Biology.pdf', { type: 'application/pdf' }),
+        new File(['notes'], 'Notes.txt', { type: 'text/plain' }),
+      ] },
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent('Remove unsupported files');
+    expect(global.fetch.mock.calls.some(([url]) => String(url).includes('/upload_slides'))).toBe(false);
+  });
+
 });

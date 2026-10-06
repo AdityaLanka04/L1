@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
-import './QuestionbankLibrary.css';
+import '../components/StudyLibrary.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 import SocialHubChrome from '../components/SocialHubChrome';
@@ -1952,7 +1952,7 @@ const QuestionBankDashboard = () => {
   );
 
   return (
-    <div className="qbd-hub with-social-chrome">
+    <div className="qbd-hub with-social-chrome study-library">
       <SocialHubChrome
         brandKicker="Questions"
         collapsed={sidebarCollapsed}

@@ -1,16 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Loader, FileText, Trash2, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, UploadCloud, MessageSquare, Brain, Zap, Maximize2, Minimize2, ArrowUpRight, Layers3, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Upload, Loader, FileText, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, UploadCloud, MessageSquare, Brain, Zap, Maximize2, Minimize2, ArrowUpRight, Layers3, PanelLeftClose, PanelLeftOpen, AlertTriangle, Plus } from 'lucide-react';
+import '../components/StudyLibrary.css';
 import './SlideExplorer.css';
 import { API_URL } from '../config';
 import slideExplorerAgentService from '../services/slideExplorerAgentService';
 import { sanitizeHtml } from '../utils/sanitize';
 import SocialHubChrome from '../components/SocialHubChrome';
+import SlideDeckCard from '../components/SlideDeckCard';
 import { buildSlideDiscussionHandoff } from '../utils/slideDiscussionContext';
 
 const getDeckTitle = (filename = 'Untitled presentation') => filename.replace(/\.(pdf|pptx|ppt)$/i, '');
 
 const formatDeckDate = (value) => {
+  if (!value) return 'Recently added';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Recently added';
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -111,6 +114,9 @@ const SlideExplorer = () => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
+  const fileInputRef = useRef(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [activeView, setActiveView] = useState('grid'); // 'grid' | 'upload'
   const [focusMode, setFocusMode] = useState(false);
@@ -147,6 +153,10 @@ const SlideExplorer = () => {
   }, [fetchUploadedSlides]);
 
   useEffect(() => {
+    setActionError('');
+  }, [activeView]);
+
+  useEffect(() => {
     if (typeof window.matchMedia !== 'function') return undefined;
     const narrowViewport = window.matchMedia('(max-width: 1100px)');
     const syncSidebar = (event) => {
@@ -168,6 +178,7 @@ const SlideExplorer = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
+    if (uploading) return;
     if (e.dataTransfer.files && e.dataTransfer.files[0]) handleUpload(e.dataTransfer.files);
   };
 
@@ -176,8 +187,10 @@ const SlideExplorer = () => {
   };
 
   const handleUpload = async (files) => {
+    if (uploading) return;
+    setActionError('');
     const validFiles = Array.from(files).filter(file => file.name.match(/\.(pdf|pptx|ppt)$/i));
-    if (validFiles.length === 0) { alert('Please upload PDF or PowerPoint files only'); return; }
+    if (validFiles.length !== files.length) { setActionError('Choose PDF, PPTX or PPT files. Remove unsupported files and try again.'); return; }
 
     try {
       setUploading(true);
@@ -197,16 +210,20 @@ const SlideExplorer = () => {
         await fetchUploadedSlides();
       } else {
         const errorData = await response.json();
-        alert(`Failed to upload: ${errorData.detail || 'Unknown error'}`);
+        setActionError(`Upload failed: ${errorData.detail || 'Please try again.'}`);
       }
     } catch (error) {
-      alert('Error uploading slides');
+      setActionError('Could not upload your presentation. Please try again.');
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const analyzeSlide = async (slideId) => {
+    if (analyzing) return;
+    setActionError('');
+    setShowInsights({});
     try {
       setAnalyzing(true);
 
@@ -237,16 +254,16 @@ const SlideExplorer = () => {
         if (data.slides && data.slides.length > 0) {
           setAnalyzedSlides(data.slides);
         } else {
-          alert('No slides found in the presentation');
+          setActionError('No slides were found in this presentation. Try uploading another file.');
           setSelectedSlide(null);
         }
       } else {
         const errorData = await response.json();
-        alert(`Failed to analyze: ${errorData.detail || 'Unknown error'}`);
+        setActionError(`Could not open this deck: ${errorData.detail || 'Please try again.'}`);
         setSelectedSlide(null);
       }
     } catch (error) {
-      alert('Error analyzing slides. Please try again.');
+      setActionError('Could not open this deck. Please try again.');
       setSelectedSlide(null);
     } finally {
       setAnalyzing(false);
@@ -255,7 +272,9 @@ const SlideExplorer = () => {
 
   const deleteSlide = async (slideId, e) => {
     e && e.stopPropagation();
-    if (!window.confirm('Delete this presentation?')) return;
+    if (deletingId || !window.confirm('Delete this presentation?')) return;
+    setDeletingId(slideId);
+    setActionError('');
 
     try {
       const response = await fetch(`${API_URL}/delete_slide/${slideId}`, {
@@ -270,10 +289,12 @@ const SlideExplorer = () => {
           setAnalyzedSlides([]);
         }
       } else {
-        alert('Failed to delete');
+        setActionError('Could not delete this presentation. Please try again.');
       }
     } catch (error) {
-      alert('Error deleting');
+      setActionError('Could not delete this presentation. Please try again.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -354,41 +375,21 @@ const SlideExplorer = () => {
 
   const sidebarLead = (
     <button className="se-side-primary" type="button" onClick={() => setActiveView('upload')} disabled={uploading}>
-      {uploading ? <Loader className="se-spinner" size={15} /> : <Upload size={15} />}
-      <span>{uploading ? 'Uploading…' : 'Upload new'}</span>
+      {uploading ? <Loader className="se-spinner" size={15} /> : <Plus size={15} />}
+      <span>{uploading ? 'Uploading…' : 'Upload Slides'}</span>
     </button>
   );
 
-  const librarySections = [
-    {
-      label: 'Slide library',
-      items: [
-        {
-          icon: Layers3,
-          label: 'My Slides',
-          count: uploadedSlides.length,
-          active: activeView === 'grid',
-          onClick: () => setActiveView('grid'),
-        },
-        {
-          icon: UploadCloud,
-          label: 'Upload Slides',
-          active: activeView === 'upload',
-          disabled: uploading,
-          onClick: () => setActiveView('upload'),
-        },
-      ],
-    },
-    ...(uploadedSlides.length > 0 ? [{
-      label: 'Recent decks',
-      items: uploadedSlides.slice(0, 5).map(slide => ({
-        icon: FileText,
-        label: getDeckTitle(slide.filename),
-        count: slide.page_count,
-        onClick: () => analyzeSlide(slide.id),
-      })),
-    }] : []),
-  ];
+  const librarySections = [{
+    label: 'Slides',
+    items: [{
+      icon: Layers3,
+      label: 'Library',
+      count: uploadedSlides.length,
+      active: activeView === 'grid',
+      onClick: () => setActiveView('grid'),
+    }],
+  }];
 
   // ─── ANALYSIS VIEW ────────────────────────────────────────────────
   if (selectedSlide && analyzedSlides.length > 0) {
@@ -424,9 +425,8 @@ const SlideExplorer = () => {
           <main className="se-workspace se-analysis-workspace">
             <header className="se-hero se-analysis-hero">
               <div>
-                <span className="se-kicker">Presentation study desk</span>
-                <h1>{getDeckTitle(selectedSlide.filename)}</h1>
-                <p>Review the source slide beside its explanation, then reveal concepts and practice prompts when you need them.</p>
+                <h1 className="plain-page-title">{getDeckTitle(selectedSlide.filename)}</h1>
+                <p>Explore each slide with explanations, concepts and practice questions.</p>
               </div>
               <div className="se-hero-actions">
                 <button
@@ -602,22 +602,12 @@ const SlideExplorer = () => {
     );
   }
 
-  // ─── MAIN CARD GRID ────────────────────────────────────────────────
-  const totalSlideCount = uploadedSlides.reduce((total, slide) => total + (slide.page_count || 0), 0);
-  const viewCopy = activeView === 'upload'
-    ? {
-      kicker: 'New presentation',
-      title: 'Upload Slides',
-      description: 'Upload a PDF or PowerPoint and Cerbyl will preserve every slide before building its study layer.',
-    }
-    : {
-      kicker: 'Your slide library',
-      title: 'Slide Library',
-      description: 'Open a deck to study each source frame beside explanations, concepts and practice prompts.',
-    };
+  const sortedSlides = [...uploadedSlides].sort((a, b) =>
+    (new Date(b.uploaded_at).getTime() || 0) - (new Date(a.uploaded_at).getTime() || 0)
+  );
 
   return (
-    <div className="se-page with-social-chrome">
+    <div className="se-page with-social-chrome study-library se-library-page">
       <SocialHubChrome
         brandKicker="Slides"
         collapsed={sidebarCollapsed}
@@ -626,24 +616,15 @@ const SlideExplorer = () => {
         sideSections={librarySections}
       >
         <main className="se-workspace">
+          <nav className="se-mobile-nav" aria-label="Slides views">
+            <button type="button" aria-pressed={activeView === 'grid'} onClick={() => setActiveView('grid')}><Layers3 size={15} />Library</button>
+            <button type="button" aria-pressed={activeView === 'upload'} onClick={() => setActiveView('upload')}><Plus size={15} />Upload Slides</button>
+          </nav>
           <header className="se-hero">
-            <div>
-
-              <h1 className="plain-page-title">{viewCopy.title}</h1>
-
-            </div>
+            <h1 className="plain-page-title">{activeView === 'upload' ? 'Upload Slides' : 'Slides'}</h1>
+            {activeView === 'upload' && <button className="se-compact-btn" type="button" onClick={() => setActiveView('grid')}><ChevronLeft size={15} />Back to library</button>}
           </header>
-
-          <div className="se-content-toolbar">
-            <div>
-              <span>Library inventory</span>
-              <strong>{uploadedSlides.length} presentation{uploadedSlides.length !== 1 ? 's' : ''} · {totalSlideCount} slides</strong>
-            </div>
-            <button type="button" onClick={() => setActiveView(activeView === 'upload' ? 'grid' : 'upload')} disabled={uploading}>
-              {activeView === 'upload' ? <ChevronLeft size={14} /> : <Upload size={14} />}
-              {activeView === 'upload' ? 'Back to library' : 'Upload presentation'}
-            </button>
-          </div>
+          {actionError && <div className="se-error-notice" role="alert"><AlertTriangle size={17} /><p>{actionError}</p></div>}
 
           <section className="se-view" aria-live="polite">
           {activeView === 'upload' ? (
@@ -657,74 +638,56 @@ const SlideExplorer = () => {
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
-                onClick={() => !uploading && document.getElementById('se-file-input').click()}
+                onClick={() => !uploading && fileInputRef.current?.click()}
                 onKeyDown={(event) => {
                   if (!uploading && (event.key === 'Enter' || event.key === ' ')) {
                     event.preventDefault();
-                    document.getElementById('se-file-input').click();
+                    fileInputRef.current?.click();
                   }
                 }}
               >
-                <div className="se-upload-orbit" aria-hidden="true"><span /><span /><span /></div>
                 <div className="se-upload-icon">
                   {uploading ? <Loader size={30} className="se-spinner" /> : <UploadCloud size={30} />}
                 </div>
-                <span className="se-upload-kicker">Source intake</span>
-                <h2>{uploading ? 'Uploading presentation…' : 'Upload Slides'}</h2>
+                <h2>{uploading ? 'Uploading presentation…' : 'Drop your presentations here'}</h2>
                 <p>PDF, PPTX or PPT · multiple files supported</p>
-                <span className="se-upload-cta">{uploading ? 'Keeping the source intact' : 'Choose files'} <ArrowUpRight size={14} /></span>
-                <input type="file" id="se-file-input" accept=".pdf,.pptx,.ppt" onChange={handleFileSelect} disabled={uploading} className="se-file-input" multiple />
+                <span className="se-upload-cta">{uploading ? 'Uploading files…' : 'Choose files'} <ArrowUpRight size={14} /></span>
+                <input ref={fileInputRef} type="file" id="se-file-input" aria-label="Choose presentations" onClick={(event) => event.stopPropagation()} accept=".pdf,.pptx,.ppt" onChange={handleFileSelect} disabled={uploading} className="se-file-input" multiple />
               </div>
               <div className="se-upload-support">
-                <div><span>01</span><strong>Original frames preserved</strong><small>Every slide remains traceable to the uploaded source.</small></div>
-                <div><span>02</span><strong>Study layer generated</strong><small>Explanations, concepts and prompts stay beside the deck.</small></div>
+                <div><FileText size={19} /><strong>Your original slides</strong><small>Review each slide alongside its study explanation.</small></div>
+                <div><BookOpen size={19} /><strong>Study at your own pace</strong><small>Open a deck for concepts, definitions and practice questions.</small></div>
               </div>
             </div>
           ) : (
             loading ? (
-              <div className="se-loading" role="status"><div className="se-pulse-loader"><div className="se-pulse-sq" /><div className="se-pulse-sq" /><div className="se-pulse-sq" /></div><span>Arranging your slide library…</span></div>
-            ) : libraryError ? (<div role="alert"><p>{libraryError}</p><button onClick={fetchUploadedSlides}>Retry library</button></div>) : uploadedSlides.length === 0 ? (
-              <div className="se-empty-state">
-                <div className="se-empty-icon-wrap"><Layers3 size={26} /></div>
-
-                <h2>No Slides</h2>
-
-                <button type="button" onClick={() => setActiveView('upload')}><UploadCloud size={16} />Upload presentation</button>
+              <div className="plx-state" role="status"><Loader className="se-spinner" size={28} /><p>Loading your library</p></div>
+            ) : libraryError ? (
+              <div className="plx-state plx-state--error" role="alert">
+                <AlertTriangle size={26} /><h2>Library unavailable</h2><p>{libraryError}</p>
+                <button className="se-compact-btn" type="button" onClick={fetchUploadedSlides}>Retry library</button>
+              </div>
+            ) : sortedSlides.length === 0 ? (
+              <div className="plx-state">
+                <div className="plx-empty-mark"><Layers3 size={24} /></div>
+                <span>Your library is empty</span><h2>No Slides</h2>
+                <p>Upload a PDF or PowerPoint to start studying slide by slide.</p>
+                <button className="se-primary-btn" type="button" onClick={() => setActiveView('upload')}><Plus size={16} />Upload Slides</button>
               </div>
             ) : (
-              <div className="se-card-grid">
-                {uploadedSlides.map((slide, index) => (
-                  <article key={slide.id} className="se-deck-card" style={{ '--se-deck-index': index }}>
-                    <div className="se-deck-preview">
-                      <span className="se-preview-index">{String(index + 1).padStart(2, '0')}</span>
-                      <img
-                        src={`${API_URL}/slide_image/${slide.id}/1?token=${encodeURIComponent(token)}`}
-                        alt={`First slide of ${getDeckTitle(slide.filename)}`}
-                        className="se-deck-image"
-                        onError={(event) => { event.currentTarget.style.display = 'none'; }}
-                      />
-                      <div className="se-deck-fallback"><FileText size={30} /><span>Presentation preview</span></div>
-                      <button
-                        className="se-delete-deck"
-                        type="button"
-                        aria-label={`Delete ${getDeckTitle(slide.filename)}`}
-                        onClick={(event) => deleteSlide(slide.id, event)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                    <div className="se-deck-copy">
-                      <span>Presentation · {slide.page_count || 0} slides</span>
-                      <h2>{getDeckTitle(slide.filename)}</h2>
-                      <p>Added {formatDeckDate(slide.uploaded_at)}</p>
-                    </div>
-                    <div className="se-deck-footer">
-                      <div><span>Study state</span><strong>Ready to explore</strong></div>
-                      <button type="button" onClick={() => analyzeSlide(slide.id)} disabled={analyzing}>
-                        Open deck <ArrowUpRight size={15} />
-                      </button>
-                    </div>
-                  </article>
+              <div className="plx-grid plx-grid--list">
+                {sortedSlides.map((slide) => (
+                  <SlideDeckCard
+                    key={slide.id}
+                    slide={slide}
+                    token={token}
+                    title={getDeckTitle(slide.filename)}
+                    addedDate={formatDeckDate(slide.uploaded_at)}
+                    analyzing={analyzing}
+                    deletingId={deletingId}
+                    onOpen={() => analyzeSlide(slide.id)}
+                    onDelete={(event) => deleteSlide(slide.id, event)}
+                  />
                 ))}
               </div>
             )

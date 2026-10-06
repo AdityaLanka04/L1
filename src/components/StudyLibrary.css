@@ -1,25 +1,25 @@
-/* Library cards — verbatim copy of the Learning Playlists library card
-   (PlaylistsPage.css .plx-*), scoped to the Question Bank. */
-.qbd-hub {
+/* Shared library cards for Question Bank and Slides.
+   Keep the incumbent Question Bank card system consistent across study libraries. */
+.study-library {
   --plx-line: color-mix(in srgb, var(--accent) 18%, transparent);
   --plx-line-strong: color-mix(in srgb, var(--accent) 36%, transparent);
   --plx-panel: color-mix(in srgb, #0b0c0f 88%, transparent);
 }
 
-.qbd-hub .plx-card-controls {
+.study-library .plx-card-controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.qbd-hub .plx-library {
+.study-library .plx-library {
   min-height: 260px;
 }
-.qbd-hub .plx-grid {
+.study-library .plx-grid {
   display: grid;
   gap: 14px;
   padding-bottom: 8px;
 }
-.qbd-hub .plx-card {
+.study-library .plx-card {
   --plx-card-accent: var(--accent);
   position: relative;
   min-width: 0;
@@ -34,7 +34,7 @@
   cursor: pointer;
   transition: border-color 180ms ease, background-color 180ms ease, transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms ease;
 }
-.qbd-hub .plx-card::before {
+.study-library .plx-card::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -45,50 +45,50 @@
   background-size: 32px 32px;
   opacity: .7;
 }
-.qbd-hub .plx-card-index {
+.study-library .plx-card-index {
   display: none;
 }
-.qbd-hub .plx-card-top,
-.qbd-hub .plx-card-data,
-.qbd-hub .plx-progress,
-.qbd-hub .plx-card-footer {
+.study-library .plx-card-top,
+.study-library .plx-card-data,
+.study-library .plx-progress,
+.study-library .plx-card-footer {
   position: relative;
   z-index: 1;
 }
-.qbd-hub .plx-card-top {
+.study-library .plx-card-top {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr) auto;
   align-items: start;
   gap: 16px;
 }
-.qbd-hub .plx-stack-visual {
+.study-library .plx-stack-visual {
   position: relative;
   width: 72px;
   height: 78px;
   display: grid;
   place-items: center;
 }
-.qbd-hub .plx-stack-visual span {
+.study-library .plx-stack-visual span {
   position: absolute;
   inset: calc(var(--stack-index) * 3px) calc((4 - var(--stack-index)) * 3px) calc((4 - var(--stack-index)) * 3px) calc(var(--stack-index) * 3px);
   border: 1px solid color-mix(in srgb, var(--plx-card-accent) 56%, transparent);
   border-radius: 9px;
   background: color-mix(in srgb, var(--plx-card-accent) calc(8% + var(--stack-index) * 2%), #0a0b0c);
 }
-.qbd-hub .plx-stack-visual strong {
+.study-library .plx-stack-visual strong {
   position: relative;
   z-index: 2;
   color: color-mix(in srgb, var(--plx-card-accent) 82%, white);
   font-size: 16px;
   letter-spacing: -0.04em;
 }
-.qbd-hub .plx-card-badges {
+.study-library .plx-card-badges {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 9px;
 }
-.qbd-hub .plx-card-badges span {
+.study-library .plx-card-badges span {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -101,7 +101,7 @@
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
-.qbd-hub .plx-card h2 {
+.study-library .plx-card h2 {
   margin: 0;
   color: var(--text-primary);
   font-size: clamp(18px, 2vw, 25px);
@@ -109,7 +109,7 @@
   line-height: 1.05;
   letter-spacing: -0.035em;
 }
-.qbd-hub .plx-card-main > p {
+.study-library .plx-card-main > p {
   display: -webkit-box;
   margin: 8px 0 0;
   overflow: hidden;
@@ -119,11 +119,11 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-.qbd-hub .plx-open-cue {
+.study-library .plx-open-cue {
   color: color-mix(in srgb, var(--text-secondary) 55%, transparent);
   transition: color 160ms ease, transform 160ms ease;
 }
-.qbd-hub .plx-card-data {
+.study-library .plx-card-data {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
@@ -131,7 +131,7 @@
   border-top: 1px solid var(--plx-line);
   border-bottom: 1px solid var(--plx-line);
 }
-.qbd-hub .plx-card-data div {
+.study-library .plx-card-data div {
   min-width: 0;
   display: grid;
   grid-template-columns: auto auto 1fr;
@@ -140,23 +140,23 @@
   padding: 10px 9px;
   color: var(--text-secondary);
 }
-.qbd-hub .plx-card-data div + div {
+.study-library .plx-card-data div + div {
   border-left: 1px solid var(--plx-line);
 }
-.qbd-hub .plx-card-data strong {
+.study-library .plx-card-data strong {
   color: var(--text-primary);
   font-size: 12px;
 }
-.qbd-hub .plx-card-data span {
+.study-library .plx-card-data span {
   overflow: hidden;
   font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.qbd-hub .plx-progress {
+.study-library .plx-progress {
   margin: 13px 0 0 88px;
 }
-.qbd-hub .plx-progress > div:first-child {
+.study-library .plx-progress > div:first-child {
   display: flex;
   justify-content: space-between;
   margin-bottom: 6px;
@@ -165,22 +165,22 @@
   text-transform: uppercase;
   letter-spacing: .08em;
 }
-.qbd-hub .plx-progress > div strong {
+.study-library .plx-progress > div strong {
   color: var(--text-primary);
 }
-.qbd-hub .plx-progress-track {
+.study-library .plx-progress-track {
   height: 3px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(255,255,255,.06);
 }
-.qbd-hub .plx-progress-track span {
+.study-library .plx-progress-track span {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: var(--plx-card-accent);
 }
-.qbd-hub .plx-card-footer {
+.study-library .plx-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -189,14 +189,14 @@
   padding-top: 13px;
   border-top: 1px solid var(--plx-line);
 }
-.qbd-hub .plx-creator {
+.study-library .plx-creator {
   min-width: 0;
   display: flex;
   align-items: center;
   gap: 9px;
 }
-.qbd-hub .plx-creator > img,
-.qbd-hub .plx-creator > span {
+.study-library .plx-creator > img,
+.study-library .plx-creator > span {
   width: 29px;
   height: 29px;
   display: grid;
@@ -210,27 +210,27 @@
   font-size: 10px;
   font-weight: 800;
 }
-.qbd-hub .plx-creator div {
+.study-library .plx-creator div {
   min-width: 0;
 }
-.qbd-hub .plx-creator small,
-.qbd-hub .plx-creator strong {
+.study-library .plx-creator small,
+.study-library .plx-creator strong {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.qbd-hub .plx-creator small {
+.study-library .plx-creator small {
   color: var(--text-secondary);
   font-size: 8px;
 }
-.qbd-hub .plx-creator strong {
+.study-library .plx-creator strong {
   max-width: 120px;
   margin-top: 2px;
   color: var(--text-primary);
   font-size: 10px;
 }
-.qbd-hub .plx-card-controls button {
+.study-library .plx-card-controls button {
   width: 32px;
   height: 32px;
   display: grid;
@@ -242,18 +242,18 @@
   cursor: pointer;
   transition: color 140ms ease, border-color 140ms ease, background-color 140ms ease, transform 90ms ease;
 }
-.qbd-hub .plx-card-controls button.active {
+.study-library .plx-card-controls button.active {
   color: var(--accent);
   border-color: var(--plx-line-strong);
 }
-.qbd-hub .plx-card-controls button.danger {
+.study-library .plx-card-controls button.danger {
   color: #f06c6c;
 }
-.qbd-hub .plx-card-controls button:disabled {
+.study-library .plx-card-controls button:disabled {
   opacity: .45;
   cursor: wait;
 }
-.qbd-hub .plx-state {
+.study-library .plx-state {
   min-height: 310px;
   display: grid;
   place-items: center;
@@ -265,7 +265,7 @@
   color: var(--text-secondary);
   text-align: center;
 }
-.qbd-hub .plx-empty-mark {
+.study-library .plx-empty-mark {
   width: 58px;
   height: 58px;
   display: grid;
@@ -275,85 +275,85 @@
   color: var(--accent);
   transform: rotate(-3deg);
 }
-.qbd-hub .plx-state > span {
+.study-library .plx-state > span {
   color: var(--accent);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: .16em;
   text-transform: uppercase;
 }
-.qbd-hub .plx-state h2 {
+.study-library .plx-state h2 {
   margin: 0;
   color: var(--text-primary);
   font-size: 24px;
   letter-spacing: -.03em;
 }
-.qbd-hub .plx-state p {
+.study-library .plx-state p {
   max-width: 460px;
   margin: 0 0 4px;
   font-size: 12px;
   line-height: 1.6;
 }
 @media (hover: hover) and (pointer: fine) {
-  .qbd-hub .plx-card:hover {
+  .study-library .plx-card:hover {
     border-color: color-mix(in srgb, var(--plx-card-accent) 48%, transparent);
     box-shadow: 0 20px 44px rgba(0,0,0,.32);
     transform: translateY(-2px);
   }
-  .qbd-hub .plx-card:hover .plx-open-cue {
+  .study-library .plx-card:hover .plx-open-cue {
     color: var(--plx-card-accent);
     transform: translate(2px, -2px);
   }
-  .qbd-hub .plx-card-controls button:hover {
+  .study-library .plx-card-controls button:hover {
     color: var(--text-primary);
     border-color: var(--plx-line-strong);
     background: color-mix(in srgb, var(--accent) 7%, transparent);
   }
 }
 @media (max-width: 760px) {
-  .qbd-hub .plx-card-data {
+  .study-library .plx-card-data {
     margin-left: 0;
   }
-  .qbd-hub .plx-progress {
+  .study-library .plx-progress {
     margin-left: 0;
   }
 }
 @media (max-width: 500px) {
-  .qbd-hub .plx-card {
+  .study-library .plx-card {
     padding: 15px;
   }
-  .qbd-hub .plx-card-top {
+  .study-library .plx-card-top {
     grid-template-columns: 54px minmax(0, 1fr) auto;
     gap: 11px;
   }
-  .qbd-hub .plx-stack-visual {
+  .study-library .plx-stack-visual {
     width: 54px;
     height: 58px;
   }
-  .qbd-hub .plx-card-data {
+  .study-library .plx-card-data {
     grid-template-columns: 1fr 1fr;
   }
-  .qbd-hub .plx-card-data div:last-child {
+  .study-library .plx-card-data div:last-child {
     display: none;
   }
-  .qbd-hub .plx-card-footer {
+  .study-library .plx-card-footer {
     align-items: flex-end;
   }
-  .qbd-hub .plx-creator strong {
+  .study-library .plx-creator strong {
     max-width: 82px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .qbd-hub .plx-card,
-  .qbd-hub .plx-open-cue,
-  .qbd-hub .plx-card-controls button {
+  .study-library .plx-card,
+  .study-library .plx-open-cue,
+  .study-library .plx-card-controls button {
     transition-duration: .01ms !important;
   }
 }
-.qbd-hub .plx-card {
+.study-library .plx-card {
   isolation: isolate;
 }
-.qbd-hub .plx-card::after {
+.study-library .plx-card::after {
   content: '';
   position: absolute;
   z-index: 2;
@@ -366,13 +366,13 @@
   box-shadow: 0 53px 0 color-mix(in srgb, var(--plx-card-accent) 28%, transparent);
   opacity: .75;
 }
-.qbd-hub .plx-card:nth-child(even) .plx-stack-visual {
+.study-library .plx-card:nth-child(even) .plx-stack-visual {
   transform: rotate(2deg);
 }
-.qbd-hub .plx-card:nth-child(3n) .plx-stack-visual {
+.study-library .plx-card:nth-child(3n) .plx-stack-visual {
   transform: rotate(-2deg);
 }
-.qbd-hub .plx-card::before {
+.study-library .plx-card::before {
   opacity: 1;
   background:
     radial-gradient(
@@ -385,12 +385,12 @@
   background-size: auto, 32px 32px, 32px 32px;
   transition: opacity 180ms ease;
 }
-.qbd-hub .plx-stack-visual span,
-.qbd-hub .plx-stack-visual strong,
-.qbd-hub .plx-card-badges span,
-.qbd-hub .plx-card-data div,
-.qbd-hub .plx-card h2,
-.qbd-hub .plx-card::after {
+.study-library .plx-stack-visual span,
+.study-library .plx-stack-visual strong,
+.study-library .plx-card-badges span,
+.study-library .plx-card-data div,
+.study-library .plx-card h2,
+.study-library .plx-card::after {
   transition:
     transform 220ms cubic-bezier(.2, .8, .2, 1),
     color 160ms ease,
@@ -398,11 +398,11 @@
     opacity 160ms ease,
     height 220ms cubic-bezier(.2, .8, .2, 1);
 }
-.qbd-hub .plx-card h2 {
+.study-library .plx-card h2 {
   position: relative;
   width: fit-content;
 }
-.qbd-hub .plx-card h2::after {
+.study-library .plx-card h2::after {
   content: '';
   position: absolute;
   left: 0;
@@ -414,62 +414,62 @@
   transform-origin: left;
   transition: transform 220ms cubic-bezier(.2, .8, .2, 1);
 }
-.qbd-hub .plx-card-controls {
+.study-library .plx-card-controls {
   transition: transform 180ms cubic-bezier(.2, .8, .2, 1);
 }
 @media (hover: hover) and (pointer: fine) {
-  .qbd-hub .plx-card:hover::after {
+  .study-library .plx-card:hover::after {
     height: 88px;
   }
-  .qbd-hub .plx-card:hover .plx-stack-visual span:nth-child(1) {
+  .study-library .plx-card:hover .plx-stack-visual span:nth-child(1) {
     transform: translate(-5px, 4px) rotate(-5deg);
   }
-  .qbd-hub .plx-card:hover .plx-stack-visual span:nth-child(2) {
+  .study-library .plx-card:hover .plx-stack-visual span:nth-child(2) {
     transform: translate(-2px, 1px) rotate(-2deg);
   }
-  .qbd-hub .plx-card:hover .plx-stack-visual span:nth-child(4) {
+  .study-library .plx-card:hover .plx-stack-visual span:nth-child(4) {
     transform: translate(3px, -2px) rotate(2deg);
   }
-  .qbd-hub .plx-card:hover .plx-stack-visual span:nth-child(5) {
+  .study-library .plx-card:hover .plx-stack-visual span:nth-child(5) {
     transform: translate(6px, -4px) rotate(5deg);
   }
-  .qbd-hub .plx-card:hover .plx-stack-visual strong {
+  .study-library .plx-card:hover .plx-stack-visual strong {
     transform: translateY(-2px) scale(1.06);
   }
-  .qbd-hub .plx-card:hover h2::after {
+  .study-library .plx-card:hover h2::after {
     transform: scaleX(1);
   }
-  .qbd-hub .plx-card:hover .plx-card-badges span {
+  .study-library .plx-card:hover .plx-card-badges span {
     border-color: color-mix(in srgb, var(--plx-card-accent) 42%, transparent);
     transform: translateY(-1px);
   }
-  .qbd-hub .plx-card:hover .plx-card-data div:nth-child(1) {
+  .study-library .plx-card:hover .plx-card-data div:nth-child(1) {
     transform: translateY(-1px);
   }
-  .qbd-hub .plx-card:hover .plx-card-data div:nth-child(2) {
+  .study-library .plx-card:hover .plx-card-data div:nth-child(2) {
     transform: translateY(-2px);
   }
-  .qbd-hub .plx-card:hover .plx-card-data div:nth-child(3) {
+  .study-library .plx-card:hover .plx-card-data div:nth-child(3) {
     transform: translateY(-1px);
   }
-  .qbd-hub .plx-card:hover .plx-card-controls {
+  .study-library .plx-card:hover .plx-card-controls {
     transform: translateX(-3px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .qbd-hub .plx-stack-visual span,
-  .qbd-hub .plx-stack-visual strong,
-  .qbd-hub .plx-card-badges span,
-  .qbd-hub .plx-card-data div,
-  .qbd-hub .plx-card h2::after,
-  .qbd-hub .plx-card-controls {
+  .study-library .plx-stack-visual span,
+  .study-library .plx-stack-visual strong,
+  .study-library .plx-card-badges span,
+  .study-library .plx-card-data div,
+  .study-library .plx-card h2::after,
+  .study-library .plx-card-controls {
     transition-duration: .01ms !important;
   }
 }
-.qbd-hub .plx-state--error {
+.study-library .plx-state--error {
   border: 1px solid color-mix(in srgb, var(--error, #b42318) 35%, transparent);
 }
-.qbd-hub .plx-card-controls button {
+.study-library .plx-card-controls button {
   min-width: 44px;
   min-height: 44px;
 }
