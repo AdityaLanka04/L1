@@ -98,6 +98,17 @@
   background: transparent !important;
 }
 
+/* Hover only changes the text colour — cancel AIChat's global button lift,
+   press scale, shadow and focus outline. */
+.ai-chat-page.ac-qb-page .ac-qb-context-action .context-selector-btn,
+.ai-chat-page.ac-qb-page .ac-qb-context-action .context-selector-btn:hover,
+.ai-chat-page.ac-qb-page .ac-qb-context-action .context-selector-btn:focus,
+.ai-chat-page.ac-qb-page .ac-qb-context-action .context-selector-btn:active {
+  transform: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 .search-hub-page .context-selector-btn {
   color: var(--accent);
   opacity: 1;
