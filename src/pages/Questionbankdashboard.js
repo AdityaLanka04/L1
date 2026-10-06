@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Upload, MessageSquare, Sparkles, FileText, Trash2, Zap, CheckCircle, XCircle,
   Loader, FileUp, BookOpen, Download, FileDown, Eye, Edit3, RefreshCw, Layers,
-  AlertTriangle, Star, X, Save, Settings, ArrowUpRight, Check
+  AlertTriangle, Star, X, Save, Settings, ArrowUpRight, Check, Plus
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
@@ -1946,7 +1946,7 @@ const QuestionBankDashboard = () => {
 
   const sidebarLead = (
     <button className="qbd-hub-create" onClick={() => setActiveView('custom')} type="button">
-      <Sparkles size={15} />
+      <Plus size={15} />
       <span>Create Questions</span>
     </button>
   );
