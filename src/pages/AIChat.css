@@ -7728,6 +7728,23 @@ sub {
   text-transform: uppercase;
 }
 
+/* Hover only changes the text colour — no lift, outline, fill or shadow. */
+.ai-chat-page .ac-answer-feedback.learning-flow > button,
+.ai-chat-page .ac-answer-feedback.learning-flow > button:hover,
+.ai-chat-page .ac-answer-feedback.learning-flow > button:focus,
+.ai-chat-page .ac-answer-feedback.learning-flow > button:active {
+  transform: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: color 0.15s ease;
+}
+
+.ai-chat-page .ac-answer-feedback.learning-flow > button:hover {
+  color: var(--ac-accent) !important;
+}
+
 /* Display formulas: no card — set inline in the accent colour. */
 .ai-chat-page .ac-message-content .math-content .math-display-wrap,
 .ai-chat-page .ac-message-content .math-content .katex-display {
