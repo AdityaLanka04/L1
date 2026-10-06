@@ -1,0 +1,128 @@
+/* Sidebar footer buttons (Dashboard, Social Hub, Notes Hub, …) on every page —
+   exact copy of AI Chat's sidebar Dashboard button (AIChat.css
+   .ac-qb-side-actions .ac-nav-item). !important because several pages restyle
+   these buttons with page-scoped rules. */
+.shc-shell .shc-side-footer-nav,
+.sb-sidebar-actions {
+  gap: 8px !important;
+}
+
+.shc-shell .shc-footer-action,
+.sb-sidebar-actions .sb-sidebar-action {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 10px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  border-radius: 11px !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  text-align: left !important;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: none !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transform: none;
+  transition: all 0.2s !important;
+}
+
+.shc-shell .shc-footer-action:hover,
+.sb-sidebar-actions .sb-sidebar-action:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important;
+  background: color-mix(in srgb, var(--accent) 14%, transparent) !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.shc-shell .shc-footer-action:active,
+.sb-sidebar-actions .sb-sidebar-action:active {
+  transform: scale(0.98) !important;
+}
+
+.shc-shell .shc-footer-action:focus-visible,
+.sb-sidebar-actions .sb-sidebar-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.shc-shell .shc-footer-action > svg,
+.sb-sidebar-actions .sb-sidebar-action > svg {
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0;
+}
+
+.shc-shell .shc-footer-action > span,
+.sb-sidebar-actions .sb-sidebar-action > span {
+  display: inline !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary)) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shc-shell .shc-footer-action::before,
+.sb-sidebar-actions .sb-sidebar-action::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shc-shell .shc-footer-action:hover::before,
+.shc-shell .shc-footer-action[aria-current="page"]::before,
+.sb-sidebar-actions .sb-sidebar-action:hover::before {
+  transform: scaleY(1);
+}
+
+.shc-shell .shc-footer-action::after,
+.sb-sidebar-actions .sb-sidebar-action::after {
+  content: '';
+  position: absolute;
+  inset: 50%;
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.shc-shell .shc-footer-action:active::after,
+.sb-sidebar-actions .sb-sidebar-action:active::after {
+  animation: sidebar-footer-ripple 0.6s ease-out;
+}
+
+@keyframes sidebar-footer-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}

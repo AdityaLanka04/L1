@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import '../styles/SidebarShell.css';
+import '../styles/sidebarFooterAction.css';
 
 export function SidebarShell({ collapsed, onToggleCollapse, brandKicker, brandLogo = 'cerbyl', children, collapsedContent, ariaLabel }) {
   return (

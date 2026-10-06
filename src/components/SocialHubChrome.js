@@ -5,6 +5,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, LayoutGrid, Users } from 'lucide-react';
 import './SocialHubChrome.css';
+import '../styles/sidebarFooterAction.css';
+import HomeIcon from './HomeIcon';
 import GeometricGrid from './GeometricGrid';
 
 const StripBtn = ({ icon: Icon, label, onClick, active, pressed, disabled = false }) => (
@@ -478,11 +480,11 @@ const SocialHubChrome = ({
 
                 <div className="shc-side-footer-nav">
                   {footerItems.map(fi => {
-                    const Icon = fi.icon;
+                    const Icon = fi.label === 'Dashboard' ? HomeIcon : fi.icon;
                     return (
                       <button
                         key={fi.label}
-                        className={`shc-footer-action${fi.className ? ` ${fi.className}` : ''}`}
+                        className="shc-footer-action"
                         aria-current={isActiveToolPath(pathname, fi.path) ? 'page' : undefined}
                         type="button"
                         onClick={() => navigate(fi.path)}

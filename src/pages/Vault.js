@@ -12,6 +12,7 @@ import { API_URL } from '../config/api';
 import { queuedAIJsonFetch } from '../services/aiJobService';
 import { signOutAppSession } from '../utils/authSession';
 import AbstractFx from '../components/AbstractFx';
+import HomeIcon from '../components/HomeIcon';
 import { SidebarShell, SidebarSection, SidebarMenuItem, SidebarPrimaryButton, SidebarActions, SidebarAction, SidebarStripButton, SidebarStripSpacer } from '../components/Sidebar';
 import './Vault.css';
 import '../components/SocialHubChrome.css';
@@ -1984,7 +1985,7 @@ const Vault = () => {
             </div>
 
             <SidebarActions>
-              <SidebarAction icon={<LayoutDashboard size={14} />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
+              <SidebarAction icon={<HomeIcon />} label="Dashboard" onClick={() => navigate('/dashboard-cerbyl')} />
               <SidebarAction icon={<MessageSquare size={14} />} label="AI Chat" onClick={() => navigate('/ai-chat')} />
               <SidebarAction
                 icon={<LogOut size={14} />}
