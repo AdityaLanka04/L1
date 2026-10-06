@@ -5,7 +5,7 @@ import { useAppTheme } from '../contexts/ThemeContext';
 import { darkenColor, rgbaFromHex } from '../utils/theme';
 import { hasMath } from '../utils/mathDetection';
 
-interface Props { children: string; }
+interface Props { children: string; scale?: number; }
 
 // A line containing math renders as one MathJaxSvg block instead of going
 // through parseInline -- it loses **bold**/*italic* segment-splitting within
@@ -54,9 +54,9 @@ function parseInline(text: string, styles: ReturnType<typeof createStyles>): Rea
   return parts.length > 0 ? parts : [<Text key={0} style={styles.plain}>{text}</Text>];
 }
 
-export default function MarkdownText({ children }: Props) {
+export default function MarkdownText({ children, scale = 1 }: Props) {
   const { selectedTheme } = useAppTheme();
-  const s = useMemo(() => createStyles(selectedTheme), [selectedTheme]);
+  const s = useMemo(() => createStyles(selectedTheme, scale), [selectedTheme, scale]);
   const text = children ?? '';
 
   const lines = text.split('\n');
@@ -176,22 +176,23 @@ export default function MarkdownText({ children }: Props) {
   return <View>{elements}</View>;
 }
 
-function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
+function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], scale = 1) {
+  const z = (n: number) => Math.round(n * scale * 2) / 2;
   const accentDeep = darkenColor(theme.accent, theme.isLight ? 16 : 34);
   return StyleSheet.create({
-    plain: { color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22 },
-    bold: { color: theme.accentHover, fontFamily: 'Inter_700Bold', fontSize: 14, lineHeight: 22 },
-    italic: { color: theme.accent, fontFamily: 'Inter_400Regular', fontStyle: 'italic', fontSize: 14, lineHeight: 22 },
+    plain: { color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: z(14), lineHeight: z(22) },
+    bold: { color: theme.accentHover, fontFamily: 'Inter_700Bold', fontSize: z(14), lineHeight: z(22) },
+    italic: { color: theme.accent, fontFamily: 'Inter_400Regular', fontStyle: 'italic', fontSize: z(14), lineHeight: z(22) },
     inlineCode: {
       color: theme.accentHover,
       backgroundColor: rgbaFromHex(theme.panelAlt, 0.92),
       fontFamily: 'Inter_400Regular',
-      fontSize: 13,
+      fontSize: z(13),
     },
-    para: { color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22, marginBottom: 2 },
-    h1: { color: theme.accentHover, fontFamily: 'Inter_900Black', fontSize: 19, lineHeight: 26, marginTop: 10, marginBottom: 4 },
-    h2: { color: theme.accentHover, fontFamily: 'Inter_900Black', fontSize: 16, lineHeight: 24, marginTop: 8, marginBottom: 2 },
-    h3: { color: theme.accent, fontFamily: 'Inter_600SemiBold', fontSize: 14, lineHeight: 22, marginTop: 6, marginBottom: 2 },
+    para: { color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: z(14), lineHeight: z(22), marginBottom: 2 },
+    h1: { color: theme.accentHover, fontFamily: 'Inter_900Black', fontSize: z(19), lineHeight: z(26), marginTop: 10, marginBottom: 4 },
+    h2: { color: theme.accentHover, fontFamily: 'Inter_900Black', fontSize: z(16), lineHeight: z(24), marginTop: 8, marginBottom: 2 },
+    h3: { color: theme.accent, fontFamily: 'Inter_600SemiBold', fontSize: z(14), lineHeight: z(22), marginTop: 6, marginBottom: 2 },
     codeBlock: {
       backgroundColor: rgbaFromHex(theme.panelAlt, 0.94),
       borderRadius: 10,
@@ -200,13 +201,13 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme']) {
       borderWidth: 1,
       borderColor: theme.border,
     },
-    codeText: { color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
+    codeText: { color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: z(12), lineHeight: z(18) },
     hr: { height: 1, backgroundColor: theme.border, marginVertical: 8 },
     list: { marginVertical: 4, gap: 4 },
     listRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-    bullet: { color: accentDeep, fontFamily: 'Inter_600SemiBold', fontSize: 14, lineHeight: 22, minWidth: 14 },
-    listText: { flex: 1, color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22 },
+    bullet: { color: accentDeep, fontFamily: 'Inter_600SemiBold', fontSize: z(14), lineHeight: z(22), minWidth: 14 },
+    listText: { flex: 1, color: theme.accentHover, fontFamily: 'Inter_400Regular', fontSize: z(14), lineHeight: z(22) },
     blockquote: { borderLeftWidth: 3, borderLeftColor: accentDeep, paddingLeft: 10, marginVertical: 4 },
-    blockquoteText: { color: theme.accent, fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
+    blockquoteText: { color: theme.accent, fontFamily: 'Inter_400Regular', fontSize: z(13), lineHeight: z(20), fontStyle: 'italic' },
   });
 }

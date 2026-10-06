@@ -838,7 +838,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
                             </View>
                           </View>
                         ) : null}
-                        <MarkdownText>{preprocessText(item.text)}</MarkdownText>
+                        <MarkdownText scale={0.88}>{preprocessText(item.text)}</MarkdownText>
                       </>
                     )}
                   </View>
@@ -1465,7 +1465,7 @@ function createStyles(
     marginBottom: 10,
     backgroundColor: CARD_ALT,
   },
-  userText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22, color: USER_TEXT_ON_ACCENT },
+  userText: { fontFamily: 'Inter_400Regular', fontSize: 12.5, lineHeight: 19.5, color: USER_TEXT_ON_ACCENT },
 
   promptRail: {
     position: 'absolute',
