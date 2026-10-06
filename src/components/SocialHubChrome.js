@@ -482,7 +482,7 @@ const SocialHubChrome = ({
                     return (
                       <button
                         key={fi.label}
-                        className="shc-footer-action"
+                        className={`shc-footer-action${fi.className ? ` ${fi.className}` : ''}`}
                         aria-current={isActiveToolPath(pathname, fi.path) ? 'page' : undefined}
                         type="button"
                         onClick={() => navigate(fi.path)}
