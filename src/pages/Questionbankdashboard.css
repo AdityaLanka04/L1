@@ -8356,3 +8356,41 @@
 [data-theme-mode="light"] .qbd-hub .shc-sidebar .qbd-hub-create {
   color: #fff !important;
 }
+
+/* Generator source switch: paste text / PDF / notes, cards & chat. */
+.qbd-hub .qbd-gen-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 22px;
+}
+
+.qbd-hub .qbd-gen-sources button {
+  padding: 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 11px;
+  background: transparent;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.qbd-hub .qbd-gen-sources button:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.qbd-hub .qbd-gen-sources button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+[data-theme-mode="light"] .qbd-hub .qbd-gen-sources button.active {
+  color: #fff;
+}

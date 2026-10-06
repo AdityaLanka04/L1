@@ -3,11 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Upload, MessageSquare, Sparkles, FileText, Trash2, Zap, CheckCircle, XCircle,
   Loader, FileUp, BookOpen, Download, FileDown, Eye, Edit3, RefreshCw, Layers,
-  AlertTriangle, Star, GitMerge, List, X, Save, Settings, Search, ArrowUpRight,
-  Filter, Check
+  AlertTriangle, Star, X, Save, Settings, ArrowUpRight, Check
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
+import './QuestionbankLibrary.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 import SocialHubChrome from '../components/SocialHubChrome';
@@ -20,8 +20,12 @@ const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
 const QUESTION_VIEWS = [
   { key: 'question-sets', label: 'Library', icon: FileText },
   { key: 'custom', label: 'Generator', icon: Sparkles },
-  { key: 'upload-pdf', label: 'PDF Upload', icon: Upload },
-  { key: 'chat-slides', label: 'Notes, Cards & Chat', icon: Layers },
+];
+
+const GENERATOR_SOURCES = [
+  { key: 'text', label: 'Paste text' },
+  { key: 'pdf', label: 'PDF' },
+  { key: 'study', label: 'Notes, cards & chat' },
 ];
 
 const getQuestionText = (question) => (
@@ -126,10 +130,8 @@ const QuestionBankDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [activeView, setActiveView] = useState('question-sets');
+  const [generatorSource, setGeneratorSource] = useState('text');
   const [questionSets, setQuestionSets] = useState([]);
-  const [questionSearch, setQuestionSearch] = useState('');
-  const [questionFilter, setQuestionFilter] = useState('all');
-  const [questionSort, setQuestionSort] = useState('recent');
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [chatSessions, setChatSessions] = useState([]);
   const [studyNotes, setStudyNotes] = useState([]);
@@ -160,23 +162,19 @@ const QuestionBankDashboard = () => {
   const [questionTypes, setQuestionTypes] = useState(['multiple_choice', 'true_false', 'short_answer']);
   const autoStartRef = useRef(null);
 
-  
   const getDifficultyCounts = () => {
     const total = difficultyMix.easy + difficultyMix.medium + difficultyMix.hard;
     if (total === 0) return { easy: 0, medium: 0, hard: 0 };
-    
-    
+
     const normalizedEasy = difficultyMix.easy / total;
     const normalizedMedium = difficultyMix.medium / total;
     const normalizedHard = difficultyMix.hard / total;
-    
-    
+
     const count = typeof questionCount === 'number' ? questionCount : 10;
     let easyCount = Math.round(normalizedEasy * count);
     let mediumCount = Math.round(normalizedMedium * count);
     let hardCount = Math.round(normalizedHard * count);
-    
-    
+
     const diff = count - (easyCount + mediumCount + hardCount);
     if (diff !== 0) {
       
@@ -193,8 +191,7 @@ const QuestionBankDashboard = () => {
   };
   
   const difficultyCount = getDifficultyCounts();
-  
-  
+
   const handleDifficultyChange = (level, newValue) => {
     const value = parseInt(newValue);
     const others = ['easy', 'medium', 'hard'].filter(l => l !== level);
@@ -229,7 +226,6 @@ const QuestionBankDashboard = () => {
     }
   };
 
-  
   const handleQuestionCountChange = (e) => {
     const value = e.target.value;
     
@@ -257,27 +253,15 @@ const QuestionBankDashboard = () => {
   const [results, setResults] = useState(null);
   const [sessionStartTime, setSessionStartTime] = useState(null);
 
-  
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewQuestions, setPreviewQuestions] = useState([]);
   const [previewStats, setPreviewStats] = useState(null);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [regenerateFeedback, setRegenerateFeedback] = useState('');
-  
-  
-  const [selectedSets, setSelectedSets] = useState([]);
-  const [showMergeModal, setShowMergeModal] = useState(false);
-  const [mergeTitle, setMergeTitle] = useState('');
-  const [deleteOriginals, setDeleteOriginals] = useState(false);
 
-  
   const [customPrompt, setCustomPrompt] = useState('');
   const [referenceDocId, setReferenceDocId] = useState(null);
   const defaultQuestionTypes = ['multiple_choice'];
-
-  useEffect(() => {
-    setSelectedSets([]);
-  }, [questionSearch, questionFilter]);
 
   useEffect(() => {
     document.querySelector('.qbd-rb-main')?.scrollTo({ top: 0, behavior: 'auto' });
@@ -305,7 +289,10 @@ const QuestionBankDashboard = () => {
         
       }
     }
-    if (openView && QUESTION_VIEWS.some((v) => v.key === openView)) {
+    if (openView === 'upload-pdf' || openView === 'chat-slides') {
+      setActiveView('custom');
+      setGeneratorSource(openView === 'upload-pdf' ? 'pdf' : 'study');
+    } else if (openView && QUESTION_VIEWS.some((v) => v.key === openView)) {
       setActiveView(openView);
     }
     if (typeof topicFromContext === 'string' && topicFromContext.trim()) {
@@ -380,7 +367,6 @@ const QuestionBankDashboard = () => {
     fetchFlashcardSets();
   }, [activeView]);
 
-  
   useEffect(() => {
     const generatedQuestions = location.state?.generatedQuestions;
     
@@ -406,11 +392,9 @@ const QuestionBankDashboard = () => {
           
           if (response.ok) {
             const data = await response.json();
-            
-            
+
             await fetchQuestionSets();
-            
-            
+
             const newSet = {
               id: data.set_id,
               title: generatedQuestions.title,
@@ -424,8 +408,7 @@ const QuestionBankDashboard = () => {
             setUserAnswers({});
             setShowResults(false);
             setSessionStartTime(Date.now());
-            
-            
+
             navigate('/question-bank', { replace: true, state: {} });
           }
         } catch (error) {
@@ -546,8 +529,7 @@ const QuestionBankDashboard = () => {
     try {
       setLoading(true);
       const selectedQuestionTypes = getSelectedQuestionTypes();
-      
-      
+
       const useSmartGeneration = customPrompt.trim() || referenceDocId;
 
       const isSingleQuestionDoc = !useSmartGeneration
@@ -591,7 +573,6 @@ const QuestionBankDashboard = () => {
           adaptiveDifficulty
         });
 
-        
         if (response.status === 'success') {
           alert(`Successfully generated ${response.question_count} questions using smart generation!`);
           resetSelections();
@@ -614,7 +595,6 @@ const QuestionBankDashboard = () => {
           adaptiveDifficulty
         });
 
-        
         if (response.status === 'success') {
           alert(`Successfully generated ${response.question_count} questions from ${selectedPDFs.length} document(s)!`);
           resetSelections();
@@ -660,8 +640,7 @@ const QuestionBankDashboard = () => {
     try {
       setLoading(true);
       await questionBankAgentService.deleteDocument(userId, docId);
-      
-      
+
       setSelectedPDFs(selectedPDFs.filter(p => p.id !== docId));
       if (selectedDocument === docId) {
         setSelectedDocument(null);
@@ -706,7 +685,6 @@ const QuestionBankDashboard = () => {
         adaptiveDifficulty
       });
 
-      
       if (response.success) {
         alert(`Successfully generated questions from ${selectedSources.length} sources!`);
         setSelectedSources([]);
@@ -746,7 +724,6 @@ const QuestionBankDashboard = () => {
         adaptiveDifficulty
       });
 
-      
       if (response.success || response.status === 'success') {
         alert(`Successfully generated ${response.questions?.length || response.question_count || questionCount} questions!`);
         setCustomContent('');
@@ -940,16 +917,13 @@ const QuestionBankDashboard = () => {
       if (!response.ok) {
         throw new Error('Failed to generate PDF');
       }
-      
-      
+
       const blob = await response.blob();
-      
-      
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      
-      
+
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = 'Question_Set.pdf';
       if (contentDisposition) {
@@ -1103,80 +1077,6 @@ const QuestionBankDashboard = () => {
     }
   };
 
-  // Analyze weaknesses
-  // Generate adaptive questions
-  // Generate related questions using strengths/weaknesses
-  // Toggle set selection for batch operations
-  const toggleSetSelection = (setId) => {
-    if (selectedSets.includes(setId)) {
-      setSelectedSets(selectedSets.filter(id => id !== setId));
-    } else {
-      setSelectedSets([...selectedSets, setId]);
-    }
-  };
-
-  // Batch delete
-  const handleBatchDelete = async () => {
-    if (selectedSets.length === 0) return;
-    
-    if (!window.confirm(`Delete ${selectedSets.length} question set(s)? This cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const result = await questionBankAgentService.batchDelete(userId, selectedSets);
-      
-      if (result.status === 'success') {
-        alert(`Deleted ${result.deleted_count} question set(s)`);
-        setSelectedSets([]);
-        await fetchQuestionSets();
-      }
-    } catch (error) {
-      console.error('Batch delete error:', error);
-      alert('Failed to delete: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Merge sets
-  const handleMergeSets = async () => {
-    if (selectedSets.length < 2) {
-      alert('Select at least 2 question sets to merge');
-      return;
-    }
-
-    if (!mergeTitle.trim()) {
-      alert('Please enter a title for the merged set');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const result = await questionBankAgentService.mergeSets(
-        userId,
-        selectedSets,
-        mergeTitle,
-        deleteOriginals
-      );
-
-      if (result.status === 'success') {
-        alert(`Merged ${result.source_sets.length} sets into "${mergeTitle}" (${result.total_questions} questions)`);
-        setShowMergeModal(false);
-        setSelectedSets([]);
-        setMergeTitle('');
-        setDeleteOriginals(false);
-        await fetchQuestionSets();
-      }
-    } catch (error) {
-      console.error('Merge error:', error);
-      alert('Failed to merge: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Remove question from preview
   const removeQuestionFromPreview = (index) => {
     const newQuestions = previewQuestions.filter((_, i) => i !== index);
@@ -1192,8 +1092,6 @@ const QuestionBankDashboard = () => {
   // ==================== END AI FEATURE HANDLERS ====================
 
   const renderViewContent = () => {
-    if (activeView === 'upload-pdf') return renderUploadPDF();
-    if (activeView === 'chat-slides') return renderChatSlides();
     if (activeView === 'custom') return renderCustom();
     if (activeView === 'question-sets') return renderQuestionSets();
     return renderQuestionSets();
@@ -1276,13 +1174,7 @@ const QuestionBankDashboard = () => {
   );
 
   const renderUploadPDF = () => (
-    <div className="qbd-view qbd-studio-view qbd-source-studio">
-      <div className="qbd-view-header">
-        <div className="qbd-view-title-group">
-          <h2 className="qbd-view-title">PDF Upload</h2>
-        </div>
-      </div>
-
+    <div className="qbd-source-studio">
       <div className="qbd-content-grid">
         <div className="qbd-upload-section">
           <div className="qbd-upload-box">
@@ -1410,13 +1302,7 @@ const QuestionBankDashboard = () => {
   );
 
   const renderChatSlides = () => (
-    <div className="qbd-view qbd-studio-view qbd-context-studio">
-      <div className="qbd-view-header">
-        <div className="qbd-view-title-group">
-          <h2 className="qbd-view-title">Notes, Cards &amp; Chat</h2>
-        </div>
-      </div>
-
+    <div className="qbd-context-studio">
       <div className="qbd-content-sections">
         {renderStudySourceGroup('note', 'Notes', BookOpen, studyNotes, (note) => formatSourceDate(note.updated_at || note.created_at))}
         {renderStudySourceGroup('flashcards', 'Flashcard sets', Layers, flashcardSets, (set) => `${set.card_count || 0} cards`)}
@@ -1452,14 +1338,28 @@ const QuestionBankDashboard = () => {
     <div className="qbd-view qbd-studio-view qbd-builder-studio">
       <div className="qbd-view-header">
         <div className="qbd-view-title-group">
-          <Sparkles className="qbd-view-icon" size={32} />
-          <div>
-            <h2 className="qbd-view-title">Create Questions</h2>
-
-          </div>
+          <h2 className="qbd-view-title">Generator</h2>
         </div>
       </div>
 
+      <div className="qbd-gen-sources" role="tablist" aria-label="Generate questions from">
+        {GENERATOR_SOURCES.map((source) => (
+          <button
+            key={source.key}
+            className={generatorSource === source.key ? 'active' : ''}
+            onClick={() => setGeneratorSource(source.key)}
+            role="tab"
+            aria-selected={generatorSource === source.key}
+            type="button"
+          >
+            {source.label}
+          </button>
+        ))}
+      </div>
+
+      {generatorSource === 'pdf' && renderUploadPDF()}
+      {generatorSource === 'study' && renderChatSlides()}
+      {generatorSource === 'text' && (
       <div className="qbd-custom-container">
         <div className="qbd-custom-layout">
           <div className="qbd-custom-card qbd-custom-card--editor">
@@ -1633,55 +1533,22 @@ const QuestionBankDashboard = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 
   const renderQuestionSets = () => {
-    const normalizedSearch = questionSearch.trim().toLowerCase();
-    const filteredSets = questionSets
-      .filter((set) => {
-        const title = String(set.title || '').toLowerCase();
-        const description = String(set.description || '').toLowerCase();
-        const matchesSearch = !normalizedSearch
-          || title.includes(normalizedSearch)
-          || description.includes(normalizedSearch);
-        const attempts = Number(set.attempts || 0);
-        const score = Number(set.best_score || 0);
-        const matchesFilter = questionFilter === 'all'
-          || (questionFilter === 'unstarted' && attempts === 0)
-          || (questionFilter === 'review' && attempts > 0 && score < 70)
-          || (questionFilter === 'strong' && attempts > 0 && score >= 70);
-        return matchesSearch && matchesFilter;
-      })
-      .sort((a, b) => {
-        if (questionSort === 'score') {
-          return Number(b.best_score || 0) - Number(a.best_score || 0);
-        }
-        if (questionSort === 'title') {
-          return String(a.title || '').localeCompare(String(b.title || ''));
-        }
-        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      });
-
-    const attemptedSets = questionSets.filter((set) => Number(set.attempts || 0) > 0);
-    const totalQuestions = questionSets.reduce(
-      (total, set) => total + Number(set.total_questions || 0),
-      0
+    const sortedSets = [...questionSets].sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
     );
-    const averageScore = attemptedSets.length
-      ? Math.round(
-        attemptedSets.reduce((total, set) => total + Number(set.best_score || 0), 0)
-        / attemptedSets.length
-      )
-      : 0;
 
     const getSetStatus = (set) => {
       const attempts = Number(set.attempts || 0);
       const score = Number(set.best_score || 0);
-      if (!attempts) return { label: 'Ready to begin', tone: 'new' };
-      if (score >= 80) return { label: 'Strong', tone: 'strong' };
-      if (score >= 60) return { label: 'Building', tone: 'building' };
-      return { label: 'Needs review', tone: 'review' };
+      if (!attempts) return 'Not started';
+      if (score >= 80) return 'Strong';
+      if (score >= 60) return 'Building';
+      return 'Needs review';
     };
 
     return (
@@ -1692,239 +1559,162 @@ const QuestionBankDashboard = () => {
         </div>
       </header>
 
-      <div className="qbd-qh-metrics" aria-label="Question library summary">
-        <div><strong>{questionSets.length}</strong><span>sets in library</span></div>
-        <div><strong>{totalQuestions}</strong><span>questions ready</span></div>
-        <div><strong>{attemptedSets.length}</strong><span>sets practiced</span></div>
-        <div><strong>{averageScore}%</strong><span>average best</span></div>
-      </div>
+      <div className="plx-library">
+        {loading ? (
+          <div className="plx-state">
+            <Loader className="qbd-spin" size={28} />
+            <p>Loading your library</p>
+          </div>
+        ) : sortedSets.length === 0 ? (
+          <div className="plx-state plx-state--empty">
+            <div className="plx-empty-mark"><FileText size={24} /></div>
+            <span>Your library is empty</span>
+            <h2>No Question Sets</h2>
+            <p>Use Create Questions in the sidebar to generate your first set.</p>
+          </div>
+        ) : (
+          <div className="plx-grid plx-grid--list">
+            {sortedSets.map((set) => {
+              const title = set.title || 'Untitled question set';
+              const attempts = Number(set.attempts || 0);
+              const score = Number(set.best_score || 0);
+              const questionTotal = Number(set.total_questions || 0);
+              const stackSize = Math.max(1, Math.min(questionTotal, 5));
+              const coverMark = title
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(word => word[0])
+                .join('')
+                .toUpperCase() || 'QB';
+              const isRenaming = renamingSetId === set.id;
 
-      {loading ? (
-        <div className="qbd-loading">
-          <Loader className="qbd-spin" size={48} />
-          <p>Loading question sets...</p>
-        </div>
-      ) : questionSets.length === 0 ? (
-        <div className="qbd-empty-state">
-          <FileText size={64} />
-          <h3>No question sets yet</h3>
-          <p>Use Create Questions in the sidebar to build your first set.</p>
-        </div>
-      ) : (
-        <>
-          <section className="qbd-qh-library">
-            <div className="qbd-qh-library-heading">
-              <div>
-                <h2>Question sets</h2>
-              </div>
-              <span>{filteredSets.length} shown</span>
-            </div>
-
-            <div className="qbd-qh-toolbar">
-              <label className="qbd-qh-search">
-                <Search size={17} />
-                <input
-                  value={questionSearch}
-                  onChange={(event) => setQuestionSearch(event.target.value)}
-                  placeholder="Search titles or topics"
-                  aria-label="Search question sets"
-                />
-                {questionSearch && (
-                  <button onClick={() => setQuestionSearch('')} aria-label="Clear search" type="button">
-                    <X size={14} />
-                  </button>
-                )}
-              </label>
-              <label className="qbd-qh-select">
-                <Filter size={15} />
-                <select
-                  value={questionFilter}
-                  onChange={(event) => setQuestionFilter(event.target.value)}
-                  aria-label="Filter by progress"
-                >
-                  <option value="all">All progress</option>
-                  <option value="unstarted">Not started</option>
-                  <option value="review">Needs review</option>
-                  <option value="strong">Strong</option>
-                </select>
-              </label>
-              <label className="qbd-qh-select">
-                <List size={15} />
-                <select
-                  value={questionSort}
-                  onChange={(event) => setQuestionSort(event.target.value)}
-                  aria-label="Sort question sets"
-                >
-                  <option value="recent">Recently added</option>
-                  <option value="score">Highest score</option>
-                  <option value="title">Title A–Z</option>
-                </select>
-              </label>
-              <button
-                className={`qbd-qh-select-all ${selectedSets.length ? 'active' : ''}`}
-                onClick={() => {
-                  if (filteredSets.length > 0 && filteredSets.every((set) => selectedSets.includes(set.id))) {
-                    setSelectedSets(selectedSets.filter((id) => !filteredSets.some((set) => set.id === id)));
-                  } else {
-                    setSelectedSets([...new Set([...selectedSets, ...filteredSets.map((set) => set.id)])]);
-                  }
-                }}
-                type="button"
-              >
-                <Check size={14} />
-                {selectedSets.length ? `${selectedSets.length} selected` : 'Select'}
-              </button>
-            </div>
-
-            {filteredSets.length === 0 ? (
-              <div className="qbd-qh-no-results">
-                <Search size={24} />
-                <h3>No matching sets</h3>
-                <p>Try another search or clear the current progress filter.</p>
-                <button
-                  onClick={() => {
-                    setQuestionSearch('');
-                    setQuestionFilter('all');
+              return (
+                <article
+                  key={set.id}
+                  className="plx-card"
+                  onClick={() => { if (!isRenaming) startStudySession(set.id); }}
+                  onKeyDown={(event) => {
+                    if (isRenaming) return;
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      startStudySession(set.id);
+                    }
                   }}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Practice ${title}`}
                 >
-                  Reset filters
-                </button>
-              </div>
-            ) : (
-              <div className="qbd-qh-set-list">
-                {filteredSets.map((set, index) => {
-                  const isSelected = selectedSets.includes(set.id);
-                  const status = getSetStatus(set);
-                  const score = Number(set.best_score || 0);
-                  return (
-                    <article
-                      key={set.id}
-                      className={`qbd-qh-set-row ${isSelected ? 'selected' : ''}`}
-                    >
+                  <div className="plx-card-top">
+                    <div className="plx-stack-visual" aria-hidden="true">
+                      {Array.from({ length: stackSize }).map((_, stackIndex) => (
+                        <span key={stackIndex} style={{ '--stack-index': stackIndex }} />
+                      ))}
+                      <strong>{coverMark}</strong>
+                    </div>
+
+                    <div className="plx-card-main">
+                      <div className="plx-card-badges">
+                        <span>{formatDocumentType(set.source_type)}</span>
+                        <span>{getSetStatus(set)}</span>
+                      </div>
+                      {isRenaming ? (
+                        <div className="qbd-qh-rename-editor" onClick={(event) => event.stopPropagation()}>
+                          <input
+                            value={renameValue}
+                            onChange={(event) => {
+                              setRenameValue(event.target.value);
+                              if (renameError) setRenameError('');
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') saveQuestionSetName(set.id);
+                              if (event.key === 'Escape') cancelRenameQuestionSet();
+                            }}
+                            aria-label="Question set name"
+                            autoFocus
+                            maxLength={120}
+                          />
+                          <button
+                            className="qbd-qh-rename-confirm"
+                            onClick={() => saveQuestionSetName(set.id)}
+                            disabled={renameSaving}
+                            aria-label="Save question set name"
+                            type="button"
+                          >
+                            {renameSaving ? <Loader className="qbd-spin" size={15} /> : <Check size={15} />}
+                          </button>
+                          <button
+                            className="qbd-qh-rename-cancel"
+                            onClick={cancelRenameQuestionSet}
+                            disabled={renameSaving}
+                            aria-label="Cancel renaming question set"
+                            type="button"
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
+                      ) : (
+                        <h2>{title}</h2>
+                      )}
+                      {isRenaming && renameError ? <span className="qbd-qh-rename-error" role="alert">{renameError}</span> : null}
+                      <p>{set.description || 'A focused question set ready for practice.'}</p>
+                    </div>
+
+                    <ArrowUpRight className="plx-open-cue" size={17} aria-hidden="true" />
+                  </div>
+
+                  <div className="plx-card-data">
+                    <div><FileText size={13} /><strong>{questionTotal}</strong><span>questions</span></div>
+                    <div><RefreshCw size={13} /><strong>{attempts}</strong><span>attempts</span></div>
+                    <div><Star size={13} /><strong>{attempts ? `${score}%` : '—'}</strong><span>best</span></div>
+                  </div>
+
+                  {attempts > 0 && (
+                    <div className="plx-progress">
+                      <div><span>Best score</span><strong>{score}%</strong></div>
+                      <div className="plx-progress-track"><span style={{ width: `${score}%` }} /></div>
+                    </div>
+                  )}
+
+                  <footer className="plx-card-footer">
+                    <div className="plx-creator">
+                      <div><small>Created</small><strong>{set.created_at ? new Date(set.created_at).toLocaleDateString() : '—'}</strong></div>
+                    </div>
+
+                    <div className="plx-card-controls" aria-label={`Actions for ${title}`}>
                       <button
-                        className="qbd-qh-check"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          toggleSetSelection(set.id);
-                        }}
-                        aria-label={`${isSelected ? 'Deselect' : 'Select'} ${set.title || 'question set'}`}
-                        aria-pressed={isSelected}
                         type="button"
+                        title="Rename"
+                        aria-label={`Rename ${title}`}
+                        onClick={(event) => { event.stopPropagation(); beginRenameQuestionSet(set); }}
                       >
-                        {isSelected ? <Check size={14} /> : <span>{String(index + 1).padStart(2, '0')}</span>}
+                        <Edit3 size={14} />
                       </button>
-                      <div className="qbd-qh-set-copy">
-                        <div className="qbd-qh-set-title-line">
-                          {renamingSetId === set.id ? (
-                            <div className="qbd-qh-rename-editor">
-                              <input
-                                value={renameValue}
-                                onChange={(event) => {
-                                  setRenameValue(event.target.value);
-                                  if (renameError) setRenameError('');
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === 'Enter') saveQuestionSetName(set.id);
-                                  if (event.key === 'Escape') cancelRenameQuestionSet();
-                                }}
-                                aria-label="Question set name"
-                                autoFocus
-                                maxLength={120}
-                              />
-                              <button
-                                className="qbd-qh-rename-confirm"
-                                onClick={() => saveQuestionSetName(set.id)}
-                                disabled={renameSaving}
-                                aria-label="Save question set name"
-                                type="button"
-                              >
-                                {renameSaving ? <Loader className="qbd-spin" size={15} /> : <Check size={15} />}
-                              </button>
-                              <button
-                                className="qbd-qh-rename-cancel"
-                                onClick={cancelRenameQuestionSet}
-                                disabled={renameSaving}
-                                aria-label="Cancel renaming question set"
-                                type="button"
-                              >
-                                <X size={15} />
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <h3>{set.title || 'Untitled question set'}</h3>
-                              <button
-                                className="qbd-qh-title-edit"
-                                onClick={() => beginRenameQuestionSet(set)}
-                                aria-label={`Rename ${set.title || 'question set'}`}
-                                title="Rename set"
-                                type="button"
-                              >
-                                <Edit3 size={14} />
-                              </button>
-                            </>
-                          )}
-                          <span className={`qbd-qh-status qbd-qh-status--${status.tone}`}>{status.label}</span>
-                        </div>
-                        {renamingSetId === set.id && renameError ? <span className="qbd-qh-rename-error" role="alert">{renameError}</span> : null}
-                        <p>{set.description || 'No description added yet.'}</p>
-                        <div className="qbd-qh-set-meta">
-                          <span>{formatDocumentType(set.source_type)}</span>
-                          <span>{set.total_questions || 0} questions</span>
-                          <span>{new Date(set.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <div className="qbd-qh-set-progress">
-                        <div><span>Best</span><strong>{Number(set.attempts || 0) ? `${score}%` : '—'}</strong></div>
-                        <div className="qbd-qh-mini-track">
-                          <span style={{ width: `${score}%` }} />
-                        </div>
-                        <small>{set.attempts || 0} attempt{Number(set.attempts || 0) === 1 ? '' : 's'}</small>
-                      </div>
-                      <div className="qbd-qh-row-actions">
-                        <button
-                          className="qbd-qh-icon-btn"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openExportModal(set.id);
-                          }}
-                          aria-label={`Export ${set.title || 'question set'}`}
-                          type="button"
-                        >
-                          <Download size={16} />
-                        </button>
-                        <button
-                          className="qbd-qh-icon-btn qbd-qh-icon-btn--danger"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            deleteQuestionSet(set.id);
-                          }}
-                          aria-label={`Delete ${set.title || 'question set'}`}
-                          type="button"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                        <button
-                          className="qbd-qh-open-btn"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            startStudySession(set.id);
-                          }}
-                          type="button"
-                        >
-                          Practice
-                          <ArrowUpRight size={15} />
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </>
-      )}
+                      <button
+                        type="button"
+                        title="Export"
+                        aria-label={`Export ${title}`}
+                        onClick={(event) => { event.stopPropagation(); openExportModal(set.id); }}
+                      >
+                        <Download size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="danger"
+                        title="Delete"
+                        aria-label={`Delete ${title}`}
+                        onClick={(event) => { event.stopPropagation(); deleteQuestionSet(set.id); }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </footer>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
   };
@@ -2171,7 +1961,7 @@ const QuestionBankDashboard = () => {
         sideSections={[
           {
             label: 'Question bank',
-            items: QUESTION_VIEWS.filter((view) => view.key !== 'custom').map((view) => ({
+            items: QUESTION_VIEWS.filter((view) => view.key === 'question-sets').map((view) => ({
               icon: view.icon,
               label: view.label,
               active: activeView === view.key,
@@ -2501,83 +2291,6 @@ const QuestionBankDashboard = () => {
         </div>
       )}
 
-      {/* Merge Sets Modal */}
-      {showMergeModal && (
-        <div className="qbd-modal-overlay" onClick={() => setShowMergeModal(false)}>
-          <div className="qbd-merge-modal" role="dialog" aria-modal="true" aria-labelledby="qbd-merge-title" onClick={e => e.stopPropagation()}>
-            <div className="qbd-merge-header">
-              <GitMerge size={24} />
-              <h2 id="qbd-merge-title">Merge Question Sets</h2>
-            </div>
-            
-            <div className="qbd-merge-content">
-              <p>Merging {selectedSets.length} question sets</p>
-              
-              <div className="qbd-setting-group">
-                <label>New Set Title</label>
-                <input
-                  type="text"
-                  value={mergeTitle}
-                  onChange={(e) => setMergeTitle(e.target.value)}
-                  placeholder="Enter title for merged set..."
-                  className="qbd-input"
-                />
-              </div>
-              
-              <label className="qbd-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={deleteOriginals}
-                  onChange={(e) => setDeleteOriginals(e.target.checked)}
-                />
-                <span>Delete original sets after merging</span>
-              </label>
-            </div>
-            
-            <div className="qbd-merge-actions">
-              <button 
-                className="qbd-btn-secondary"
-                onClick={() => {
-                  setShowMergeModal(false);
-                  setMergeTitle('');
-                  setDeleteOriginals(false);
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="qbd-btn-primary"
-                onClick={handleMergeSets}
-                disabled={loading || !mergeTitle.trim()}
-              >
-                {loading ? <Loader className="qbd-spin" size={18} /> : <GitMerge size={18} />}
-                <span>Merge Sets</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Batch Actions Bar */}
-      {selectedSets.length > 0 && (
-        <div className="qbd-batch-bar">
-          <span>{selectedSets.length} set(s) selected</span>
-          <div className="qbd-batch-actions">
-            <button onClick={() => setShowMergeModal(true)} disabled={selectedSets.length < 2}>
-              <GitMerge size={16} />
-              <span>Merge</span>
-            </button>
-            <button onClick={handleBatchDelete} className="qbd-batch-delete">
-              <Trash2 size={16} />
-              <span>Delete</span>
-            </button>
-            <button onClick={() => setSelectedSets([])} className="qbd-batch-clear">
-              <X size={16} />
-              <span>Clear</span>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
