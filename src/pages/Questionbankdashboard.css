@@ -8571,3 +8571,186 @@
   right: 38px !important;
   transform: translateY(-50%);
 }
+
+/* Generation settings: raised (outer) depth only, no carved insets; clean
+   grouped layout for count, difficulty, types and instructions. */
+.qbd-hub .qbd-generation-settings {
+  display: grid !important;
+  gap: 24px !important;
+  margin-top: 22px !important;
+  padding: 24px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent) !important;
+  border-radius: 16px !important;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .35) !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-setting-group,
+.qbd-hub .qbd-generation-settings .qbd-prompt-section {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-setting-group > label:first-child {
+  display: block;
+  margin: 0 0 10px !important;
+  color: var(--accent) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-input {
+  width: 140px !important;
+  height: 42px !important;
+  padding: 0 14px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent) !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .28) !important;
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-textarea {
+  width: 100% !important;
+  min-height: 96px;
+  padding: 12px 14px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent) !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .28) !important;
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.qbd-hub .qbd-generation-settings :is(.qbd-input, .qbd-textarea):focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent) !important;
+  outline: none !important;
+}
+
+/* Difficulty: three side-by-side sliders with an accent thumb. */
+.qbd-hub .qbd-generation-settings .qbd-difficulty-sliders {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-slider-item {
+  display: grid !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  padding: 14px 16px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent) !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .28) !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-slider-item > span {
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.qbd-hub .qbd-generation-settings input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  border: 0 !important;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent) !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.qbd-hub .qbd-generation-settings input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .45);
+}
+
+.qbd-hub .qbd-generation-settings input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .45);
+}
+
+/* Checkbox options (adaptive + question types): raised pills. */
+.qbd-hub .qbd-generation-settings .qbd-checkbox-group {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 12px 0 0 !important;
+  padding: 11px 14px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent) !important;
+  border-radius: 11px !important;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent) !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .28) !important;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-checkbox-group .qbd-checkbox-label {
+  margin: 0 !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-checkbox-label:has(input:checked) {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent) !important;
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-checkbox-label input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  accent-color: var(--accent);
+}
+
+.qbd-hub .qbd-generation-settings .qbd-checkbox-label span {
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.4;
+  text-transform: none !important;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-checkbox-group .qbd-checkbox-label span::first-letter {
+  text-transform: uppercase;
+}
+
+.qbd-hub .qbd-generation-settings .qbd-btn-large {
+  box-shadow: 0 12px 26px rgba(0, 0, 0, .38) !important;
+}
+
+@media (max-width: 760px) {
+  .qbd-hub .qbd-generation-settings .qbd-difficulty-sliders {
+    grid-template-columns: 1fr !important;
+  }
+}
