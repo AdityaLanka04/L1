@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3,
-  Plus, Play, Trash2, TrendingUp, Target, Brain, Zap, Award,
-  CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart,
-  Download, FileDown, Eye, Edit3, RefreshCw, Layers, AlertTriangle,
-  Star, GitMerge, Wand2, List, ChevronDown, ChevronUp, X, Save, Settings,
-  Search, ArrowUpRight, Filter, Check
+  Upload, MessageSquare, Sparkles, FileText, Trash2, Zap, CheckCircle, XCircle,
+  Loader, FileUp, BookOpen, Download, FileDown, Eye, Edit3, RefreshCw, Layers,
+  AlertTriangle, Star, GitMerge, List, X, Save, Settings, Search, ArrowUpRight,
+  Filter, Check
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
@@ -19,18 +17,11 @@ import MathRenderer from '../components/MathRenderer';
 
 const CONTEXT_SELECTION_KEY = 'ctx_selected_doc_ids';
 
-const QUICK_SECTIONS = [
-  { label: 'AI Chat', route: '/ai-chat', icon: MessageSquare },
-  { label: 'Flashcards', route: '/flashcards', icon: Layers },
-  { label: 'Notes', route: '/notes', icon: BookOpen }
-];
-
 const QUESTION_VIEWS = [
-  { key: 'question-sets', label: 'Practice Library', icon: FileText },
-  { key: 'upload-pdf', label: 'PDF Sources', icon: Upload },
-  { key: 'chat-slides', label: 'Study Sources', icon: MessageSquare },
-  { key: 'custom', label: 'Build a Set', icon: Sparkles },
-  { key: 'analytics', label: 'Performance', icon: BarChart3 }
+  { key: 'question-sets', label: 'Library', icon: FileText },
+  { key: 'custom', label: 'Generator', icon: Sparkles },
+  { key: 'upload-pdf', label: 'PDF Upload', icon: Upload },
+  { key: 'chat-slides', label: 'Notes, Cards & Chat', icon: Layers },
 ];
 
 const getQuestionText = (question) => (
@@ -118,19 +109,6 @@ const formatDocumentType = (documentType) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-const normalizeUploadedSlide = (slide = {}) => {
-  const id = slide.id ?? slide.slide_id;
-  const title = slide.title || slide.filename || slide.original_filename || `Slide ${id || ''}`.trim();
-  const uploadedAt = slide.uploaded_at || slide.created_at || slide.processed_at || null;
-
-  return {
-    ...slide,
-    id,
-    title,
-    created_at: uploadedAt
-  };
-};
-
 const formatSourceDate = (value) => {
   if (!value) return 'No upload date';
 
@@ -154,8 +132,8 @@ const QuestionBankDashboard = () => {
   const [questionSort, setQuestionSort] = useState('recent');
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [chatSessions, setChatSessions] = useState([]);
-  const [uploadedSlides, setUploadedSlides] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
+  const [studyNotes, setStudyNotes] = useState([]);
+  const [flashcardSets, setFlashcardSets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [contextGenerationStatus, setContextGenerationStatus] = useState('');
   const contextGenerationRef = useRef('');
@@ -168,16 +146,6 @@ const QuestionBankDashboard = () => {
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameError, setRenameError] = useState('');
 
-  
-  const [weakAreas, setWeakAreas] = useState([]);
-  const [wrongAnswers, setWrongAnswers] = useState([]);
-  const [practiceRecommendations, setPracticeRecommendations] = useState(null);
-  const [generatingPractice, setGeneratingPractice] = useState(false);
-  const [selectedWeakTopic, setSelectedWeakTopic] = useState(null);
-
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [showCustomModal, setShowCustomModal] = useState(false);
   const [showStudyModal, setShowStudyModal] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
 
@@ -295,17 +263,9 @@ const QuestionBankDashboard = () => {
   const [previewStats, setPreviewStats] = useState(null);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [regenerateFeedback, setRegenerateFeedback] = useState('');
-  const [extractedTopics, setExtractedTopics] = useState(null);
-  const [selectedTopics, setSelectedTopics] = useState([]);
-  const [showTopicsPanel, setShowTopicsPanel] = useState(false);
-  const [enhancedPrompt, setEnhancedPrompt] = useState('');
-  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
-  const [weaknessAnalysis, setWeaknessAnalysis] = useState(null);
-  const [showWeaknessPanel, setShowWeaknessPanel] = useState(false);
   
   
   const [selectedSets, setSelectedSets] = useState([]);
-  const [showBatchActions, setShowBatchActions] = useState(false);
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [mergeTitle, setMergeTitle] = useState('');
   const [deleteOriginals, setDeleteOriginals] = useState(false);
@@ -313,7 +273,6 @@ const QuestionBankDashboard = () => {
   
   const [customPrompt, setCustomPrompt] = useState('');
   const [referenceDocId, setReferenceDocId] = useState(null);
-  const [showSmartOptions, setShowSmartOptions] = useState(false);
   const defaultQuestionTypes = ['multiple_choice'];
 
   useEffect(() => {
@@ -417,15 +376,8 @@ const QuestionBankDashboard = () => {
     fetchQuestionSets();
     fetchUploadedDocuments();
     fetchChatSessions();
-    fetchUploadedSlides();
-    if (activeView === 'analytics') {
-      fetchAnalytics();
-    }
-    if (activeView === 'weak-areas') {
-      fetchWeakAreas();
-      fetchPracticeRecommendations();
-    }
-    
+    fetchStudyNotes();
+    fetchFlashcardSets();
   }, [activeView]);
 
   
@@ -531,105 +483,29 @@ const QuestionBankDashboard = () => {
     } catch (error) { /* silenced */ }
   };
 
-  const fetchUploadedSlides = async () => {
+  const fetchStudyNotes = async () => {
     try {
-      const response = await fetch(`${API_URL}/get_uploaded_slides?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/get_notes?user_id=${encodeURIComponent(userId)}&summary=true&limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setUploadedSlides((data.slides || []).map(normalizeUploadedSlide));
+        setStudyNotes(Array.isArray(data) ? data : []);
       }
     } catch (error) { /* silenced */ }
   };
 
-  const fetchAnalytics = async () => {
+  const fetchFlashcardSets = async () => {
     try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/qb/get_analytics?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/get_flashcard_history?user_id=${encodeURIComponent(userId)}&limit=100&offset=0`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setAnalytics(data);
+        setFlashcardSets(Array.isArray(data.flashcard_history) ? data.flashcard_history : []);
       }
-    } catch (error) { /* silenced */ } finally {
-      setLoading(false);
-    }
+    } catch (error) { /* silenced */ }
   };
-
-  
-
-  const fetchWeakAreas = async () => {
-    try {
-      setLoading(true);
-      const data = await questionBankAgentService.getWeakAreas(userId);
-      setWeakAreas(data.weak_areas || []);
-    } catch (error) {
-      console.error('Error fetching weak areas:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchWrongAnswers = async (topic = null) => {
-    try {
-      const data = await questionBankAgentService.getWrongAnswers(userId, topic, 50);
-      setWrongAnswers(data.wrong_answers || []);
-    } catch (error) {
-      console.error('Error fetching wrong answers:', error);
-    }
-  };
-
-  const fetchPracticeRecommendations = async () => {
-    try {
-      const data = await questionBankAgentService.getPracticeRecommendations(userId);
-      setPracticeRecommendations(data);
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-    }
-  };
-
-  const handleGeneratePractice = async (topic = null) => {
-    try {
-      setGeneratingPractice(true);
-      const data = await questionBankAgentService.generatePractice(userId, topic, 10, true);
-      
-      if (data.practice_set_id) {
-        alert(`Practice set created with ${data.total_questions} questions!`);
-        await fetchQuestionSets();
-        setActiveView('question-sets');
-      } else {
-        alert(data.message || 'Could not generate practice questions');
-      }
-    } catch (error) {
-      console.error('Error generating practice:', error);
-      alert('Failed to generate practice: ' + error.message);
-    } finally {
-      setGeneratingPractice(false);
-    }
-  };
-
-  const handleMarkReviewed = async (wrongAnswerId, understood = true) => {
-    try {
-      await questionBankAgentService.markWrongAnswerReviewed(wrongAnswerId, understood);
-      
-      await fetchWrongAnswers(selectedWeakTopic);
-    } catch (error) {
-      console.error('Error marking reviewed:', error);
-    }
-  };
-
-  const handleResetWeakArea = async (weakAreaId, action = 'mastered') => {
-    try {
-      await questionBankAgentService.resetWeakArea(weakAreaId, action);
-      await fetchWeakAreas();
-    } catch (error) {
-      console.error('Error resetting weak area:', error);
-    }
-  };
-
-  
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -650,58 +526,11 @@ const QuestionBankDashboard = () => {
         const data = await response.json();
         alert(`PDF uploaded successfully! Document type: ${formatDocumentType(data.analysis?.document_type)}`);
         await fetchUploadedDocuments();
-        setShowUploadModal(false);
       } else {
         alert('Failed to upload PDF');
       }
     } catch (error) {
             alert('Error uploading PDF');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerateFromPDF = async () => {
-    
-    if (selectedPDFs.length > 0) {
-      await handleGenerateFromMultiplePDFs();
-      return;
-    }
-    
-    if (!selectedDocument) {
-      alert('Please select a PDF document');
-      return;
-    }
-    if (!ensureQuestionTypesSelected()) return;
-
-    try {
-      setLoading(true);
-      const selectedQuestionTypes = getSelectedQuestionTypes();
-      
-      const response = await questionBankAgentService.generateFromPDF({
-        userId,
-        sourceId: selectedDocument,
-        questionCount: questionCount || 10,
-        difficultyMix: difficultyCount,
-        questionTypes: selectedQuestionTypes,
-        topics: selectedTopics.length > 0 ? selectedTopics : null,
-        title: null,
-        adaptiveDifficulty
-      });
-
-      
-      if (response.status === 'success') {
-        alert(`Successfully generated ${response.question_count || questionCount} questions!`);
-        setShowUploadModal(false);
-        setSelectedDocument(null);
-        await fetchQuestionSets();
-        setActiveView('question-sets');
-      } else {
-        alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('❌ Error:', error);
-      alert('Error generating questions: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -732,7 +561,7 @@ const QuestionBankDashboard = () => {
           questionCount: questionCount || 10,
           difficultyMix: difficultyCount,
           questionTypes: selectedQuestionTypes,
-          topics: selectedTopics.length > 0 ? selectedTopics : null,
+          topics: null,
           adaptiveDifficulty
         });
 
@@ -808,15 +637,6 @@ const QuestionBankDashboard = () => {
     setSelectedDocument(null);
     setCustomPrompt('');
     setReferenceDocId(null);
-    setShowSmartOptions(false);
-  };
-
-  const toggleReferenceDoc = (docId) => {
-    if (referenceDocId === docId) {
-      setReferenceDocId(null);
-    } else {
-      setReferenceDocId(docId);
-    }
   };
 
   const togglePDFSelection = (doc) => {
@@ -862,7 +682,6 @@ const QuestionBankDashboard = () => {
     setSelectedDocument(null);
     setCustomPrompt('');
     setReferenceDocId(null);
-    setShowSmartOptions(false);
   };
 
   const handleGenerateFromChatSlides = async () => {
@@ -890,7 +709,6 @@ const QuestionBankDashboard = () => {
       
       if (response.success) {
         alert(`Successfully generated questions from ${selectedSources.length} sources!`);
-        setShowGenerateModal(false);
         setSelectedSources([]);
         await fetchQuestionSets();
         setActiveView('question-sets');
@@ -931,7 +749,6 @@ const QuestionBankDashboard = () => {
       
       if (response.success || response.status === 'success') {
         alert(`Successfully generated ${response.questions?.length || response.question_count || questionCount} questions!`);
-        setShowCustomModal(false);
         setCustomContent('');
         setCustomTitle('');
         await fetchQuestionSets();
@@ -1025,9 +842,6 @@ const QuestionBankDashboard = () => {
         setResults(data);
         setShowResults(true);
         await fetchQuestionSets();
-        if (activeView === 'analytics') {
-          await fetchAnalytics();
-        }
       } else {
         alert(`Failed to submit answers: ${data.detail || data.message || response.statusText || 'Unknown error'}`);
       }
@@ -1222,94 +1036,8 @@ const QuestionBankDashboard = () => {
   // ==================== AI FEATURE HANDLERS ====================
 
   // Enhance prompt with AI
-  const handleEnhancePrompt = async () => {
-    if (!customPrompt.trim()) return;
-    
-    try {
-      setIsEnhancingPrompt(true);
-      const contentSummary = selectedPDFs.length > 0 
-        ? `Documents: ${selectedPDFs.map(p => p.filename).join(', ')}`
-        : '';
-      
-      const result = await questionBankAgentService.enhancePrompt(customPrompt, contentSummary);
-      
-      if (result.enhanced) {
-        setEnhancedPrompt(result.enhanced.enhanced_prompt);
-        setCustomPrompt(result.enhanced.enhanced_prompt);
-        
-        // Apply suggested settings if available
-        if (result.enhanced.suggested_difficulty_distribution) {
-          setDifficultyMix(result.enhanced.suggested_difficulty_distribution);
-        }
-      }
-    } catch (error) {
-      console.error('Prompt enhancement error:', error);
-    } finally {
-      setIsEnhancingPrompt(false);
-    }
-  };
-
   // Extract topics from selected documents
-  const handleExtractTopics = async () => {
-    if (selectedPDFs.length === 0) return;
-    
-    try {
-      setLoading(true);
-      const result = await questionBankAgentService.extractTopics(
-        userId, 
-        selectedPDFs[0].id
-      );
-      
-      if (result.topics) {
-        setExtractedTopics(result.topics);
-        setShowTopicsPanel(true);
-      }
-    } catch (error) {
-      console.error('Topic extraction error:', error);
-      alert('Failed to extract topics');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Preview generate questions
-  const handlePreviewGenerate = async () => {
-    if (selectedPDFs.length === 0) {
-      alert('Please select at least one PDF');
-      return;
-    }
-    if (!ensureQuestionTypesSelected()) return;
-
-    try {
-      setLoading(true);
-      const selectedQuestionTypes = getSelectedQuestionTypes();
-      
-      const result = await questionBankAgentService.previewGenerate({
-        userId,
-        sourceIds: selectedPDFs.map(p => p.id),
-        questionCount: questionCount || 10,
-        difficultyMix: difficultyCount,
-        questionTypes: selectedQuestionTypes,
-        topics: selectedTopics.length > 0 ? selectedTopics : null,
-        customPrompt: customPrompt.trim() || null,
-        referenceDocumentId: referenceDocId || null,
-        contentDocumentIds: selectedPDFs.filter(p => p.id !== referenceDocId).map(p => p.id),
-        sessionId: `qb_preview_${userId}_${Date.now()}`
-      });
-
-      if (result.status === 'success') {
-        setPreviewQuestions(result.questions);
-        setPreviewStats(result.stats);
-        setShowPreviewModal(true);
-      }
-    } catch (error) {
-      console.error('Preview generation error:', error);
-      alert('Failed to generate preview: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Regenerate a single question in preview
   const handleRegenerateQuestion = async (index) => {
     const question = previewQuestions[index];
@@ -1376,105 +1104,8 @@ const QuestionBankDashboard = () => {
   };
 
   // Analyze weaknesses
-  const handleAnalyzeWeaknesses = async () => {
-    try {
-      setLoading(true);
-      const result = await questionBankAgentService.analyzeWeaknesses(userId);
-      
-      if (result.analysis) {
-        setWeaknessAnalysis(result.analysis);
-        setShowWeaknessPanel(true);
-      } else {
-        alert('No performance data available yet. Complete some question sets first!');
-      }
-    } catch (error) {
-      console.error('Weakness analysis error:', error);
-      alert('Failed to analyze weaknesses');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Generate adaptive questions
-  const handleGenerateAdaptive = async () => {
-    if (selectedPDFs.length === 0) {
-      alert('Please select at least one PDF');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      const result = await questionBankAgentService.generateAdaptive(
-        userId,
-        selectedPDFs.map(p => p.id),
-        questionCount || 10
-      );
-
-      if (result.status === 'success') {
-        const focusTopics = result.weakness_analysis?.recommendations?.focus_topics
-          || (result.weakness_analysis?.weak_topics || []).map(t => t.topic).filter(Boolean);
-
-        setPreviewQuestions(result.questions);
-        setWeaknessAnalysis(result.weakness_analysis);
-        setPreviewStats({
-          total: result.questions.length,
-          average_quality_score: 7,
-          adaptive: true,
-          weak_topics: focusTopics || []
-        });
-        setShowPreviewModal(true);
-      }
-    } catch (error) {
-      console.error('Adaptive generation error:', error);
-      alert('Failed to generate adaptive questions: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Generate related questions using strengths/weaknesses
-  const handleGenerateRelatedFromPDF = async () => {
-    if (selectedPDFs.length === 0) {
-      alert('Please select at least one PDF');
-      return;
-    }
-    if (!ensureQuestionTypesSelected()) return;
-
-    try {
-      setLoading(true);
-      const selectedQuestionTypes = getSelectedQuestionTypes();
-
-      const result = await questionBankAgentService.generateRelatedFromPDF({
-        userId,
-        sourceIds: selectedPDFs.map(p => p.id),
-        questionCount: questionCount || 10,
-        difficultyMix: difficultyCount,
-        questionTypes: selectedQuestionTypes,
-        title: selectedPDFs.length === 1
-          ? `Related Questions from ${selectedPDFs[0].filename}`
-          : `Related Questions from ${selectedPDFs.length} documents`
-      });
-
-      if (result.status === 'success') {
-        setPreviewQuestions(result.questions || []);
-        setPreviewStats({
-          total: result.questions?.length || 0,
-          average_quality_score: 7,
-          personalized: true,
-          weak_topics: result.personalization?.weak_topics || [],
-          strong_topics: result.personalization?.strong_topics || []
-        });
-        setShowPreviewModal(true);
-      }
-    } catch (error) {
-      console.error('Related generation error:', error);
-      alert('Failed to generate related questions: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Toggle set selection for batch operations
   const toggleSetSelection = (setId) => {
     if (selectedSets.includes(setId)) {
@@ -1565,19 +1196,90 @@ const QuestionBankDashboard = () => {
     if (activeView === 'chat-slides') return renderChatSlides();
     if (activeView === 'custom') return renderCustom();
     if (activeView === 'question-sets') return renderQuestionSets();
-    if (activeView === 'analytics') return renderAnalytics();
     return renderQuestionSets();
   };
+
+  const renderGenerationSettings = () => (
+    <>
+      <div className="qbd-setting-group">
+        <label>Number of Questions</label>
+        <input
+          type="number"
+          min="1"
+          max="100"
+          value={questionCount}
+          onChange={handleQuestionCountChange}
+          onBlur={handleQuestionCountBlur}
+          className="qbd-input"
+        />
+      </div>
+
+      <div className="qbd-setting-group">
+        <label>Difficulty Mix</label>
+        <div className="qbd-difficulty-sliders">
+          {['easy', 'medium', 'hard'].map((level) => (
+            <div key={level} className="qbd-slider-item">
+              <span>{level.charAt(0).toUpperCase() + level.slice(1)}: {difficultyCount[level]} ({difficultyMix[level]}%)</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={difficultyMix[level]}
+                onChange={(e) => handleDifficultyChange(level, e.target.value)}
+              />
+            </div>
+          ))}
+        </div>
+        <label className="qbd-checkbox-label" style={{ marginTop: '8px' }}>
+          <input
+            type="checkbox"
+            checked={adaptiveDifficulty}
+            onChange={(e) => setAdaptiveDifficulty(e.target.checked)}
+          />
+          <span>Adaptive difficulty (let past performance on this topic override the mix above)</span>
+        </label>
+      </div>
+
+      <div className="qbd-setting-group">
+        <label>Question Types</label>
+        <div className="qbd-checkbox-group">
+          {['multiple_choice', 'true_false', 'short_answer', 'fill_blank'].map(type => (
+            <label key={type} className="qbd-checkbox-label">
+              <input
+                type="checkbox"
+                checked={questionTypes.includes(type)}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setQuestionTypes([...questionTypes, type]);
+                  } else {
+                    setQuestionTypes(questionTypes.filter(t => t !== type));
+                  }
+                }}
+              />
+              <span>{type.replace(/_/g, ' ')}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="qbd-setting-group qbd-prompt-section">
+        <label>Custom Instructions (Optional)</label>
+        <textarea
+          value={customPrompt}
+          onChange={(e) => setCustomPrompt(e.target.value)}
+          placeholder="e.g., Focus on exam-style application questions with short explanations."
+          className="qbd-textarea qbd-prompt-input"
+          rows={3}
+        />
+      </div>
+    </>
+  );
 
   const renderUploadPDF = () => (
     <div className="qbd-view qbd-studio-view qbd-source-studio">
       <div className="qbd-view-header">
         <div className="qbd-view-title-group">
-          <Upload className="qbd-view-icon" size={32} />
-          <div>
-            <h2 className="qbd-view-title">PDF Sources</h2>
-
-          </div>
+          <h2 className="qbd-view-title">PDF Upload</h2>
         </div>
       </div>
 
@@ -1588,9 +1290,8 @@ const QuestionBankDashboard = () => {
               <FileUp size={28} />
             </div>
             <div className="qbd-upload-copy">
-              <span className="qbd-upload-kicker">Source intake</span>
-              <h3>Add a PDF to your source shelf</h3>
-              <p>Keep the source connected while Cerbyl turns its ideas into focused questions.</p>
+              <h3>Upload a PDF</h3>
+              <p>Then select one or more of your PDFs below to generate questions from them.</p>
             </div>
             <input
               type="file"
@@ -1603,17 +1304,13 @@ const QuestionBankDashboard = () => {
               {loading ? <Loader className="qbd-spin" size={18} /> : <Upload size={18} />}
               <span>{loading ? 'Uploading...' : 'Choose PDF'}</span>
             </label>
-            <span className="qbd-upload-format">PDF only</span>
           </div>
         </div>
 
         {uploadedDocuments.length > 0 && (
           <div className="qbd-documents-section">
             <div className="qbd-section-header-row">
-              <h3 className="qbd-section-title">
-                <BookOpen size={20} />
-                Your Sources ({uploadedDocuments.length})
-              </h3>
+              <h3 className="qbd-section-title">Your PDFs ({uploadedDocuments.length})</h3>
               {selectedPDFs.length > 0 && (
                 <div className="qbd-selection-info">
                   <span className="qbd-selection-count">{selectedPDFs.length} selected</span>
@@ -1621,15 +1318,13 @@ const QuestionBankDashboard = () => {
                 </div>
               )}
             </div>
-            
-            <p className="qbd-section-hint">Click to select multiple PDFs as sources for question generation</p>
-            
+
             <div className="qbd-documents-grid">
               {uploadedDocuments.map(doc => {
                 const isSelected = selectedPDFs.some(p => p.id === doc.id);
                 return (
-                  <div 
-                    key={doc.id} 
+                  <div
+                    key={doc.id}
                     className={`qbd-document-card ${isSelected ? 'selected' : ''}`}
                     onClick={() => togglePDFSelection(doc)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePDFSelection(doc); } }}
@@ -1639,7 +1334,7 @@ const QuestionBankDashboard = () => {
                     <div className="qbd-source-check">
                       {isSelected && <CheckCircle size={20} />}
                     </div>
-                    <button 
+                    <button
                       className="qbd-document-delete-btn"
                       onClick={(e) => handleDeleteDocument(doc.id, e)}
                       title="Delete this PDF"
@@ -1650,289 +1345,27 @@ const QuestionBankDashboard = () => {
                       <FileText size={24} />
                       <div className="qbd-document-info">
                         <h4>{doc.filename}</h4>
-                        <p>{formatDocumentType(doc.document_type)}</p>
+                        <p>{new Date(doc.created_at).toLocaleDateString()}</p>
                       </div>
-                    </div>
-                    {doc.analysis && (
-                      <div className="qbd-document-topics">
-                        {doc.analysis.main_topics?.slice(0, 3).map((topic, idx) => (
-                          <span key={idx} className="qbd-topic-tag">{topic}</span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="qbd-document-footer">
-                      <span className="qbd-document-date">
-                        {new Date(doc.created_at).toLocaleDateString()}
-                      </span>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Selected Sources Summary with Smart Options */}
-            {selectedPDFs.length > 0 && (
-              <div className="qbd-selected-sources-panel">
-                <div className="qbd-panel-header">
-                  <h4>Selected Sources ({selectedPDFs.length})</h4>
-                  {selectedPDFs.length >= 2 && (
-                    <button 
-                      className={`qbd-smart-toggle ${showSmartOptions ? 'active' : ''}`}
-                      onClick={() => setShowSmartOptions(!showSmartOptions)}
-                    >
-                      <Brain size={16} />
-                      <span>Smart Mode</span>
-                    </button>
-                  )}
-                </div>
-                
-                <div className="qbd-selected-sources-list">
-                  {selectedPDFs.map(pdf => (
-                    <div key={pdf.id} className={`qbd-selected-source-item ${referenceDocId === pdf.id ? 'reference' : ''}`}>
-                      <FileText size={16} />
-                      <span className="qbd-source-name">{pdf.filename}</span>
-                      {showSmartOptions && (
-                        <button 
-                          className={`qbd-ref-toggle ${referenceDocId === pdf.id ? 'active' : ''}`}
-                          onClick={() => toggleReferenceDoc(pdf.id)}
-                          title={referenceDocId === pdf.id ? 'Remove as reference' : 'Set as reference (sample questions)'}
-                        >
-                          {referenceDocId === pdf.id ? '📋 Reference' : 'Set as Reference'}
-                        </button>
-                      )}
-                      <button 
-                        className="qbd-remove-source-btn"
-                        onClick={() => togglePDFSelection(pdf)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {showSmartOptions && (
-                  <div className="qbd-smart-hint">
-                    <Sparkles size={14} />
-                    <span>
-                      {referenceDocId 
-                        ? "Reference doc will be used as style guide. Other docs are content sources."
-                        : "Tip: Mark one PDF as 'Reference' (e.g., sample questions) to match its style"}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
             {selectedPDFs.length > 0 && (
               <div className="qbd-generation-settings">
-                <h3 className="qbd-section-title">Generation Settings</h3>
-
-                {/* Custom Prompt Section */}
-                <div className="qbd-setting-group qbd-prompt-section">
-                  <label>
-                    <Sparkles size={16} />
-                    Custom Instructions (Optional)
-                  </label>
-                  <textarea
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
-                    placeholder="e.g., 'Generate questions similar to the sample questions from my textbook' or 'Focus on practical applications and real-world scenarios' or 'Create exam-style questions covering chapters 3-5'"
-                    className="qbd-textarea qbd-prompt-input"
-                    rows={3}
-                  />
-                  <div className="qbd-prompt-examples">
-                    <span className="qbd-examples-label">Quick prompts:</span>
-                    <button onClick={() => setCustomPrompt('Generate questions similar to the sample questions style from my textbook content')}>
-                      Match sample style
-                    </button>
-                    <button onClick={() => setCustomPrompt('Focus on practical applications and real-world scenarios')}>
-                      Practical focus
-                    </button>
-                    <button onClick={() => setCustomPrompt('Create exam-style questions with detailed explanations')}>
-                      Exam style
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="qbd-setting-group">
-                  <label>Number of Questions</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={questionCount}
-                    onChange={handleQuestionCountChange}
-                    onBlur={handleQuestionCountBlur}
-                    className="qbd-input"
-                  />
-                </div>
-
-                <div className="qbd-setting-group">
-                  <label>Difficulty Mix</label>
-                  <div className="qbd-difficulty-sliders">
-                    <div className="qbd-slider-item">
-                      <span>Easy: {difficultyCount.easy} ({difficultyMix.easy}%)</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={difficultyMix.easy}
-                        onChange={(e) => handleDifficultyChange('easy', e.target.value)}
-                      />
-                    </div>
-                    <div className="qbd-slider-item">
-                      <span>Medium: {difficultyCount.medium} ({difficultyMix.medium}%)</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={difficultyMix.medium}
-                        onChange={(e) => handleDifficultyChange('medium', e.target.value)}
-                      />
-                    </div>
-                    <div className="qbd-slider-item">
-                      <span>Hard: {difficultyCount.hard} ({difficultyMix.hard}%)</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={difficultyMix.hard}
-                        onChange={(e) => handleDifficultyChange('hard', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="qbd-difficulty-total">
-                    Total: {difficultyCount.easy + difficultyCount.medium + difficultyCount.hard} questions
-                  </div>
-                  <label className="qbd-checkbox-label" style={{ marginTop: '8px' }}>
-                    <input
-                      type="checkbox"
-                      checked={adaptiveDifficulty}
-                      onChange={(e) => setAdaptiveDifficulty(e.target.checked)}
-                    />
-                    <span>Adaptive difficulty (let past performance on this topic override the mix above)</span>
-                  </label>
-                </div>
-
-                <div className="qbd-setting-group">
-                  <label>Question Types</label>
-                  <div className="qbd-checkbox-group">
-                    {['multiple_choice', 'true_false', 'short_answer', 'fill_blank'].map(type => (
-                      <label key={type} className="qbd-checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={questionTypes.includes(type)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setQuestionTypes([...questionTypes, type]);
-                            } else {
-                              setQuestionTypes(questionTypes.filter(t => t !== type));
-                            }
-                          }}
-                        />
-                        <span>{type.replace(/_/g, ' ')}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* AI Feature Buttons */}
-                <div className="qbd-ai-actions">
-                  <button 
-                    className="qbd-btn-secondary qbd-ai-btn"
-                    onClick={handleExtractTopics}
-                    disabled={loading || selectedPDFs.length === 0}
-                    title="Extract topics from documents"
-                  >
-                    <List size={16} />
-                    <span>Extract Topics</span>
-                  </button>
-                  
-                  <button 
-                    className="qbd-btn-secondary qbd-ai-btn"
-                    onClick={handlePreviewGenerate}
-                    disabled={loading || selectedPDFs.length === 0}
-                    title="Preview questions before saving"
-                  >
-                    <Eye size={16} />
-                    <span>Preview & Edit</span>
-                  </button>
-                  
-                  <button 
-                    className="qbd-btn-secondary qbd-ai-btn qbd-adaptive-btn"
-                    onClick={handleGenerateAdaptive}
-                    disabled={loading || selectedPDFs.length === 0}
-                    title="Generate questions targeting your weak areas"
-                  >
-                    <Target size={16} />
-                    <span>Adaptive</span>
-                  </button>
-
-                  <button
-                    className="qbd-btn-secondary qbd-ai-btn qbd-personalized-btn"
-                    onClick={handleGenerateRelatedFromPDF}
-                    disabled={loading || selectedPDFs.length === 0}
-                    title="Generate related questions using strengths and weaknesses"
-                  >
-                    <TrendingUp size={16} />
-                    <span>Personalized</span>
-                  </button>
-                </div>
-
-                {/* Topics Panel */}
-                {showTopicsPanel && extractedTopics && (
-                  <div className="qbd-topics-panel">
-                    <div className="qbd-topics-header">
-                      <h4><List size={16} /> Select Topics to Focus On</h4>
-                      <button onClick={() => setShowTopicsPanel(false)}><X size={16} /></button>
-                    </div>
-                    <div className="qbd-topics-list">
-                      {extractedTopics.chapters?.map((chapter, idx) => (
-                        <div key={idx} className="qbd-chapter-group">
-                          <h5>{chapter.name}</h5>
-                          <div className="qbd-topic-chips">
-                            {chapter.topics?.map((topic, tidx) => (
-                              <button
-                                key={tidx}
-                                className={`qbd-topic-chip ${selectedTopics.includes(topic.name) ? 'selected' : ''}`}
-                                onClick={() => {
-                                  if (selectedTopics.includes(topic.name)) {
-                                    setSelectedTopics(selectedTopics.filter(t => t !== topic.name));
-                                  } else {
-                                    setSelectedTopics([...selectedTopics, topic.name]);
-                                  }
-                                }}
-                              >
-                                {topic.name}
-                                <span className="qbd-topic-potential">{topic.question_potential}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedTopics.length > 0 && (
-                      <div className="qbd-selected-topics">
-                        <span>Selected: {selectedTopics.length} topics</span>
-                        <button onClick={() => setSelectedTopics([])}>Clear</button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <button 
-                  className={`qbd-btn-primary qbd-btn-large ${(customPrompt.trim() || referenceDocId) ? 'qbd-smart-btn' : ''}`}
+                {renderGenerationSettings()}
+                <button
+                  className="qbd-btn-primary qbd-btn-large"
                   onClick={handleGenerateFromMultiplePDFs}
                   disabled={loading}
                 >
-                  {loading ? <Loader className="qbd-spin" size={18} /> : (customPrompt.trim() || referenceDocId) ? <Brain size={18} /> : <Sparkles size={18} />}
+                  {loading ? <Loader className="qbd-spin" size={18} /> : <Sparkles size={18} />}
                   <span>
-                    {loading 
-                      ? 'Generating...' 
-                      : (customPrompt.trim() || referenceDocId)
-                        ? `Smart Generate from ${selectedPDFs.length} Source${selectedPDFs.length > 1 ? 's' : ''}`
-                        : `Generate from ${selectedPDFs.length} Source${selectedPDFs.length > 1 ? 's' : ''}`
-                    }
+                    {loading
+                      ? 'Generating...'
+                      : `Generate from ${selectedPDFs.length} PDF${selectedPDFs.length > 1 ? 's' : ''}`}
                   </span>
                 </button>
               </div>
@@ -1943,188 +1376,65 @@ const QuestionBankDashboard = () => {
     </div>
   );
 
+  const renderStudySourceGroup = (type, label, Icon, items, getMeta) => (
+    <div className="qbd-source-section">
+      <h3 className="qbd-section-title">{label} ({items.length})</h3>
+      {items.length === 0 ? (
+        <p className="qbd-section-hint">Nothing here yet.</p>
+      ) : (
+        <div className="qbd-source-grid">
+          {items.map(item => {
+            const isSelected = selectedSources.some(s => s.type === type && s.id === item.id);
+            const title = item.title || 'Untitled';
+            return (
+              <div
+                key={`${type}-${item.id}`}
+                className={`qbd-source-card ${isSelected ? 'selected' : ''}`}
+                onClick={() => toggleSourceSelection(type, item.id, title)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSourceSelection(type, item.id, title); } }}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="qbd-source-check">
+                  {isSelected && <CheckCircle size={20} />}
+                </div>
+                <Icon size={22} />
+                <h4>{title}</h4>
+                <p>{getMeta(item)}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
   const renderChatSlides = () => (
     <div className="qbd-view qbd-studio-view qbd-context-studio">
       <div className="qbd-view-header">
         <div className="qbd-view-title-group">
-          <MessageSquare className="qbd-view-icon" size={32} />
-          <div>
-            <h2 className="qbd-view-title">Study Sources</h2>
-
-          </div>
+          <h2 className="qbd-view-title">Notes, Cards &amp; Chat</h2>
         </div>
       </div>
 
       <div className="qbd-content-sections">
-        <div className="qbd-source-section">
-          <h3 className="qbd-section-title">
-            <MessageSquare size={20} />
-            AI Chat Sessions ({chatSessions.length})
-          </h3>
-          <div className="qbd-source-grid">
-            {chatSessions.map(chat => {
-              const isSelected = selectedSources.some(s => s.type === 'chat' && s.id === chat.id);
-              return (
-                <div 
-                  key={chat.id}
-                  className={`qbd-source-card ${isSelected ? 'selected' : ''}`}
-                  onClick={() => toggleSourceSelection('chat', chat.id, chat.title)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSourceSelection('chat', chat.id, chat.title); } }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="qbd-source-check">
-                    {isSelected && <CheckCircle size={20} />}
-                  </div>
-                  <MessageSquare size={24} />
-                  <h4>{chat.title}</h4>
-                  <p>{new Date(chat.created_at).toLocaleDateString()}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="qbd-source-section">
-          <h3 className="qbd-section-title">
-            <FileText size={20} />
-            Uploaded Slides ({uploadedSlides.length})
-          </h3>
-          <div className="qbd-source-grid">
-            {uploadedSlides.map(slide => {
-              const isSelected = selectedSources.some(s => s.type === 'slide' && s.id === slide.id);
-              return (
-                <div 
-                  key={slide.id}
-                  className={`qbd-source-card ${isSelected ? 'selected' : ''}`}
-                  onClick={() => toggleSourceSelection('slide', slide.id, slide.title)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSourceSelection('slide', slide.id, slide.title); } }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="qbd-source-check">
-                    {isSelected && <CheckCircle size={20} />}
-                  </div>
-                  <FileText size={24} />
-                  <h4>{slide.title}</h4>
-                  <p>{formatSourceDate(slide.created_at)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {renderStudySourceGroup('note', 'Notes', BookOpen, studyNotes, (note) => formatSourceDate(note.updated_at || note.created_at))}
+        {renderStudySourceGroup('flashcards', 'Flashcard sets', Layers, flashcardSets, (set) => `${set.card_count || 0} cards`)}
+        {renderStudySourceGroup('chat', 'AI chats', MessageSquare, chatSessions, (chat) => formatSourceDate(chat.created_at))}
 
         {selectedSources.length > 0 && (
           <div className="qbd-generation-settings">
-            <h3 className="qbd-section-title">
-              Selected Sources ({selectedSources.length})
-            </h3>
+            <h3 className="qbd-section-title">Selected ({selectedSources.length})</h3>
             <div className="qbd-selected-sources">
-              {selectedSources.map((source, idx) => (
-                <span key={idx} className="qbd-selected-tag">
+              {selectedSources.map((source) => (
+                <span key={`${source.type}-${source.id}`} className="qbd-selected-tag">
                   {source.title}
                   <button onClick={() => toggleSourceSelection(source.type, source.id, source.title)}>×</button>
                 </span>
               ))}
             </div>
-
-            <div className="qbd-setting-group">
-              <label>Total Questions</label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={questionCount}
-                onChange={handleQuestionCountChange}
-                onBlur={handleQuestionCountBlur}
-                className="qbd-input"
-              />
-            </div>
-
-            <div className="qbd-setting-group">
-              <label>Difficulty Mix</label>
-              <div className="qbd-difficulty-sliders">
-                <div className="qbd-slider-item">
-                  <span>Easy: {difficultyCount.easy} ({difficultyMix.easy}%)</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={difficultyMix.easy}
-                    onChange={(e) => handleDifficultyChange('easy', e.target.value)}
-                  />
-                </div>
-                <div className="qbd-slider-item">
-                  <span>Medium: {difficultyCount.medium} ({difficultyMix.medium}%)</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={difficultyMix.medium}
-                    onChange={(e) => handleDifficultyChange('medium', e.target.value)}
-                  />
-                </div>
-                <div className="qbd-slider-item">
-                  <span>Hard: {difficultyCount.hard} ({difficultyMix.hard}%)</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={difficultyMix.hard}
-                    onChange={(e) => handleDifficultyChange('hard', e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="qbd-difficulty-total">
-                Total: {difficultyCount.easy + difficultyCount.medium + difficultyCount.hard} questions
-              </div>
-              <label className="qbd-checkbox-label" style={{ marginTop: '8px' }}>
-                <input
-                  type="checkbox"
-                  checked={adaptiveDifficulty}
-                  onChange={(e) => setAdaptiveDifficulty(e.target.checked)}
-                />
-                <span>Adaptive difficulty (let past performance on this topic override the mix above)</span>
-              </label>
-            </div>
-
-            <div className="qbd-setting-group">
-              <label>Question Types</label>
-              <div className="qbd-checkbox-group">
-                {['multiple_choice', 'true_false', 'short_answer', 'fill_blank'].map(type => (
-                  <label key={type} className="qbd-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={questionTypes.includes(type)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setQuestionTypes([...questionTypes, type]);
-                        } else {
-                          setQuestionTypes(questionTypes.filter(t => t !== type));
-                        }
-                      }}
-                    />
-                    <span>{type.replace(/_/g, ' ')}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="qbd-setting-group qbd-prompt-section">
-              <label>
-                <Sparkles size={16} />
-                Custom Instructions (Optional)
-              </label>
-              <textarea
-                value={customPrompt}
-                onChange={(e) => setCustomPrompt(e.target.value)}
-                placeholder="e.g., Focus on conceptual misunderstandings, include more application-based questions, and keep wording concise."
-                className="qbd-textarea qbd-prompt-input"
-                rows={3}
-              />
-            </div>
-
-            <button 
+            {renderGenerationSettings()}
+            <button
               className="qbd-btn-primary qbd-btn-large"
               onClick={handleGenerateFromChatSlides}
               disabled={loading}
@@ -2354,8 +1664,6 @@ const QuestionBankDashboard = () => {
       });
 
     const attemptedSets = questionSets.filter((set) => Number(set.attempts || 0) > 0);
-    const featuredSet = filteredSets.find((set) => Number(set.attempts || 0) > 0)
-      || filteredSets[0];
     const totalQuestions = questionSets.reduce(
       (total, set) => total + Number(set.total_questions || 0),
       0
@@ -2380,19 +1688,7 @@ const QuestionBankDashboard = () => {
     <div className="qbd-view qbd-question-hub">
       <header className="qbd-qh-hero">
         <div className="qbd-qh-hero-copy">
-
           <h1 className="plain-page-title">Question Bank</h1>
-
-        </div>
-        <div className="qbd-qh-hero-actions">
-          <button className="qbd-qh-quiet-btn" onClick={fetchQuestionSets} type="button">
-            <RefreshCw size={15} />
-            Refresh
-          </button>
-          <button className="qbd-qh-primary-btn" onClick={() => setActiveView('custom')} type="button">
-            <Sparkles size={16} />
-            Build a set
-          </button>
         </div>
       </header>
 
@@ -2411,73 +1707,14 @@ const QuestionBankDashboard = () => {
       ) : questionSets.length === 0 ? (
         <div className="qbd-empty-state">
           <FileText size={64} />
-          <h3>No Question Sets Yet</h3>
-          <p>Generate your first question set to get started</p>
-          <button className="qbd-btn-primary" onClick={() => setActiveView('upload-pdf')}>
-            <Plus size={18} />
-            Create from PDF
-          </button>
+          <h3>No question sets yet</h3>
+          <p>Use Create Questions in the sidebar to build your first set.</p>
         </div>
       ) : (
         <>
-          {featuredSet && (
-            <section className="qbd-qh-focus" aria-label="Recommended next practice">
-              <div className="qbd-qh-focus-main">
-                <div className="qbd-qh-focus-label">
-                  <span className="qbd-qh-live-dot" />
-                  {Number(featuredSet.attempts || 0) ? 'Continue your practice' : 'Start here'}
-                </div>
-                <h2>{featuredSet.title || 'Untitled question set'}</h2>
-                <p>{featuredSet.description || 'A focused set ready for your next practice session.'}</p>
-                <div className="qbd-qh-focus-meta">
-                  <span><FileText size={14} /> {featuredSet.total_questions || 0} questions</span>
-                  <span><Clock size={14} /> {featuredSet.attempts || 0} attempts</span>
-                  <span>{formatDocumentType(featuredSet.source_type)}</span>
-                </div>
-                <div className="qbd-qh-focus-actions">
-                  <button
-                    className="qbd-qh-primary-btn"
-                    onClick={() => startStudySession(featuredSet.id)}
-                    type="button"
-                  >
-                    <Play size={15} fill="currentColor" />
-                    {Number(featuredSet.attempts || 0) ? 'Continue practice' : 'Start practice'}
-                  </button>
-                  <button
-                    className="qbd-qh-quiet-btn"
-                    onClick={() => openExportModal(featuredSet.id)}
-                    type="button"
-                  >
-                    <Download size={15} />
-                    Export
-                  </button>
-                </div>
-              </div>
-              <div className="qbd-qh-score">
-                <div
-                  className="qbd-qh-score-ring"
-                  style={{ '--qbd-score': `${Math.max(2, Number(featuredSet.best_score || 0)) * 3.6}deg` }}
-                >
-                  <div>
-                    <strong>{Number(featuredSet.attempts || 0) ? `${featuredSet.best_score || 0}%` : '—'}</strong>
-                    <span>best score</span>
-                  </div>
-                </div>
-                <p>
-                  {Number(featuredSet.attempts || 0) && Number(featuredSet.best_score || 0) >= 80
-                    ? 'Strong result — keep the recall fresh'
-                    : Number(featuredSet.attempts || 0)
-                      ? `${80 - Number(featuredSet.best_score || 0)} points to a strong pass`
-                    : 'Your first result will appear here'}
-                </p>
-              </div>
-            </section>
-          )}
-
           <section className="qbd-qh-library">
             <div className="qbd-qh-library-heading">
               <div>
-                <span className="qbd-qh-kicker">Your practice library</span>
                 <h2>Question sets</h2>
               </div>
               <span>{filteredSets.length} shown</span>
@@ -2691,436 +1928,6 @@ const QuestionBankDashboard = () => {
     </div>
   );
   };
-
-  const renderAnalytics = () => (
-    <div className="qbd-view qbd-studio-view qbd-performance-studio">
-      <div className="qbd-view-header">
-        <div className="qbd-view-title-group">
-          <BarChart3 className="qbd-view-icon" size={32} />
-          <div>
-            <h2 className="qbd-view-title">Performance Analytics</h2>
-
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="qbd-loading">
-          <Loader className="qbd-spin" size={48} />
-          <p>Loading analytics...</p>
-        </div>
-      ) : !analytics ? (
-        <div className="qbd-empty-state">
-          <PieChart size={64} />
-          <h3>No Data Yet</h3>
-          <p>Complete some question sets to see your analytics</p>
-        </div>
-      ) : (
-        <div className="qbd-analytics-grid">
-          <div className="qbd-stats-overview">
-            <div className="qbd-stat-box">
-              <div className="qbd-stat-icon success">
-                <Award size={24} />
-              </div>
-              <div className="qbd-stat-data">
-                <span className="qbd-stat-value">{analytics.total_sessions}</span>
-                <span className="qbd-stat-label">Total Sessions</span>
-              </div>
-            </div>
-
-            <div className="qbd-stat-box">
-              <div className="qbd-stat-icon primary">
-                <Target size={24} />
-              </div>
-              <div className="qbd-stat-data">
-                <span className="qbd-stat-value">{analytics.average_score}%</span>
-                <span className="qbd-stat-label">Average Score</span>
-              </div>
-            </div>
-
-            <div className="qbd-stat-box">
-              <div className="qbd-stat-icon accent">
-                <Brain size={24} />
-              </div>
-              <div className="qbd-stat-data">
-                <span className="qbd-stat-value">{analytics.total_questions_answered}</span>
-                <span className="qbd-stat-label">Questions Answered</span>
-              </div>
-            </div>
-
-            <div className="qbd-stat-box">
-              <div className="qbd-stat-icon warning">
-                <TrendingUp size={24} />
-              </div>
-              <div className="qbd-stat-data">
-                <span className="qbd-stat-value">{analytics.recent_scores[0] || 0}%</span>
-                <span className="qbd-stat-label">Latest Score</span>
-              </div>
-            </div>
-          </div>
-
-          {analytics.adaptive_recommendation && (
-            <div className="qbd-adaptive-box">
-              <div className="qbd-adaptive-header">
-                <Zap size={24} />
-                <h3>AI Recommendation</h3>
-              </div>
-              <div className="qbd-adaptive-content">
-                <p className="qbd-adaptive-rec">
-                  Recommended Difficulty: <strong>{analytics.adaptive_recommendation.recommended_difficulty}</strong>
-                </p>
-                <p className="qbd-adaptive-reason">{analytics.adaptive_recommendation.reason}</p>
-                <div className="qbd-adaptive-dist">
-                  <span>Suggested Mix:</span>
-                  <span>Easy: {analytics.adaptive_recommendation.suggested_distribution.easy}</span>
-                  <span>Medium: {analytics.adaptive_recommendation.suggested_distribution.medium}</span>
-                  <span>Hard: {analytics.adaptive_recommendation.suggested_distribution.hard}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="qbd-performance-section">
-            <h3 className="qbd-section-title">
-              <TrendingUp size={20} />
-              Topic Performance
-            </h3>
-            <div className="qbd-performance-list">
-              {analytics.topic_performance?.map((topic, idx) => (
-                <div key={idx} className="qbd-performance-item">
-                  <div className="qbd-performance-info">
-                    <span className="qbd-performance-topic">{topic.topic}</span>
-                    <span className="qbd-performance-stats">
-                      {topic.correct_answers}/{topic.total_questions} correct
-                    </span>
-                  </div>
-                  <div className="qbd-performance-bar">
-                    <div 
-                      className="qbd-performance-fill"
-                      style={{ 
-                        width: `${topic.accuracy}%`,
-                        backgroundColor: topic.accuracy >= 80 ? 'var(--success)' : topic.accuracy >= 60 ? 'var(--warning)' : 'var(--danger)'
-                      }}
-                    />
-                  </div>
-                  <span className="qbd-performance-accuracy">{topic.accuracy}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="qbd-difficulty-section">
-            <h3 className="qbd-section-title">
-              <Target size={20} />
-              Difficulty Breakdown
-            </h3>
-            <div className="qbd-difficulty-grid">
-              {analytics.difficulty_performance?.map((diff, idx) => (
-                <div key={idx} className="qbd-difficulty-card">
-                  <div className={`qbd-difficulty-badge ${diff.difficulty}`}>
-                    {diff.difficulty}
-                  </div>
-                  <div className="qbd-difficulty-stats">
-                    <span className="qbd-difficulty-accuracy">{diff.accuracy}%</span>
-                    <span className="qbd-difficulty-count">
-                      {diff.correct_answers}/{diff.total_questions}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {analytics.weak_topics && analytics.weak_topics.length > 0 && (
-            <div className="qbd-weak-topics">
-              <h3 className="qbd-section-title">
-                <Target size={20} />
-                Focus Areas
-              </h3>
-              <div className="qbd-topics-list">
-                {analytics.weak_topics.map((topic, idx) => (
-                  <div key={idx} className="qbd-weak-topic-card">
-                    <span className="qbd-weak-topic-name">{topic.topic}</span>
-                    <span className="qbd-weak-topic-accuracy">{topic.accuracy}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderWeakAreas = () => (
-    <div className="qbd-view">
-      <div className="qbd-view-header">
-        <div className="qbd-view-title-group">
-          <AlertTriangle className="qbd-view-icon" size={32} />
-          <div>
-            <h2 className="qbd-view-title">Weak Areas</h2>
-
-          </div>
-        </div>
-        <button 
-          className="qbd-btn-primary"
-          onClick={() => handleGeneratePractice(null)}
-          disabled={generatingPractice || weakAreas.length === 0}
-        >
-          {generatingPractice ? <Loader className="qbd-spin" size={18} /> : <Zap size={18} />}
-          <span>{generatingPractice ? 'Generating...' : 'Practice All Weak Areas'}</span>
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="qbd-loading">
-          <Loader className="qbd-spin" size={48} />
-          <p>Loading weak areas...</p>
-        </div>
-      ) : weakAreas.length === 0 ? (
-        <div className="qbd-empty-state">
-          <CheckCircle size={64} />
-          <h3>No Weak Areas Found!</h3>
-          <p>Complete some question sets to identify areas that need practice</p>
-        </div>
-      ) : (
-        <div className="qbd-weak-areas-content">
-          {/* Recommendations Panel */}
-          {practiceRecommendations && practiceRecommendations.recommendations?.length > 0 && (
-            <div className="qbd-recommendations-panel">
-              <h3 className="qbd-section-title">
-                <Brain size={20} />
-                AI Recommendations
-              </h3>
-              <div className="qbd-recommendations-list">
-                {practiceRecommendations.recommendations.map((rec, idx) => (
-                  <div key={idx} className={`qbd-recommendation-card ${rec.type}`}>
-                    <div className="qbd-rec-header">
-                      {rec.type === 'critical' && <AlertTriangle size={20} className="qbd-rec-icon critical" />}
-                      {rec.type === 'declining' && <TrendingUp size={20} className="qbd-rec-icon declining" style={{transform: 'rotate(180deg)'}} />}
-                      {rec.type === 'stale' && <Clock size={20} className="qbd-rec-icon stale" />}
-                      {rec.type === 'review' && <Eye size={20} className="qbd-rec-icon review" />}
-                      <h4>{rec.title}</h4>
-                    </div>
-                    <p className="qbd-rec-description">{rec.description}</p>
-                    {rec.topics && (
-                      <div className="qbd-rec-topics">
-                        {rec.topics.slice(0, 3).map((topic, i) => (
-                          <span key={i} className="qbd-topic-tag">{topic}</span>
-                        ))}
-                      </div>
-                    )}
-                    <button 
-                      className="qbd-btn-secondary qbd-btn-sm"
-                      onClick={() => rec.action === 'generate_practice' 
-                        ? handleGeneratePractice(rec.topics?.[0]) 
-                        : setSelectedWeakTopic(rec.topics?.[0])}
-                    >
-                      {rec.action === 'generate_practice' ? 'Practice Now' : 'Review'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Summary Stats */}
-          <div className="qbd-weak-stats-row">
-            <div className="qbd-stat-box">
-              <div className="qbd-stat-icon warning">
-                <AlertTriangle size={24} />
-              </div>
-              <div className="qbd-stat-data">
-                <span className="qbd-stat-value">{weakAreas.length}</span>
-                <span className="qbd-stat-label">Weak Topics</span>
-              </div>
-            </div>
-            <div className="qbd-stat-box">
-              <div className="qbd-stat-icon danger">
-                <XCircle size={24} />
-              </div>
-              <div className="qbd-stat-data">
-                <span className="qbd-stat-value">
-                  {weakAreas.filter(wa => wa.priority >= 8).length}
-                </span>
-                <span className="qbd-stat-label">Critical</span>
-              </div>
-            </div>
-            <div className="qbd-stat-box">
-              <div className="qbd-stat-icon primary">
-                <TrendingUp size={24} />
-              </div>
-              <div className="qbd-stat-data">
-                <span className="qbd-stat-value">
-                  {weakAreas.filter(wa => wa.status === 'improving').length}
-                </span>
-                <span className="qbd-stat-label">Improving</span>
-              </div>
-            </div>
-            <div className="qbd-stat-box">
-              <div className="qbd-stat-icon success">
-                <Target size={24} />
-              </div>
-              <div className="qbd-stat-data">
-                <span className="qbd-stat-value">
-                  {practiceRecommendations?.summary?.unreviewed_mistakes || 0}
-                </span>
-                <span className="qbd-stat-label">To Review</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Weak Areas List */}
-          <div className="qbd-weak-areas-section">
-            <h3 className="qbd-section-title">
-              <Target size={20} />
-              Topics Needing Practice
-            </h3>
-            <div className="qbd-weak-areas-list">
-              {weakAreas.map((wa) => (
-                <div 
-                  key={wa.id} 
-                  className={`qbd-weak-area-card ${wa.priority >= 8 ? 'critical' : wa.priority >= 5 ? 'medium' : 'low'}`}
-                  onClick={() => {
-                    setSelectedWeakTopic(wa.topic);
-                    fetchWrongAnswers(wa.topic);
-                  }}
-                >
-                  <div className="qbd-weak-area-header">
-                    <div className="qbd-weak-area-info">
-                      <h4 className="qbd-weak-area-topic">{wa.topic}</h4>
-                      <div className="qbd-weak-area-meta">
-                        <span className={`qbd-status-badge ${wa.status}`}>{wa.status.replace('_', ' ')}</span>
-                        <span className="qbd-weak-area-stats">
-                          {wa.correct_count}/{wa.total_questions} correct
-                        </span>
-                      </div>
-                    </div>
-                    <div className="qbd-weak-area-accuracy">
-                      <span className={`qbd-accuracy-value ${wa.accuracy < 50 ? 'low' : wa.accuracy < 70 ? 'medium' : 'high'}`}>
-                        {wa.accuracy.toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="qbd-weak-area-bar">
-                    <div 
-                      className="qbd-weak-area-fill"
-                      style={{ 
-                        width: `${wa.accuracy}%`,
-                        backgroundColor: wa.accuracy < 50 ? 'var(--danger)' : wa.accuracy < 70 ? 'var(--warning)' : 'var(--success)'
-                      }}
-                    />
-                  </div>
-
-                  <div className="qbd-weak-area-footer">
-                    <div className="qbd-weak-area-details">
-                      {wa.consecutive_wrong > 0 && (
-                        <span className="qbd-streak-badge">
-                          <XCircle size={14} /> {wa.consecutive_wrong} wrong streak
-                        </span>
-                      )}
-                      {wa.practice_sessions > 0 && (
-                        <span className="qbd-practice-badge">
-                          <RefreshCw size={14} /> {wa.practice_sessions} practice sessions
-                        </span>
-                      )}
-                    </div>
-                    <div className="qbd-weak-area-actions">
-                      <button 
-                        className="qbd-btn-icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleGeneratePractice(wa.topic);
-                        }}
-                        title="Practice this topic"
-                      >
-                        <Play size={16} />
-                      </button>
-                      <button 
-                        className="qbd-btn-icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleResetWeakArea(wa.id, 'mastered');
-                        }}
-                        title="Mark as mastered"
-                      >
-                        <CheckCircle size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Wrong Answers Review Panel */}
-          {selectedWeakTopic && (
-            <div className="qbd-wrong-answers-panel">
-              <div className="qbd-panel-header">
-                <h3>
-                  <Eye size={20} />
-                  Review Wrong Answers: {selectedWeakTopic}
-                </h3>
-                <button 
-                  className="qbd-btn-text"
-                  onClick={() => setSelectedWeakTopic(null)}
-                >
-                  <X size={18} /> Close
-                </button>
-              </div>
-              
-              {wrongAnswers.length === 0 ? (
-                <p className="qbd-empty-text">No wrong answers to review for this topic</p>
-              ) : (
-                <div className="qbd-wrong-answers-list">
-                  {wrongAnswers.map((wa) => (
-                    <div key={wa.id} className={`qbd-wrong-answer-card ${wa.reviewed ? 'reviewed' : ''}`}>
-                      <div className="qbd-wrong-answer-question">
-                        <span className="qbd-difficulty-badge">{wa.difficulty}</span>
-                        <MathRenderer content={wa.question_text || ''} className="qbd-wrong-question-text" />
-                      </div>
-                      <div className="qbd-wrong-answer-comparison">
-                        <div className="qbd-answer-box wrong">
-                          <span className="qbd-answer-label">Your Answer</span>
-                          <span className="qbd-answer-text">{wa.user_answer}</span>
-                        </div>
-                        <div className="qbd-answer-box correct">
-                          <span className="qbd-answer-label">Correct Answer</span>
-                          <span className="qbd-answer-text">{wa.correct_answer}</span>
-                        </div>
-                      </div>
-                      {!wa.reviewed && (
-                        <div className="qbd-wrong-answer-actions">
-                          <button 
-                            className="qbd-btn-secondary qbd-btn-sm"
-                            onClick={() => handleMarkReviewed(wa.id, true)}
-                          >
-                            <CheckCircle size={14} /> I understand now
-                          </button>
-                          <button 
-                            className="qbd-btn-text qbd-btn-sm"
-                            onClick={() => handleMarkReviewed(wa.id, false)}
-                          >
-                            Still confused
-                          </button>
-                        </div>
-                      )}
-                      {wa.reviewed && (
-                        <div className="qbd-reviewed-badge">
-                          <CheckCircle size={14} /> Reviewed
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
 
   const renderStudyModal = () => {
     if (!showStudyModal || !selectedQuestionSet) return null;
@@ -3363,29 +2170,13 @@ const QuestionBankDashboard = () => {
         sidebarLead={sidebarLead}
         sideSections={[
           {
-            label: 'Practice desk',
+            label: 'Question bank',
             items: QUESTION_VIEWS.filter((view) => view.key !== 'custom').map((view) => ({
               icon: view.icon,
               label: view.label,
               active: activeView === view.key,
               count: view.key === 'question-sets' ? questionSets.length : null,
               onClick: () => setActiveView(view.key),
-            })),
-          },
-          {
-            label: 'Keep improving',
-            items: [
-              { icon: Target, label: 'Weak areas', onClick: () => navigate('/weaknesses') },
-              { icon: Zap, label: 'Quiz modes', onClick: () => navigate('/quiz-hub') },
-              { icon: GitMerge, label: 'Convert', onClick: () => setShowImportExport(true) },
-            ],
-          },
-          {
-            label: 'Use your context',
-            items: QUICK_SECTIONS.map((section) => ({
-              icon: section.icon,
-              label: section.label,
-              onClick: () => navigate(section.route),
             })),
           },
         ]}

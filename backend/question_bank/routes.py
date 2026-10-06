@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 import re
@@ -1253,6 +1254,51 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     content_parts.append(slide_content)
                     title_parts.append(_slide_title(slide, source.title))
 
+                elif source_type == "note":
+                    note = db.query(models.Note).filter(
+                        models.Note.id == source.id,
+                        models.Note.user_id == user.id,
+                        models.Note.is_deleted == False,
+                    ).first()
+
+                    if not note:
+                        logger.warning(f"Note source not found or unauthorized: {source.id}")
+                        continue
+
+                    note_text = re.sub(r"<[^>]+>", " ", note.content or "")
+                    note_text = re.sub(r"\s+", " ", html.unescape(note_text)).strip()
+                    if not note_text:
+                        logger.warning(f"Note source has no readable text: {source.id}")
+                        continue
+
+                    content_parts.append(f"{note.title or 'Note'}\n\n{note_text}")
+                    title_parts.append(note.title or source.title or f"Note {source.id}")
+
+                elif source_type in ("flashcards", "flashcard_set"):
+                    flashcard_set = db.query(models.FlashcardSet).filter(
+                        models.FlashcardSet.id == source.id,
+                        models.FlashcardSet.user_id == user.id,
+                    ).first()
+
+                    if not flashcard_set:
+                        logger.warning(f"Flashcard set not found or unauthorized: {source.id}")
+                        continue
+
+                    cards = db.query(models.Flashcard).filter(
+                        models.Flashcard.set_id == flashcard_set.id
+                    ).all()
+                    card_lines = [
+                        f"Q: {card.question}\nA: {card.answer}"
+                        for card in cards
+                        if (card.question or "").strip()
+                    ]
+                    if not card_lines:
+                        logger.warning(f"Flashcard set has no cards: {source.id}")
+                        continue
+
+                    content_parts.append(f"{flashcard_set.title or 'Flashcards'}\n\n" + "\n\n".join(card_lines))
+                    title_parts.append(flashcard_set.title or source.title or f"Flashcards {source.id}")
+
                 else:
                     logger.warning(f"Unsupported source type skipped: {source.type}")
 
@@ -1260,7 +1306,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not combined_content.strip():
                 raise HTTPException(
                     status_code=400,
-                    detail="No readable text found in the selected slides/sources. Try a text-based PDF/PPTX or re-upload the slide file."
+                    detail="No readable text found in the selected sources."
                 )
 
             title = request.title or (

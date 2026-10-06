@@ -8328,3 +8328,31 @@
   padding-inline: 12px;
   border-radius: 7px;
 }
+
+/* Sidebar "Create Questions": uppercase Inter label, same treatment as AI
+   Chat's NEW CHAT button. */
+.qbd-hub .shc-sidebar .qbd-hub-create {
+  min-height: 0 !important;
+  padding: 13px 16px !important;
+  gap: 10px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  background: var(--accent) !important;
+  box-shadow: none !important;
+  color: var(--bg-primary) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  transition: background 0.18s ease !important;
+}
+
+.qbd-hub .shc-sidebar .qbd-hub-create:hover {
+  transform: none !important;
+  background: color-mix(in srgb, var(--accent) 85%, black) !important;
+}
+
+[data-theme-mode="light"] .qbd-hub .shc-sidebar .qbd-hub-create {
+  color: #fff !important;
+}
