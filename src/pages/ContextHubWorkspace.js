@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Archive, Brain, Check, CheckSquare, ChevronRight,
-  FileText, Folder, Layers,
+  Brain, Check, FileText, Folder, Layers,
   Loader2, Lock, MessageCircle, Pencil, Package,
-  Plus, RefreshCw, Search, Square, Target, Trash2, Upload, X
+  Plus, RefreshCw, Search, Target, Trash2, Upload, X
 } from 'lucide-react';
 import contextService from '../services/contextService';
 import { queuedAIJsonFetch } from '../services/aiJobService';
@@ -78,10 +77,8 @@ function ContextHubWorkspace() {
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState('all');
   const [activeFolder, setActiveFolder] = useState('all');
-  const [selectedIds, setSelectedIds] = useState([]);
   const [newFolder, setNewFolder] = useState('');
-  const [newFolderParent, setNewFolderParent] = useState('');
-  const [bulkMoveFolder, setBulkMoveFolder] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
   const [folderBusy, setFolderBusy] = useState(false);
   const [progressMap, setProgressMap] = useState({});
   const [uploadSubject, setUploadSubject] = useState('');
@@ -250,13 +247,6 @@ function ContextHubWorkspace() {
     } catch {}
   };
 
-  const toggleSelected = (id) => {
-    const key = String(id);
-    setSelectedIds((current) => current.includes(key)
-      ? current.filter((item) => item !== key)
-      : [...current, key]);
-  };
-
   const runOutput = useCallback(async (target, docs = deckDocs) => {
     const ids = Array.from(new Set(docs.map(docId).filter(Boolean))).slice(0, DECK_LIMIT);
     if (!ids.length || actionBusy) return;
@@ -364,12 +354,9 @@ function ContextHubWorkspace() {
     if (!name || folderBusy) return;
     setFolderBusy(true);
     try {
-      await contextService.createFolder({
-        name,
-        parentId: newFolderParent === '' ? null : Number(newFolderParent),
-      });
+      await contextService.createFolder({ name, parentId: null });
       setNewFolder('');
-      setNewFolderParent('');
+      setCreatingFolder(false);
       await loadWorkspace();
     } catch (err) {
       setError(err?.message || 'Folder could not be created.');
@@ -395,7 +382,6 @@ function ContextHubWorkspace() {
       await contextService.deleteFolder(folder.id);
       if (String(activeFolder) === String(folder.id)) setActiveFolder('all');
       if (String(uploadFolder) === String(folder.id)) setUploadFolder('');
-      if (String(newFolderParent) === String(folder.id)) setNewFolderParent('');
       await loadWorkspace();
     } catch (err) {
       setError(err?.message || 'Folder could not be deleted.');
@@ -422,7 +408,6 @@ function ContextHubWorkspace() {
     try {
       await contextService.deleteDocument(id);
       updateDeck(deckIds.filter((item) => item !== id));
-      setSelectedIds((current) => current.filter((item) => item !== id));
       await loadWorkspace();
     } catch (err) {
       setError(err?.message || 'Document could not be deleted.');
@@ -431,42 +416,13 @@ function ContextHubWorkspace() {
     }
   };
 
-  const moveSelected = async () => {
-    if (!selectedIds.length) return;
-    setRowBusy('bulk');
-    try {
-      const destination = bulkMoveFolder === '' ? null : Number(bulkMoveFolder);
-      await Promise.all(selectedIds.map((id) => contextService.moveDocumentToFolder(id, destination)));
-      setSelectedIds([]);
-      await loadWorkspace();
-    } catch (err) {
-      setError(err?.message || 'Selected documents could not be moved.');
-    } finally {
-      setRowBusy('');
-    }
-  };
-
-  const deleteSelected = async () => {
-    if (!selectedIds.length || !window.confirm(`Delete ${selectedIds.length} selected document${selectedIds.length === 1 ? '' : 's'}?`)) return;
-    setRowBusy('bulk');
-    try {
-      await Promise.all(selectedIds.map((id) => contextService.deleteDocument(id)));
-      updateDeck(deckIds.filter((id) => !selectedIds.includes(id)));
-      setSelectedIds([]);
-      await loadWorkspace();
-    } catch (err) {
-      setError(err?.message || 'Selected documents could not be deleted.');
-    } finally {
-      setRowBusy('');
-    }
-  };
-
   const switchView = (next) => {
     setView(next);
     if (typeof window !== 'undefined' && window.innerWidth <= 768) setSidebarCollapsed(true);
-    setSelectedIds([]);
     setQuery('');
     setActiveFolder('all');
+    setCreatingFolder(false);
+    setNewFolder('');
     setPickerOpen(false);
   };
 
@@ -494,7 +450,7 @@ function ContextHubWorkspace() {
             {doc.chunk_count ? ` · ${doc.chunk_count} passages` : ''}
           </small>
         </span>
-        <span className="cxh-source-action">{selected ? 'Remove' : !sourceReady ? (doc.status === 'failed' ? 'Index failed' : 'Indexing') : deckFull ? 'Stack full' : 'Add to stack'}</span>
+        <span className="cxh-source-action">{selected ? 'Remove' : !sourceReady ? (doc.status === 'failed' ? 'Index failed' : 'Indexing') : deckFull ? 'Deck full' : 'Add to deck'}</span>
       </button>
     );
   };
@@ -529,7 +485,7 @@ function ContextHubWorkspace() {
         </div>
         <div className="cxh-ledger-list">
           {loading ? (
-            <div className="cxh-state"><Loader2 className="cxh-spin" /><span>Loading sources</span></div>
+            <div className="cxh-state"><div className="cxh-pulse-loader" role="status" aria-label="Loading"><div className="cxh-pulse-square cxh-pulse-1" /><div className="cxh-pulse-square cxh-pulse-2" /><div className="cxh-pulse-square cxh-pulse-3" /></div></div>
           ) : deskSources.length ? (
             deskSources.map((doc) => renderSourceRow(doc, curriculumDocs.some((item) => docId(item) === docId(doc))))
           ) : (
@@ -641,99 +597,123 @@ function ContextHubWorkspace() {
     </div>
   );
 
-  const renderLibrary = () => (
-    <div className="cxh-library">
-      <aside className="cxh-folder-rail">
-        <div className="cxh-folder-create">
-          <label htmlFor="cxh-folder-name">New folder</label>
-          <div>
-            <input id="cxh-folder-name" value={newFolder} maxLength={255} onChange={(event) => setNewFolder(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && createFolder()} placeholder="Folder name" />
-            <button type="button" onClick={createFolder} aria-label="Create folder" disabled={!newFolder.trim() || folderBusy}>{folderBusy ? <Loader2 className="cxh-spin" /> : <Plus />}</button>
-          </div>
-          <select aria-label="Parent folder" value={newFolderParent} onChange={(event) => setNewFolderParent(event.target.value)}>
-            <option value="">At library root</option>
-            {folders.map((folder) => <option key={folder.id} value={folder.id}>Inside {folder.name}</option>)}
-          </select>
+  const renderLibrary = () => {
+    const folderChips = [
+      { id: 'all', label: 'All', count: userDocs.length },
+      { id: 'uncategorized', label: 'Uncategorized', count: folderCounts.uncategorized || 0 },
+      ...folders.map((folder) => ({ id: String(folder.id), label: folder.name, count: folderCounts[String(folder.id)] || 0, folder })),
+    ];
+    return (
+      <section className="cxh-lib" aria-label="Document library">
+        <div className="cxh-lib-bar">
+          <label className="cxh-lib-search">
+            <Search size={15} />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your documents" />
+            {query && <button type="button" onClick={() => setQuery('')} aria-label="Clear search"><X size={13} /></button>}
+          </label>
         </div>
-        <nav aria-label="Library folders">
-          <button type="button" className={activeFolder === 'all' ? 'active' : ''} onClick={() => setActiveFolder('all')}>
-            <Archive size={15} /><span>All documents</span><small>{userDocs.length}</small>
-          </button>
-          <button type="button" className={activeFolder === 'uncategorized' ? 'active' : ''} onClick={() => setActiveFolder('uncategorized')}>
-            <Folder size={15} /><span>Uncategorized</span><small>{folderCounts.uncategorized || 0}</small>
-          </button>
-          {folders.map((folder) => (
-            <div className="cxh-folder-entry" key={folder.id}>
-              <button type="button" className={String(activeFolder) === String(folder.id) ? 'active' : ''} onClick={() => setActiveFolder(String(folder.id))}>
-                <Folder size={15} style={{ color: folder.color || 'var(--cxh-accent)' }} />
-                <span>{folder.name}</span><small>{folderCounts[String(folder.id)] || 0}</small>
-              </button>
-              <div>
-                <button type="button" onClick={() => renameFolder(folder)} aria-label={`Rename ${folder.name}`}><Pencil size={12} /></button>
-                <button type="button" onClick={() => deleteFolder(folder)} aria-label={`Delete ${folder.name}`}><Trash2 size={12} /></button>
+
+        <div className="cxh-lib-folders" aria-label="Folders">
+          {folderChips.map((chip) => {
+            const active = String(activeFolder) === chip.id;
+            return (
+              <div className={`cxh-lib-chip ${active ? 'is-active' : ''}`} key={chip.id}>
+                <button type="button" onClick={() => setActiveFolder(chip.id)} aria-pressed={active}>
+                  {chip.folder && <Folder size={13} />}
+                  <span>{chip.label}</span>
+                  <small>{chip.count}</small>
+                </button>
+                {chip.folder && active && (
+                  <span className="cxh-lib-chip-tools">
+                    <button type="button" onClick={() => renameFolder(chip.folder)} aria-label={`Rename ${chip.label}`}><Pencil size={11} /></button>
+                    <button type="button" onClick={() => deleteFolder(chip.folder)} aria-label={`Delete ${chip.label}`}><Trash2 size={11} /></button>
+                  </span>
+                )}
               </div>
+            );
+          })}
+          {creatingFolder ? (
+            <div className="cxh-lib-newfolder">
+              <input
+                autoFocus
+                value={newFolder}
+                maxLength={255}
+                onChange={(event) => setNewFolder(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') createFolder();
+                  if (event.key === 'Escape') { setCreatingFolder(false); setNewFolder(''); }
+                }}
+                placeholder="Folder name"
+                aria-label="New folder name"
+              />
+              <button type="button" onClick={createFolder} disabled={!newFolder.trim() || folderBusy} aria-label="Create folder">
+                {folderBusy ? <Loader2 className="cxh-spin" size={13} /> : <Check size={13} />}
+              </button>
+              <button type="button" onClick={() => { setCreatingFolder(false); setNewFolder(''); }} aria-label="Cancel"><X size={13} /></button>
             </div>
-          ))}
-        </nav>
-      </aside>
-
-      <section className="cxh-library-table" aria-labelledby="library-title">
-        <header className="cxh-library-head">
-          <div><p>My library</p><h2 id="library-title">{activeFolder === 'all' ? 'All documents' : activeFolder === 'uncategorized' ? 'Uncategorized' : folders.find((folder) => String(folder.id) === String(activeFolder))?.name || 'Folder'}</h2></div>
-          <div className="cxh-library-tools">
-            <button type="button" onClick={() => setSelectedIds(filteredUserDocs.map(docId))} disabled={!filteredUserDocs.length}>Select visible</button>
-            <label className="cxh-search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search library" />{query && <button type="button" onClick={() => setQuery('')} aria-label="Clear library search"><X size={13} /></button>}</label>
-          </div>
-        </header>
-
-        {selectedIds.length > 0 && (
-          <div className="cxh-bulk-bar">
-            <strong>{selectedIds.length} selected</strong>
-            <select aria-label="Move selected documents" value={bulkMoveFolder} onChange={(event) => setBulkMoveFolder(event.target.value)}>
-              <option value="">Move to uncategorized</option>
-              {folders.map((folder) => <option key={folder.id} value={folder.id}>Move to {folder.name}</option>)}
-            </select>
-            <button type="button" onClick={moveSelected} disabled={rowBusy === 'bulk'}><Folder size={13} />Move</button>
-            <button type="button" onClick={deleteSelected} disabled={rowBusy === 'bulk'}><Trash2 size={13} />Delete</button>
-            <button type="button" onClick={() => setSelectedIds([])} aria-label="Clear selection"><X size={14} /></button>
-          </div>
-        )}
-
-        <div className="cxh-table-head" aria-hidden>
-          <span>Source</span><span>Folder</span><span>Actions</span>
+          ) : (
+            <button type="button" className="cxh-lib-addfolder" onClick={() => setCreatingFolder(true)}>
+              <Plus size={13} /><span>New folder</span>
+            </button>
+          )}
         </div>
-        <div className="cxh-table-body">
+
+        <div className="cxh-lib-list">
           {loading ? (
-            <div className="cxh-state"><Loader2 className="cxh-spin" /><span>Loading library</span></div>
+            <div className="cxh-state"><div className="cxh-pulse-loader" role="status" aria-label="Loading"><div className="cxh-pulse-square cxh-pulse-1" /><div className="cxh-pulse-square cxh-pulse-2" /><div className="cxh-pulse-square cxh-pulse-3" /></div></div>
           ) : filteredUserDocs.length ? filteredUserDocs.map((doc) => {
             const id = docId(doc);
-            const selected = selectedIds.includes(id);
+            const inDeck = deckSet.has(id);
+            const ready = !doc.status || doc.status === 'ready';
+            const deckFull = !inDeck && deckIds.length >= DECK_LIMIT;
+            const meta = [
+              doc.subject ? pretty(doc.subject) : null,
+              doc.chunk_count ? `${doc.chunk_count} passages` : null,
+              doc.file_size ? formatBytes(doc.file_size) : null,
+              !ready ? (doc.status === 'failed' ? 'Indexing failed' : 'Indexing…') : null,
+            ].filter(Boolean).join(' · ');
             return (
-              <article className={`cxh-doc-row ${selected ? 'is-selected' : ''}`} key={id}>
-                <button type="button" className="cxh-select" onClick={() => toggleSelected(id)} aria-label={`${selected ? 'Deselect' : 'Select'} ${docName(doc)}`}>
-                  {selected ? <CheckSquare size={16} /> : <Square size={16} />}
+              <article className="cxh-lib-row" key={id}>
+                <button type="button" className="cxh-lib-open" onClick={() => navigate(`/contexthub/file/${encodeURIComponent(id)}`)}>
+                  <span className="cxh-lib-icon"><FileText size={16} /></span>
+                  <span className="cxh-lib-copy">
+                    <strong title={docName(doc)}>{docName(doc)}</strong>
+                    {meta && <small>{meta}</small>}
+                  </span>
                 </button>
-                <button type="button" className="cxh-doc-main" onClick={() => navigate(`/contexthub/file/${encodeURIComponent(id)}`)}>
-                  <FileText size={18} />
-                  <span><strong>{docName(doc)}</strong><small>{pretty(doc.subject)}{doc.chunk_count ? ` · ${doc.chunk_count} passages` : ''}{doc.file_size ? ` · ${formatBytes(doc.file_size)}` : ''}{progressMap[id]?.mastered_topics != null ? ` · ${Array.isArray(progressMap[id].mastered_topics) ? progressMap[id].mastered_topics.length : Number(progressMap[id].mastered_topics) || 0} mastered` : ''}</small></span>
-                  <ChevronRight size={14} />
+                <label className="cxh-lib-move">
+                  <Folder size={12} />
+                  <select aria-label={`Folder for ${docName(doc)}`} value={doc.folder_id == null ? '' : String(doc.folder_id)} onChange={(event) => moveDocument(id, event.target.value)} disabled={rowBusy === id}>
+                    <option value="">Uncategorized</option>
+                    {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className={`cxh-lib-deck ${inDeck ? 'is-on' : ''}`}
+                  onClick={() => toggleDeck(id)}
+                  disabled={!ready || deckFull}
+                  aria-pressed={inDeck}
+                  title={deckFull ? 'Your deck is full' : undefined}
+                >
+                  {inDeck ? <Check size={13} /> : <Plus size={13} />}
+                  <span>{inDeck ? 'In deck' : 'Add to deck'}</span>
                 </button>
-                <select aria-label={`Move ${docName(doc)} to folder`} value={doc.folder_id == null ? '' : String(doc.folder_id)} onChange={(event) => moveDocument(id, event.target.value)} disabled={rowBusy === id}>
-                  <option value="">Uncategorized</option>
-                  {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
-                </select>
-                <div className="cxh-row-actions">
-                  <button type="button" onClick={() => deleteDocument(doc)} aria-label={`Delete ${docName(doc)}`}>{rowBusy === id ? <Loader2 className="cxh-spin" size={14} /> : <Trash2 size={14} />}</button>
-                </div>
+                <button type="button" className="cxh-lib-delete" onClick={() => deleteDocument(doc)} aria-label={`Delete ${docName(doc)}`}>
+                  {rowBusy === id ? <Loader2 className="cxh-spin" size={14} /> : <Trash2 size={14} />}
+                </button>
               </article>
             );
           }) : (
-            <div className="cxh-state"><Archive /><strong>No documents here</strong><span>Try another folder or add a source.</span><button type="button" onClick={() => switchView('upload')}>Add source</button></div>
+            <div className="cxh-state">
+              <FileText />
+              <strong>{query ? 'No matching documents' : userDocs.length ? 'This folder is empty' : 'Your library is empty'}</strong>
+            </div>
           )}
         </div>
       </section>
-    </div>
-  );
+    );
+  };
 
   const renderUpload = () => (
     <section className="cxh-ingest" aria-labelledby="upload-title">

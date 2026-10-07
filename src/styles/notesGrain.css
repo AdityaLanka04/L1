@@ -19,7 +19,8 @@
   .qb-page,
   .qbd-hub,
   .wa-root,
-  .solo-quiz-flow
+  .solo-quiz-flow,
+  .cxh-root
 ) {
   --neu-shadow-raised: 0 10px 24px rgba(0, 0, 0, .35);
   --neu-shadow-raised-hover: 0 12px 28px rgba(0, 0, 0, .4);
@@ -43,7 +44,8 @@
   .qb-page,
   .qbd-hub,
   .wa-root,
-  .solo-quiz-flow
+  .solo-quiz-flow,
+  .cxh-root
 ) {
   --neu-shadow-raised: 0 10px 24px rgba(63, 47, 32, .12);
   --neu-shadow-raised-hover: 0 12px 28px rgba(63, 47, 32, .16);
@@ -66,7 +68,8 @@ html body :is(
   .qb-page,
   .qbd-hub,
   .wa-root,
-  .solo-quiz-flow
+  .solo-quiz-flow,
+  .cxh-root
 )::after {
   content: '' !important;
   display: block !important;
@@ -191,4 +194,11 @@ html body .qbd-hub :is(
 html body .qbd-hub :is(.qbd-document-card, .qbd-source-card).selected {
   background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
   border-color: color-mix(in srgb, var(--accent) 55%, transparent) !important;
+}
+
+/* Context Hub: same matte material as the Notes family. */
+html body .cxh-root :is(.shc-side-block, .shc-footer-action, .cxh-side-block) {
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent) 18%, transparent) !important;
+  box-shadow: none !important;
 }
