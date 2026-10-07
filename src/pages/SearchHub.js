@@ -200,6 +200,65 @@ const STOPWORDS = new Set([
   'were', 'been', 'being', 'you', 'your', 'our', 'they', 'them', 'than',
 ]);
 
+const TOPIC_FILLER = new Set([
+  ...STOPWORDS,
+  'i', 'me', 'my', 'we', 'he', 'she', 'it', 'its', 'a', 'an', 'or', 'but', 'so', 'in', 'on', 'at',
+  'to', 'by', 'of', 'up', 'as', 'is', 'am', 'be', 'do', 'does', 'did', 'can', 'may', 'might',
+  'these', 'those', 'who', 'whom', 'whose', 'how', 'why', 'not', 'no', 'yes', 'just', 'like',
+  'get', 'got', 'go', 'let', 'lets', 'make', 'want', 'need', 'some', 'any', 'all', 'few', 'many',
+  'much', 'more', 'most', 'other', 'such', 'same', 'then', 'now', 'here', 'very', 'too', 'also',
+  'please', 'pls', 'plz', 'sure', 'tell', 'show', 'help', 'give', 'find', 'solve', 'explain',
+  'define', 'describe', 'teach', 'learn', 'understand', 'know', 'mean', 'means', 'meaning',
+  'whats', "what's", 'hows', 'thing', 'things', 'stuff', 'something', 'anything', 'question',
+  'questions', 'problem', 'problems', 'example', 'examples', 'exercise', 'exercises', 'homework',
+  'hw', 'assignment', 'test', 'exam', 'topic', 'topics', 'chapter', 'lesson', 'unit', 'part',
+  'new', 'old', 'untitled', 'copy', 'draft', 'misc', 'random', 'general', 'basic', 'basics',
+  'session', 'chat', 'deck', 'set', 'one', 'two', 'first', 'second', 'again', 'quick',
+]);
+
+const TOPIC_JUNK = new Set([
+  'hi', 'hello', 'hey', 'yo', 'sup', 'hola', 'ok', 'okay', 'lol', 'lmao', 'hmm', 'hm', 'uh', 'um',
+  'bye', 'thanks', 'thank', 'thx', 'ty', 'haha', 'cool', 'nice', 'bruh', 'bro', 'dude', 'wow',
+  'asdf', 'qwerty', 'idk', 'nah', 'yeah', 'yep', 'nope', 'testing', 'untitled', 'null', 'undefined',
+]);
+
+const isJunkWord = (word) => (
+  TOPIC_JUNK.has(word)
+  || /(.)\1{2,}/.test(word)
+  || /^(ha)+h?$|^(lo)+l$|^h+m+$|^y+o+$|^he+y+$|^hi+$/.test(word)
+);
+
+// Turns a raw title/query into a short study topic, or null when nothing meaningful is left
+// (greetings, placeholders, symbol soup, or question fragments like "give few" / "how can you").
+const cleanTopicPhrase = (raw) => {
+  if (!raw || typeof raw !== 'string') return null;
+  const words = raw
+    .replace(/<[^>]*>/g, ' ')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s'+-]/g, ' ')
+    .split(/\s+/)
+    .map(word => word.replace(/^['+-]+|['+-]+$/g, ''))
+    .filter(Boolean);
+  if (!words.length || (words.length <= 3 && words.some(isJunkWord))) return null;
+
+  const isFiller = (word) => TOPIC_FILLER.has(word) || GENERIC_TOKENS.has(word) || isJunkWord(word) || /^[a-z]$/.test(word);
+  const isNumber = (word) => /^\d+$/.test(word);
+  let start = 0;
+  let end = words.length;
+  while (start < end && (isFiller(words[start]) || isNumber(words[start]))) start++;
+  const mathStart = words.findIndex((word, index) => index > start && /^[a-z]$/.test(word));
+  if (mathStart !== -1) end = mathStart;
+  while (end > start && isFiller(words[end - 1])) end--;
+  const core = words.slice(start, end).slice(0, 4);
+  while (core.length && isFiller(core[core.length - 1])) core.pop();
+
+  const contentWords = core.filter(word => !isFiller(word) && !isNumber(word) && word.length >= 4);
+  if (!contentWords.length) return null;
+  return core
+    .map(word => (/^(ii|iii|iv|vi|vii|viii|ix)$/.test(word) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1)))
+    .join(' ');
+};
+
 const SearchHub = () => {
   const navigate = useNavigate();
   const searchInputRef = useRef(null);
@@ -770,7 +829,7 @@ const SearchHub = () => {
         const topicSignals = new Map();
         const usedRecommendationKeys = getUsedRecommendationKeys(username);
         const addTopicSignal = (topic, { score = 1, action = '', source = 'activity' } = {}) => {
-          const topicKey = (topic || '').trim();
+          const topicKey = cleanTopicPhrase(topic);
           if (!topicKey) return;
           const key = topicKey.toLowerCase();
           const entry = topicSignals.get(key) || {
@@ -1091,7 +1150,7 @@ const SearchHub = () => {
 
         const seedQueries = Array.from(
           new Set([
-            ...(recentSeeds || []).filter(q => typeof q === 'string' && q.trim().length >= 2),
+            ...(recentSeeds || []).filter(q => cleanTopicPhrase(q)),
             ...backendPrompts.map(p => p.topic).filter(Boolean),
             ...noteTopics.map(entry => entry.topic),
             ...documentTopics.map(entry => entry.topic),
@@ -1100,7 +1159,7 @@ const SearchHub = () => {
             ...chatTopics.map(entry => entry.topic),
             ...learningPathTopics.map(entry => entry.topic),
             ...playlistTopics.map(entry => entry.topic),
-          ])
+          ].map(topic => (typeof topic === 'string' ? topic : '')).filter(topic => cleanTopicPhrase(topic)))
         ).slice(0, 5);
 
         const fetchContextTopics = async () => {
@@ -1201,6 +1260,7 @@ const SearchHub = () => {
         const recommendations = [];
         const maxRecommendations = 8;
         const recommendationKeys = new Set();
+        const recommendedTopics = new Set();
 
         const getRecommendationKey = (rec) => {
           const action = inferActionType(rec.text);
@@ -1214,7 +1274,10 @@ const SearchHub = () => {
           const key = getRecommendationKey(rec);
           if (key && usedRecommendationKeys.has(key)) return;
           if (key && recommendationKeys.has(key)) return;
+          const topicKey = (rec.topic || '').toLowerCase();
+          if (topicKey && recommendedTopics.has(topicKey)) return;
           if (key) recommendationKeys.add(key);
+          if (topicKey) recommendedTopics.add(topicKey);
           recommendations.push(rec);
         };
 
