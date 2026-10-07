@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, BarChart3, LogIn, UserPlus, LogOut, AlertTriangle } from 'lucide-react';
+import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, BarChart3, LogIn, UserPlus, AlertTriangle } from 'lucide-react';
 import './SearchHub.css';
 import SocialHubChrome from '../components/SocialHubChrome';
 import { API_URL } from '../config/api';
-import { signOutAppSession } from '../utils/authSession';
 import ContextSelector from '../components/ContextSelector';
 import ContextPanel from '../components/ContextPanel';
 import contextService from '../services/contextService';
@@ -309,12 +308,6 @@ const SearchHub = () => {
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
   const [hsMode, setHsMode] = useState(() => localStorage.getItem('hs_mode_enabled') === 'true');
   const [userDocCount, setUserDocCount] = useState(0);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => (
-    typeof window !== 'undefined' ? window.innerWidth > 768 : true
-  ));
-  const handleSidebarCollapsedChange = useCallback((collapsed) => {
-    setIsSidebarOpen(!collapsed);
-  }, []);
 
   
   const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
@@ -2451,12 +2444,6 @@ const SearchHub = () => {
     ];
   };
 
-  const handleLogout = () => {
-    void signOutAppSession();
-    setUserName('');
-    window.location.reload();
-  };
-
   const handleShowLoginMessage = () => {
     setShowLoginMessage(true);
     setTimeout(() => setShowLoginMessage(false), 3000);
@@ -2726,66 +2713,6 @@ const SearchHub = () => {
     return count;
   };
 
-  const resetWorkspace = () => {
-    setSearchResults(null);
-    setAiSuggestion(null);
-    setSearchError(null);
-    setSearchQuery('');
-    setShowFilters(false);
-    setShowCommandGuide(false);
-    requestAnimationFrame(() => {
-      mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      searchInputRef.current?.focus();
-    });
-  };
-
-  const openCommands = () => {
-    setSearchResults(null);
-    setAiSuggestion(null);
-    setShowCommandGuide(true);
-    requestAnimationFrame(() => mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }));
-  };
-
-  const sideSections = [
-    {
-      label: 'Search workspace',
-      items: [
-        { icon: Search, label: 'Explore', active: !searchResults && !showCommandGuide, onClick: resetWorkspace },
-        { icon: Sparkles, label: 'Commands', active: showCommandGuide, pressed: showCommandGuide, onClick: openCommands },
-        { icon: Clock, label: 'Recent searches', count: recentSearches.length, onClick: resetWorkspace },
-      ],
-    },
-  ];
-
-  const sidebarLead = (
-    <button className="sh-side-primary" type="button" onClick={resetWorkspace}>
-      <Search size={15} />
-      <span>New search</span>
-    </button>
-  );
-
-  const sidebarTail = (
-    <div className="sh-side-tail">
-      <div className="sh-side-context">
-        <div>
-          <span>Study context</span>
-          <strong>{hsMode ? `${userDocCount} sources active` : 'Workspace only'}</strong>
-        </div>
-        <ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />
-      </div>
-      {userName ? (
-        <button className="sh-side-session" type="button" onClick={handleLogout}>
-          <LogOut size={14} /> Sign out
-        </button>
-      ) : (
-        <div className="sh-side-auth">
-          <button type="button" onClick={() => navigate('/login')}><LogIn size={14} /> Sign in</button>
-          <button type="button" onClick={() => navigate('/register')}><UserPlus size={14} /> Join</button>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="sh-root with-social-chrome">
       {showLoginMessage && (
@@ -2793,19 +2720,14 @@ const SearchHub = () => {
       )}
       <SocialHubChrome
         brandKicker="Search"
-        sideSections={sideSections}
-        sidebarLead={sidebarLead}
-        sidebarTail={sidebarTail}
-        collapsed={isSidebarOpen === false}
-        onCollapsedChange={handleSidebarCollapsedChange}
-        collapsedLeadItems={[{ icon: Search, label: 'New search', onClick: resetWorkspace }]}
-        collapsedTailItems={userName ? [{ icon: LogOut, label: 'Sign out', onClick: handleLogout }] : [{ icon: LogIn, label: 'Sign in', onClick: () => navigate('/login') }]}
+        noSidebar
+        topbarContent={<ContextSelector hsMode={hsMode} docCount={userDocCount} onOpen={() => setContextPanelOpen(true)} />}
       >
         <main ref={mainScrollRef} className="sh-main">
         {!searchResults && !isSearching && !isCreating ? (
           isLoadingPrompts ? (
             <div className="sh-loading-init">
-              <div className="sh-pulse"><i /><i /><i /></div>
+              <div className="sh-pulse-loader" role="status" aria-label="Loading"><div className="sh-pulse-square sh-pulse-1" /><div className="sh-pulse-square sh-pulse-2" /><div className="sh-pulse-square sh-pulse-3" /></div>
             </div>
           ) : (
             <div className="sh-hero">
@@ -2814,7 +2736,7 @@ const SearchHub = () => {
                 <h1 className="sh-brand">cerbyl<span className="sh-period">.</span></h1>
               </header>
 
-              <div className="sh-search-wrap sh-search-surface">
+              <div className="sh-search-wrap">
                 <form
                   onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
                   className={`sh-form ${showAutocomplete && autocompleteResults.length > 0 ? 'sh-form--open' : ''}`}
@@ -2902,17 +2824,18 @@ const SearchHub = () => {
               </div>
 
               <p className="sh-helper">
-                Type a command or ask naturally · <code>/flashcards</code> · <code>/notes</code> · <code>/quiz</code> · press <kbd>?</kbd> for all commands
+                <span className="sh-helper-examples">
+                  Type a command or ask naturally · <code>/flashcards</code> · <code>/notes</code> · <code>/quiz</code> ·{' '}
+                </span>
+                <button
+                  type="button"
+                  className="sh-cmd-link"
+                  onClick={() => setShowCommandGuide(prev => !prev)}
+                  aria-expanded={showCommandGuide}
+                >
+                  {showCommandGuide ? 'Hide commands' : 'All commands'} <kbd>?</kbd>
+                </button>
               </p>
-
-              <button
-                type="button"
-                className="sh-cmd-toggle"
-                onClick={() => setShowCommandGuide(prev => !prev)}
-                aria-expanded={showCommandGuide}
-              >
-                Commands <span className="sh-cmd-hint">?</span>
-              </button>
 
               {showCommandGuide && (
                 <div className="sh-cmd-console">
@@ -2976,13 +2899,13 @@ const SearchHub = () => {
           )
         ) : isCreating ? (
           <div className="sh-creating">
-            <div className="sh-pulse"><i /><i /><i /></div>
+            <div className="sh-pulse-loader" role="status" aria-label="Loading"><div className="sh-pulse-square sh-pulse-1" /><div className="sh-pulse-square sh-pulse-2" /><div className="sh-pulse-square sh-pulse-3" /></div>
             <div className="sh-creating-msg">{creatingMessage}</div>
             <p className="sh-creating-sub">Setting things up...</p>
           </div>
         ) : isSearching ? (
           <div className="sh-searching">
-            <div className="sh-pulse"><i /><i /><i /></div>
+            <div className="sh-pulse-loader" role="status" aria-label="Loading"><div className="sh-pulse-square sh-pulse-1" /><div className="sh-pulse-square sh-pulse-2" /><div className="sh-pulse-square sh-pulse-3" /></div>
             <p className="sh-searching-text">Searching...</p>
           </div>
         ) : (

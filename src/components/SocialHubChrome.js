@@ -186,7 +186,6 @@ const REACTIVE_SURFACE_SELECTOR = [
   '.an-root .an-transparency-note',
   '.an-root .an-profile-card',
   '.an-root .an-fsrs-stat',
-  '.sh-root .sh-search-surface',
   '.sh-root .sh-chip',
   '.sh-root .sh-result-card',
   '.sh-root .sh-ai-panel',
