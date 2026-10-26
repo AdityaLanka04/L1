@@ -465,8 +465,8 @@
   background-color: var(--cb-accent);
   -webkit-mask-image: url('../assets/logo.svg');
   mask-image: url('../assets/logo.svg');
-  -webkit-mask-size: contain;
-  mask-size: contain;
+  -webkit-mask-size: 140%;
+  mask-size: 140%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
