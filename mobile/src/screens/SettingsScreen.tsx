@@ -1,12 +1,12 @@
 import DevicePushSettings from '../components/DevicePushSettings';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Alert, Linking, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, Alert, Linking, Modal, TextInput, ActivityIndicator, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Inter_900Black, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { AuthUser } from '../services/auth';
-import { WEB_URL, getComprehensiveProfile, updateComprehensiveProfile } from '../services/api';
+import { AuthUser, signOut } from '../services/auth';
+import { WEB_URL, getComprehensiveProfile, updateComprehensiveProfile, requestAccountDeletion, confirmAccountDeletion } from '../services/api';
 import HapticTouchable from '../components/HapticTouchable';
 import AmbientBubbles from '../components/AmbientBubbles';
 import GeoBackground from '../components/GeoBackground';
@@ -19,14 +19,22 @@ import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 type Props = {
   user: AuthUser;
   onBack?: () => void;
+  onAccountDeleted?: () => void;
 };
 
-export default function SettingsScreen({ user, onBack }: Props) {
+export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props) {
   const [fontsLoaded] = useFonts({ Inter_900Black, Inter_400Regular, Inter_600SemiBold });
   const { selectedTheme, selectedThemeId, customTheme, themes, colorPalette, primaryPalette, changeTheme, applyCustomColors } = useAppTheme();
   const layout = useResponsiveLayout();
   const styles = useMemo(() => createStyles(selectedTheme, layout), [selectedTheme, layout]);
   const [pushEnabled, setPushEnabled] = useState(true);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<'password' | 'otp'>('password');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteOtp, setDeleteOtp] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteStatus, setDeleteStatus] = useState('');
+  const isGoogleAccount = !!user.google_user;
   const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets');
   const [pendingPresetId, setPendingPresetId] = useState(selectedThemeId === 'custom' ? 'gold-dark' : selectedThemeId);
   const [pendingMode, setPendingMode] = useState<ThemeMode>(customTheme?.mode || selectedTheme.mode || 'dark');
@@ -69,6 +77,61 @@ export default function SettingsScreen({ user, onBack }: Props) {
 
   const handleComingSoon = (label: string) => {
     void Linking.openURL(`${WEB_URL}/${label === 'Privacy & Security' ? 'privacy-policy' : 'contact'}`).catch(() => Alert.alert('Could not open page', 'Please try again.'));
+  };
+
+  const closeDelete = () => {
+    if (deleteBusy) return;
+    setDeleteOpen(false);
+    setDeleteStep('password');
+    setDeletePassword('');
+    setDeleteOtp('');
+    setDeleteStatus('');
+  };
+
+  const sendDeleteCode = async () => {
+    if (!isGoogleAccount && !deletePassword.trim()) {
+      setDeleteStatus('Enter your password first.');
+      return;
+    }
+    setDeleteBusy(true);
+    setDeleteStatus('');
+    try {
+      const data = await requestAccountDeletion(isGoogleAccount ? null : deletePassword);
+      setDeleteStatus(data.message || 'Deletion code sent to your email.');
+      setDeleteStep('otp');
+    } catch (e: any) {
+      setDeleteStatus(e?.message || 'Could not send deletion code.');
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (!deleteOtp.trim()) {
+      setDeleteStatus('Enter the 6-digit code.');
+      return;
+    }
+    Alert.alert('Delete account', 'This permanently deletes your account and all your learning data. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete forever',
+        style: 'destructive',
+        onPress: async () => {
+          setDeleteBusy(true);
+          setDeleteStatus('');
+          try {
+            await confirmAccountDeletion(deleteOtp.trim());
+            await signOut();
+            setDeleteOpen(false);
+            onAccountDeleted?.();
+          } catch (e: any) {
+            setDeleteStatus(e?.message || 'Could not delete account.');
+          } finally {
+            setDeleteBusy(false);
+          }
+        },
+      },
+    ]);
   };
 
   const darkThemes = themes.filter((theme) => theme.mode === 'dark');
@@ -255,8 +318,69 @@ export default function SettingsScreen({ user, onBack }: Props) {
               <Ionicons name="chevron-forward" size={14} color={selectedTheme.textSecondary} />
             </HapticTouchable>
           ))}
+          <HapticTouchable
+            style={[styles.linkRow, styles.rowDividerTop]}
+            activeOpacity={0.8}
+            haptic="light"
+            onPress={() => setDeleteOpen(true)}
+          >
+            <View style={styles.iconWrap}>
+              <Ionicons name="trash-outline" size={17} color="#E5484D" />
+            </View>
+            <Text style={[styles.linkLabel, { color: '#E5484D' }]}>Delete Account</Text>
+            <Ionicons name="chevron-forward" size={14} color={selectedTheme.textSecondary} />
+          </HapticTouchable>
         </View>
       </ScrollView>
+
+      <Modal visible={deleteOpen} transparent animationType="fade" onRequestClose={closeDelete}>
+        <View style={styles.deleteBackdrop}>
+          <View style={styles.deleteCard}>
+            <Text style={styles.deleteTitle}>Delete account</Text>
+            <Text style={styles.deleteBody}>
+              {deleteStep === 'password'
+                ? (isGoogleAccount ? 'We will email you a 6-digit code to confirm.' : 'Enter your password and we will email you a 6-digit code to confirm.')
+                : 'Enter the 6-digit code we sent you.'}
+            </Text>
+            {deleteStep === 'password' && !isGoogleAccount ? (
+              <TextInput
+                style={styles.deleteInput}
+                value={deletePassword}
+                onChangeText={setDeletePassword}
+                placeholder="Password"
+                placeholderTextColor={selectedTheme.textSecondary}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            ) : null}
+            {deleteStep === 'otp' ? (
+              <TextInput
+                style={styles.deleteInput}
+                value={deleteOtp}
+                onChangeText={setDeleteOtp}
+                placeholder="6-digit code"
+                placeholderTextColor={selectedTheme.textSecondary}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            ) : null}
+            {deleteStatus ? <Text style={styles.deleteStatus}>{deleteStatus}</Text> : null}
+            <View style={styles.deleteActions}>
+              <HapticTouchable style={styles.deleteBtn} onPress={closeDelete} haptic="selection">
+                <Text style={styles.deleteBtnText}>Cancel</Text>
+              </HapticTouchable>
+              <HapticTouchable
+                style={[styles.deleteBtn, styles.deleteBtnDanger]}
+                onPress={deleteStep === 'password' ? sendDeleteCode : confirmDelete}
+                haptic="light"
+                disabled={deleteBusy}
+              >
+                {deleteBusy ? <ActivityIndicator color="#fff" /> : <Text style={[styles.deleteBtnText, { color: '#fff' }]}>{deleteStep === 'password' ? 'Send code' : 'Delete'}</Text>}
+              </HapticTouchable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -468,6 +592,17 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
     linkRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 15, gap: 12 },
     rowDivider: { borderBottomWidth: 1, borderBottomColor: BORDER },
     prefLabel: { fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textPrimary, flex: 1 },
+    rowDividerTop: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: rgbaFromHex(theme.accent, 0.18) },
+    deleteBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
+    deleteCard: { backgroundColor: theme.panelAlt, borderRadius: 16, padding: 20, gap: 12 },
+    deleteTitle: { fontFamily: 'Inter_900Black', fontSize: 18, color: theme.textPrimary },
+    deleteBody: { fontFamily: 'Inter_400Regular', fontSize: 13, color: theme.textSecondary },
+    deleteInput: { fontFamily: 'Inter_400Regular', fontSize: 15, color: theme.textPrimary, borderWidth: 1, borderColor: rgbaFromHex(theme.accent, 0.35), borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+    deleteStatus: { fontFamily: 'Inter_400Regular', fontSize: 12, color: theme.textSecondary },
+    deleteActions: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
+    deleteBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, minWidth: 84, alignItems: 'center', justifyContent: 'center' },
+    deleteBtnDanger: { backgroundColor: '#E5484D' },
+    deleteBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: theme.textPrimary },
     linkLabel: { fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textPrimary, flex: 1 },
     iconWrap: {
       width: 30,

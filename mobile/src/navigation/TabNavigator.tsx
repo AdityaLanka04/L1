@@ -332,7 +332,7 @@ export default function TabNavigator({ user, onLogout, onUserUpdate, onRetakeQui
           </Stack.Screen>
           <Stack.Screen name="Settings">
             {({ navigation }) => (
-              <ScreenErrorBoundary label="Settings"><SettingsScreen user={user} onBack={() => navigation.goBack()} /></ScreenErrorBoundary>
+              <ScreenErrorBoundary label="Settings"><SettingsScreen user={user} onBack={() => navigation.goBack()} onAccountDeleted={onLogout} /></ScreenErrorBoundary>
             )}
           </Stack.Screen>
           <Stack.Screen name="QuestionBank">

@@ -78,6 +78,27 @@ export async function changePassword(currentPassword: string | null, newPassword
   return res.json();
 }
 
+export async function requestAccountDeletion(password: string | null): Promise<{ message?: string }> {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/account/delete/request`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) await readApiError(res, 'Could not send deletion code');
+  return res.json();
+}
+
+export async function confirmAccountDeletion(otp: string): Promise<void> {
+  const headers = await authHeaders();
+  const res = await fetch(`${API_URL}/account/delete/confirm`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ otp }),
+  });
+  if (!res.ok) await readApiError(res, 'Could not delete account');
+}
+
 // ── Onboarding / Comprehensive Profile ──────────────────────────────────
 export type ProfileQuizStatus = { completed: boolean; quiz_completed: boolean; quiz_skipped: boolean };
 
