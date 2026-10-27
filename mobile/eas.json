@@ -9,13 +9,15 @@
       "distribution": "internal",
       "android": {
         "credentialsSource": "local"
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "android": {
@@ -28,7 +30,8 @@
         "EXPO_PUBLIC_WEB_URL": "https://cerbyl.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "482205787855-621d77j4qrv50grmag3fbr9huedcb1dh.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "482205787855-emlbsvd954ga26c2i1gmegm80lq40qek.apps.googleusercontent.com"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
