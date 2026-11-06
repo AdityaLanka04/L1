@@ -226,7 +226,7 @@ export default function NeumorphicTexture({
   );
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={StyleSheet.absoluteFill}>
       {grainVariant === 'skia' && gradientColors && gradientStart && gradientEnd && (
         Platform.OS === 'web'
           ? <LinearGradient colors={gradientColors as [string, string, ...string[]]} start={gradientStart} end={gradientEnd} style={StyleSheet.absoluteFill} />

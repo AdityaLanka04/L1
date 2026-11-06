@@ -62,7 +62,7 @@ export default function AmbientBubbles({ theme, variant = 'home', opacity = 1 }:
   const watermarkOpacity = theme.isLight ? 0.035 * opacity : 0.055 * opacity;
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={StyleSheet.absoluteFill}>
       <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
         <Rect x={0} y={0} width={width} height={height} fill="transparent" />
         <G opacity={1}>

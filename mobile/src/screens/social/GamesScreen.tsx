@@ -437,7 +437,7 @@ export default function GamesScreen({ user, onBack }: Props) {
       </ScrollView>
 
       {/* Create Modal */}
-      <Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setShowCreate(false); setCreateError(''); }}>
         <View style={{ flex: 1 }}>
           <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
           <GeoBackground />

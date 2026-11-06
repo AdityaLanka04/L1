@@ -4,6 +4,7 @@ import Svg, { Circle, Text as SvgText, Line, Rect, G, Mask, RadialGradient, Line
 import { Canvas, Fill, LinearGradient as SkLinearGradient, useCanvasSize, vec } from '@shopify/react-native-skia';
 import { GrainNoise } from './SkiaGrain';
 import { useAppTheme } from '../contexts/ThemeContext';
+import { useReduceMotion } from '../hooks/useReduceMotion';
 
 const ACCENT = '#D8B38D';
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -12,13 +13,15 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 // background still breathes instead of sitting static.
 function useOrbDrift(durationMs: number, reverse: boolean) {
   const v = useRef(new Animated.Value(reverse ? 1 : 0)).current;
+  const reduceMotion = useReduceMotion();
   useEffect(() => {
+    if (reduceMotion) return;
     const legA = Animated.timing(v, { toValue: reverse ? 0 : 1, duration: durationMs, easing: Easing.inOut(Easing.ease), useNativeDriver: true });
     const legB = Animated.timing(v, { toValue: reverse ? 1 : 0, duration: durationMs, easing: Easing.inOut(Easing.ease), useNativeDriver: true });
     const loop = Animated.loop(Animated.sequence([legA, legB]));
     loop.start();
     return () => loop.stop();
-  }, [v, durationMs, reverse]);
+  }, [v, durationMs, reverse, reduceMotion]);
   return v;
 }
 
@@ -120,7 +123,7 @@ export default function CircleBackground() {
   })), [GW, GH]);
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={StyleSheet.absoluteFill}>
       {/* base surface + grain — drawn first since this Canvas repaints an
           opaque copy of the page gradient internally (Skia can't blend
           against sibling views beneath it) and would otherwise paint over

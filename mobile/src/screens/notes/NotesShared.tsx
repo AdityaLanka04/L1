@@ -438,10 +438,10 @@ export function ModalShell({
       <View style={s.modalRoot}>
         <Pressable accessibilityLabel="Dismiss" style={s.modalBackdrop} onPress={onClose} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.modalKeyboard}>
-          <View style={s.modalCard}>
+          <View accessibilityViewIsModal style={s.modalCard}>
             <View style={s.modalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={s.modalTitle}>{title}</Text>
+                <Text accessibilityRole="header" style={s.modalTitle}>{title}</Text>
                 {subtitle ? <Text style={s.modalSubtitle}>{subtitle}</Text> : null}
               </View>
               <HapticTouchable accessibilityLabel="Close" onPress={onClose} style={s.modalCloseBtn} haptic="selection">
