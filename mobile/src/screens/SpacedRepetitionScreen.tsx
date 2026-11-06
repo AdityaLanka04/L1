@@ -260,7 +260,7 @@ export default function SpacedRepetitionScreen({ user, onBack }: Props) {
 
             {stats ? (
               <View style={s.statsCard}>
-                <Text style={s.statsTitle}>your memory stats</Text>
+                <Text accessibilityRole="header" style={s.statsTitle}>your memory stats</Text>
                 <View style={s.summaryRow}>
                   <Summary icon="pulse-outline" label="retention" value={`${stats.retention_rate}%`} styles={s} />
                   <Summary icon="time-outline" label="avg interval" value={`${stats.maturity.average_interval}d`} styles={s} />
@@ -279,7 +279,7 @@ export default function SpacedRepetitionScreen({ user, onBack }: Props) {
 
             <View style={s.tipsCard}>
               <View style={s.tipsHeader}>
-                <Text style={s.statsTitle}>study tips</Text>
+                <Text accessibilityRole="header" style={s.statsTitle}>study tips</Text>
                 {!suggestions ? (
                   <HapticTouchable style={s.tipsRefresh} onPress={loadSuggestions} disabled={loadingSuggestions} haptic="selection">
                     {loadingSuggestions ? <ActivityIndicator size="small" color={s.accentInk.color} /> : <Text style={s.tipsRefreshText}>get AI tips</Text>}

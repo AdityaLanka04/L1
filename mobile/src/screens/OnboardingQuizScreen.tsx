@@ -438,7 +438,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
                 <Ionicons name="chevron-back" size={14} color={selectedTheme.textSecondary} />
                 <Text style={s.backLinkText}>back</Text>
               </HapticTouchable>
-              <Text style={s.pageTitle}>profile</Text>
+              <Text accessibilityRole="header" style={s.pageTitle}>profile</Text>
               <Text style={s.pageSub}>customize your ai learning experience</Text>
 
               <Panel panelStyle={s.panel} panelClipStyle={s.panelClip}>
@@ -593,7 +593,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
                 <Ionicons name="chevron-back" size={14} color={selectedTheme.textSecondary} />
                 <Text style={s.backLinkText}>back to profile</Text>
               </HapticTouchable>
-              <Text style={s.pageTitle}>learning preferences</Text>
+              <Text accessibilityRole="header" style={s.pageTitle}>learning preferences</Text>
               <Text style={s.pageSub}>help us personalize your learning experience</Text>
 
               {PREFERENCE_QUESTIONS.map((q, qIdx) => (

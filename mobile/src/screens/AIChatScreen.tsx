@@ -759,7 +759,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
           </HapticTouchable>
           <View style={s.headerCenter}>
             <View style={s.headerTitleRow}>
-              <Text style={s.headerTitle}>ai</Text>
+              <Text accessibilityRole="header" style={s.headerTitle}>ai</Text>
               <View style={s.onlineDot} />
             </View>
           </View>
@@ -1136,7 +1136,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
         <View style={s.centerOverlay}>
           <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setNewFolderModalOpen(false)} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
-            <Text style={s.centerCardTitle}>new folder</Text>
+            <Text accessibilityRole="header" style={s.centerCardTitle}>new folder</Text>
             <TextInput
               style={s.centerCardInput}
               value={newFolderName}
@@ -1161,7 +1161,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
         <View style={s.centerOverlay}>
           <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setRenameTarget(null)} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
-            <Text style={s.centerCardTitle}>rename chat</Text>
+            <Text accessibilityRole="header" style={s.centerCardTitle}>rename chat</Text>
             <TextInput
               style={s.centerCardInput}
               value={renameText}
@@ -1186,7 +1186,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
         <View style={s.centerOverlay}>
           <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setShareTarget(null)} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
-            <Text style={s.centerCardTitle}>share "{shareTarget?.title || 'this chat'}"</Text>
+            <Text accessibilityRole="header" style={s.centerCardTitle}>share "{shareTarget?.title || 'this chat'}"</Text>
             <HapticTouchable style={s.shareLinkRow} onPress={copyChatLink} haptic="selection">
               <Ionicons name="link-outline" size={16} color={selectedTheme.accentHover} />
               <Text style={s.shareLinkText}>share public link</Text>
@@ -1225,7 +1225,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
         <View style={s.centerOverlay}>
           <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => { setNegativeFeedbackTarget(null); setFeedbackComment(''); }} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
-            <Text style={s.centerCardTitle}>what went wrong?</Text>
+            <Text accessibilityRole="header" style={s.centerCardTitle}>what went wrong?</Text>
             <Text style={s.centerCardSub}>optional — helps us improve cerbyl</Text>
             <TextInput
               style={[s.centerCardInput, { minHeight: 70 }]}

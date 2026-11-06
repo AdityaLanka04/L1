@@ -189,7 +189,7 @@ function ResultsView({
         <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
-        <Text style={s.studyTitle}>session complete</Text>
+        <Text accessibilityRole="header" style={s.studyTitle}>session complete</Text>
         <View style={{ width: 22 }} />
       </View>
       <View style={s.resultsWrap}>
@@ -581,7 +581,7 @@ function StudyView({
           <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={GOLD_L} />
           </HapticTouchable>
-          <Text style={s.studyTitle}>flashcards</Text>
+          <Text accessibilityRole="header" style={s.studyTitle}>flashcards</Text>
           <View style={{ width: 22 }} />
         </View>
         <View style={s.empty}>
@@ -718,7 +718,7 @@ function StudyView({
         <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
-        <Text style={s.studyTitle} numberOfLines={1}>{set.title.toLowerCase()}</Text>
+        <Text accessibilityRole="header" style={s.studyTitle} numberOfLines={1}>{set.title.toLowerCase()}</Text>
         <Text style={[s.studyCounter, { color: GOLD_D }]}>{idx + 1}/{cards.length}</Text>
       </View>
 
@@ -841,7 +841,7 @@ function QuizView({
           <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={GOLD_L} />
           </HapticTouchable>
-          <Text style={s.studyTitle}>quiz</Text>
+          <Text accessibilityRole="header" style={s.studyTitle}>quiz</Text>
           <View style={{ width: 22 }} />
         </View>
         <View style={s.empty}>
@@ -860,7 +860,7 @@ function QuizView({
         <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
-        <Text style={s.studyTitle} numberOfLines={1}>{set.title.toLowerCase()}</Text>
+        <Text accessibilityRole="header" style={s.studyTitle} numberOfLines={1}>{set.title.toLowerCase()}</Text>
         <Text style={[s.studyCounter, { color: GOLD_D }]}>{idx + 1}/{cards.length}</Text>
       </View>
       <View style={s.progressBar}>
@@ -931,7 +931,7 @@ function QuizResultsView({
         <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
-        <Text style={s.studyTitle}>quiz report</Text>
+        <Text accessibilityRole="header" style={s.studyTitle}>quiz report</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -1209,7 +1209,7 @@ function FlashcardsCreate({
           <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
             <Ionicons name="chevron-back" size={20} color={GOLD_L} />
           </HapticTouchable>
-          <Text style={[s.createTitle, { flex: 1 }]}>create set</Text>
+          <Text accessibilityRole="header" style={[s.createTitle, { flex: 1 }]}>create set</Text>
           <HapticTouchable onPress={() => setSidebarOpen(true)} haptic="selection" accessibilityLabel="Open menu">
             <Ionicons name="menu-outline" size={22} color={GOLD_L} />
           </HapticTouchable>
@@ -1676,7 +1676,7 @@ function FlashcardsSets({
                 <View key={item.id} style={s.listRow}>
                   <View style={[s.listSwatch, { backgroundColor: coverColors[index % coverColors.length] }]} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={s.listTitle} numberOfLines={1}>{cleanTitle(item.title)}</Text>
+                    <Text accessibilityRole="header" style={s.listTitle} numberOfLines={1}>{cleanTitle(item.title)}</Text>
                     <Text style={s.listMeta}>{item.card_count} cards · {Math.round(item.accuracy_percentage)}% mastery</Text>
                   </View>
                   <HapticTouchable

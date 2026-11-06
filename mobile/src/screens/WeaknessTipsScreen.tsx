@@ -85,7 +85,7 @@ export default function WeaknessTipsScreen({ user, topic, onBack, links }: Props
           <HapticTouchable onPress={onBack} haptic="selection" accessibilityLabel="Back">
             <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
           </HapticTouchable>
-          <Text style={s.headerTitle}>weak area</Text>
+          <Text accessibilityRole="header" style={s.headerTitle}>weak area</Text>
           <View style={{ width: 22 }} />
         </View>
 

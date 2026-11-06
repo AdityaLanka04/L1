@@ -347,7 +347,7 @@ function Fallback({ areas, styles, onOpenTopic }: { areas: WeakArea[]; styles: R
     return (
       <View style={[styles.card, { alignItems: 'center', paddingVertical: 40 }]}>
         <Text style={styles.cardTitle}>building your pattern map</Text>
-        <Text style={styles.bigTitle}>Keep learning to unlock intelligence.</Text>
+        <Text accessibilityRole="header" style={styles.bigTitle}>Keep learning to unlock intelligence.</Text>
         <Text style={[styles.muted, { textAlign: 'center' }]}>Cerbyl needs a few more answered questions before it can identify reliable learning patterns.</Text>
       </View>
     );
@@ -356,7 +356,7 @@ function Fallback({ areas, styles, onOpenTopic }: { areas: WeakArea[]; styles: R
     <View style={{ gap: 12 }}>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>live diagnosis signals</Text>
-        <Text style={styles.bigTitle}>Your pattern profile is taking shape.</Text>
+        <Text accessibilityRole="header" style={styles.bigTitle}>Your pattern profile is taking shape.</Text>
         <Text style={styles.muted}>These signals are already strong enough to guide your next recovery session. Deeper trend analysis appears as your study history grows.</Text>
         {signals[0] ? (
           <HapticTouchable style={[styles.primaryBtn, { alignSelf: 'flex-start', marginTop: 6 }]} onPress={() => onOpenTopic(label(signals[0]))} haptic="light">

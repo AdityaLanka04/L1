@@ -337,7 +337,7 @@ export default function LearningPathsScreen({ onBack, onNavigate, embedded = fal
             <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
           </HapticTouchable>
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={s.libraryTitle}>learning paths</Text>
+            <Text accessibilityRole="header" style={s.libraryTitle}>learning paths</Text>
             <Text style={s.libraryDescription}>Structured, step-by-step curricula built around what you want to learn</Text>
           </View>
           <HapticTouchable onPress={() => setSidebarOpen(true)} haptic="selection" accessibilityLabel="Open menu">
@@ -427,7 +427,7 @@ function NodeSheet({ node, visible, busy, onClose, onStart, theme, styles, ink }
       <View style={styles.modalRoot}>
         <LinearGradient colors={[theme.bgTop, theme.bgPrimary, theme.bgBottom]} style={StyleSheet.absoluteFillObject} />
         <View style={styles.sheetHandle} />
-        <View style={styles.sheetHeader}><View style={{ flex: 1 }}><Text style={styles.kicker}>MODULE {String((node?.order_index ?? 0) + 1).padStart(2, '0')}</Text><Text style={styles.sheetTitle}>{node?.title}</Text></View><HapticTouchable accessibilityLabel="Close" style={styles.sheetClose} onPress={onClose} haptic="light"><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
+        <View style={styles.sheetHeader}><View style={{ flex: 1 }}><Text style={styles.kicker}>MODULE {String((node?.order_index ?? 0) + 1).padStart(2, '0')}</Text><Text accessibilityRole="header" style={styles.sheetTitle}>{node?.title}</Text></View><HapticTouchable accessibilityLabel="Close" style={styles.sheetClose} onPress={onClose} haptic="light"><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetScroll}>
           {!!node?.description && <Text style={styles.sheetDescription}>{node.description}</Text>}
           <View style={styles.nodeInfoRow}><View style={styles.nodeInfoPill}><Ionicons name="time-outline" size={13} color={theme.accentHover} /><Text style={styles.nodeInfoText}>{node?.estimated_minutes ?? 20} MIN</Text></View><View style={styles.nodeInfoPill}><Ionicons name="sparkles-outline" size={13} color={theme.accentHover} /><Text style={styles.nodeInfoText}>{node?.progress?.xp_earned ?? 0} XP</Text></View><View style={styles.nodeInfoPill}><Text style={styles.nodeInfoText}>{status.replace('_', ' ').toUpperCase()}</Text></View></View>
@@ -442,7 +442,7 @@ function NodeSheet({ node, visible, busy, onClose, onStart, theme, styles, ink }
 }
 
 function SheetSection({ title, icon, children, styles }: { title: string; icon: React.ComponentProps<typeof Ionicons>['name']; children: React.ReactNode; styles: ReturnType<typeof createStyles> }) {
-  return <View style={styles.sheetSection}><View style={styles.sheetSectionHeader}><Ionicons name={icon} size={16} color={styles.iconColor.color} /><Text style={styles.sheetSectionTitle}>{title}</Text></View>{children}</View>;
+  return <View style={styles.sheetSection}><View style={styles.sheetSectionHeader}><Ionicons name={icon} size={16} color={styles.iconColor.color} /><Text accessibilityRole="header" style={styles.sheetSectionTitle}>{title}</Text></View>{children}</View>;
 }
 
 function CreatePathModal({ visible, topic, difficulty, length, goals, generating, onTopic, onDifficulty, onLength, onGoals, onClose, onGenerate, theme, styles, ink }: { visible: boolean; topic: string; difficulty: string; length: string; goals: string; generating: boolean; onTopic: (value: string) => void; onDifficulty: (value: string) => void; onLength: (value: string) => void; onGoals: (value: string) => void; onClose: () => void; onGenerate: () => void; theme: ReturnType<typeof useAppTheme>['selectedTheme']; styles: ReturnType<typeof createStyles>; ink: string }) {
@@ -451,7 +451,7 @@ function CreatePathModal({ visible, topic, difficulty, length, goals, generating
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalRoot}>
         <LinearGradient colors={[theme.bgTop, theme.bgPrimary, theme.bgBottom]} style={StyleSheet.absoluteFillObject} />
         <View style={styles.sheetHandle} />
-        <View style={styles.sheetHeader}><View style={{ flex: 1 }}><Text style={styles.sheetTitle}>Build your route</Text><Text style={styles.createSub}>Describe the destination. Cerbyl will plan every step.</Text></View><HapticTouchable accessibilityLabel="Close" style={styles.sheetClose} onPress={onClose}><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
+        <View style={styles.sheetHeader}><View style={{ flex: 1 }}><Text accessibilityRole="header" style={styles.sheetTitle}>Build your route</Text><Text style={styles.createSub}>Describe the destination. Cerbyl will plan every step.</Text></View><HapticTouchable accessibilityLabel="Close" style={styles.sheetClose} onPress={onClose}><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.createScroll}>
           <Text style={styles.formLabel}>WHAT DO YOU WANT TO MASTER?</Text>
           <TextInput style={styles.topicInput} value={topic} onChangeText={onTopic} placeholder="e.g. Backend system design" placeholderTextColor={theme.textSecondary} autoFocus multiline />

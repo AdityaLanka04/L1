@@ -149,7 +149,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
             <Ionicons name="chevron-back" size={22} color={selectedTheme.textPrimary} />
           </HapticTouchable>
           <View style={styles.titleWrap}>
-            <Text style={styles.pageTitle}>settings</Text>
+            <Text accessibilityRole="header" style={styles.pageTitle}>settings</Text>
           </View>
           <View style={styles.iconButton} />
         </View>

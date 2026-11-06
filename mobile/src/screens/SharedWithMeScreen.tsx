@@ -412,7 +412,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
             ) : (
               <View style={{ width: 22 }} />
             )}
-            <Text style={s.modalTitle} numberOfLines={1}>{shareTarget ? `share "${shareTarget.title}"` : 'share something'}</Text>
+            <Text accessibilityRole="header" style={s.modalTitle} numberOfLines={1}>{shareTarget ? `share "${shareTarget.title}"` : 'share something'}</Text>
             <HapticTouchable accessibilityLabel="Close" onPress={() => { setShowPicker(false); setShareTarget(null); }} haptic="light">
               <Ionicons name="close" size={22} color={selectedTheme.accent} />
             </HapticTouchable>

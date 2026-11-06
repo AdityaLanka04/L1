@@ -321,7 +321,7 @@ export default function WeaknessPracticeScreen({ user, onBack, links }: Props) {
     return (
       <>
         <View style={s.queueHead}>
-          <Text style={s.sectionTitle}>weak topics</Text>
+          <Text accessibilityRole="header" style={s.sectionTitle}>weak topics</Text>
           <Text style={s.queueMeta}>{areas.length} tracked · ranked by weakness score</Text>
         </View>
         <Text style={s.explainer}>
@@ -419,7 +419,7 @@ export default function WeaknessPracticeScreen({ user, onBack, links }: Props) {
     return (
       <>
         <View style={s.queueHead}>
-          <Text style={s.sectionTitle}>recent evidence</Text>
+          <Text accessibilityRole="header" style={s.sectionTitle}>recent evidence</Text>
           <Text style={s.queueMeta}>{activity.length} events</Text>
         </View>
         <View style={s.listCard}>
@@ -531,7 +531,7 @@ export default function WeaknessPracticeScreen({ user, onBack, links }: Props) {
         <View style={s.modalRoot}>
           <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
           <View style={s.modalHeader}>
-            <Text style={s.modalTitle} numberOfLines={1}>{explainModal ? displayTopic(explainModal.mistake.topic) : ''}</Text>
+            <Text accessibilityRole="header" style={s.modalTitle} numberOfLines={1}>{explainModal ? displayTopic(explainModal.mistake.topic) : ''}</Text>
             <HapticTouchable onPress={() => setExplainModal(null)} haptic="light" accessibilityLabel="Close">
               <Ionicons name="close" size={22} color={selectedTheme.accent} />
             </HapticTouchable>

@@ -677,7 +677,7 @@ export default function NoteEditorScreen({
           {canvasCount > 0 ? (
             <View style={styles.sketchSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Sketches</Text>
+                <Text accessibilityRole="header" style={styles.sectionTitle}>Sketches</Text>
                 <Text style={styles.sectionMeta}>{canvasCount} attached</Text>
               </View>
               {canvasBlocks.map((block, index) => (

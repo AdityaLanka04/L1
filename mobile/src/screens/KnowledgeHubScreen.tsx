@@ -321,7 +321,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.modalRoot}>
           <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
           <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>import source</Text>
+            <Text accessibilityRole="header" style={s.modalTitle}>import source</Text>
             <HapticTouchable accessibilityLabel="Close" onPress={() => setShowImportModal(false)}><Ionicons name="close" size={22} color={selectedTheme.accent} /></HapticTouchable>
           </View>
           <View style={s.modalBody}>
@@ -385,7 +385,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
 
         <View style={s.hsCard}>
           <View style={{ flex: 1 }}>
-            <Text style={s.sectionTitle}>HS curriculum mode</Text>
+            <Text accessibilityRole="header" style={s.sectionTitle}>HS curriculum mode</Text>
             <Text style={s.sectionHint}>also answer using shared curriculum textbooks</Text>
           </View>
           <Switch
@@ -491,7 +491,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
 
         {askResult ? (
           <View style={s.answerCard}>
-            <Text style={s.sectionTitle}>answer</Text>
+            <Text accessibilityRole="header" style={s.sectionTitle}>answer</Text>
             <MathText style={s.answerText}>{askResult.answer}</MathText>
             {askResult.sources?.length ? (
               <View style={s.sourceList}>

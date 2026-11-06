@@ -201,7 +201,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
           <View>
-            <Text style={styles.pageTitle}>profile</Text>
+            <Text accessibilityRole="header" style={styles.pageTitle}>profile</Text>
           </View>
           <View style={styles.topBarActions}>
             <HapticTouchable onPress={handleOpenNotifications} activeOpacity={0.8} haptic="selection" style={styles.settingsButton} accessibilityLabel="Notifications">
@@ -253,7 +253,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
 
           {editing === 'username' ? (
             <View style={[styles.editBlock, styles.rowDivider]}>
-              <Text style={styles.editTitle}>Username</Text>
+              <Text accessibilityRole="header" style={styles.editTitle}>Username</Text>
               <TextInput
                 style={styles.editInput}
                 value={usernameInput}
@@ -297,7 +297,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
 
           {editing === 'password' ? (
             <View style={styles.editBlock}>
-              <Text style={styles.editTitle}>{hasPassword ? 'Change Password' : 'Set Password'}</Text>
+              <Text accessibilityRole="header" style={styles.editTitle}>{hasPassword ? 'Change Password' : 'Set Password'}</Text>
               {hasPassword ? (
                 <TextInput
                   style={styles.editInput}
@@ -378,7 +378,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
 
               {profile?.preferredSubjects && profile.preferredSubjects.length > 0 ? (
                 <View style={[styles.editBlock, styles.rowDivider]}>
-                  <Text style={styles.editTitle}>Other Subjects</Text>
+                  <Text accessibilityRole="header" style={styles.editTitle}>Other Subjects</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                     {profile.preferredSubjects.map((subject) => (
                       <View key={subject} style={styles.subjectChip}>

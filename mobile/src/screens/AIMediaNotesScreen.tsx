@@ -580,7 +580,7 @@ function AIMediaHub({
               </HapticTouchable>
             )}
             <View style={{ flex: 1 }}>
-              <Text style={s.pageTitle}>media notes</Text>
+              <Text accessibilityRole="header" style={s.pageTitle}>media notes</Text>
             </View>
             <HapticTouchable onPress={() => setSidebarOpen(true)} style={s.backBtn} haptic="selection" accessibilityLabel="Open menu">
               <Ionicons name="menu-outline" size={24} color={GOLD_L} />
@@ -880,7 +880,7 @@ function AIMediaProcessing({
         <HapticTouchable onPress={() => { cancelRef.current = true; onCancel(); }} style={s.backBtn} haptic="warning">
           <Text style={s.backBtnText}>✕</Text>
         </HapticTouchable>
-        <Text style={s.subTitle}>processing</Text>
+        <Text accessibilityRole="header" style={s.subTitle}>processing</Text>
         <View style={s.backBtn} />
       </View>
       <ProcessingView status={STATUSES[statusIdx]} />
@@ -1089,7 +1089,7 @@ function PodcastMode({
 
       {chapters?.length ? (
         <View style={s.podcastSection}>
-          <Text style={s.podcastSectionTitle}>chapters</Text>
+          <Text accessibilityRole="header" style={s.podcastSectionTitle}>chapters</Text>
           {chapters.map((chapter, index) => (
             <HapticTouchable key={`${chapter.index}-${index}`} style={[s.chapterRow, currentIndex === chapter.index && s.chapterRowActive]} onPress={() => jump(chapter.index ?? index)} haptic="selection">
               <Text style={s.chapterIndex}>{String((chapter.index ?? index) + 1).padStart(2, '0')}</Text>
@@ -1105,13 +1105,13 @@ function PodcastMode({
 
       {takeaways.length ? (
         <View style={s.podcastSection}>
-          <Text style={s.podcastSectionTitle}>takeaways</Text>
+          <Text accessibilityRole="header" style={s.podcastSectionTitle}>takeaways</Text>
           {takeaways.slice(0, 6).map((item) => <Text key={item} style={s.takeaway}>• {item}</Text>)}
         </View>
       ) : null}
 
       <View style={s.podcastSection}>
-        <Text style={s.podcastSectionTitle}>ask the podcast</Text>
+        <Text accessibilityRole="header" style={s.podcastSectionTitle}>ask the podcast</Text>
         <TextInput
           value={question}
           onChangeText={setQuestion}
@@ -1137,7 +1137,7 @@ function PodcastMode({
 
       {mcq?.question || mcq?.completed ? (
         <View style={s.podcastSection}>
-          <Text style={s.podcastSectionTitle}>quick check</Text>
+          <Text accessibilityRole="header" style={s.podcastSectionTitle}>quick check</Text>
           {mcq.completed ? (
             <MathText style={s.podcastAnswer}>{mcq.summary || `Score: ${mcq.score || 0}/${mcq.total || 0}`}</MathText>
           ) : (
@@ -1157,7 +1157,7 @@ function PodcastMode({
 
       {bookmarks?.length ? (
         <View style={s.podcastSection}>
-          <Text style={s.podcastSectionTitle}>bookmarks</Text>
+          <Text accessibilityRole="header" style={s.podcastSectionTitle}>bookmarks</Text>
           <Text style={s.chapterSummary}>{bookmarks.length} saved moments in this episode</Text>
         </View>
       ) : null}
@@ -1208,7 +1208,7 @@ function AIMediaResults({
         <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={s.backBtn} haptic="selection">
           <Ionicons name="chevron-back" size={20} color={GOLD_XL} />
         </HapticTouchable>
-        <Text style={s.subTitle}>{tab === 'podcast' ? 'podcast' : 'notes'}</Text>
+        <Text accessibilityRole="header" style={s.subTitle}>{tab === 'podcast' ? 'podcast' : 'notes'}</Text>
         <HapticTouchable
           style={[s.saveChip, saved && s.saveChipDone]}
           onPress={handleSave}

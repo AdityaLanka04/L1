@@ -140,7 +140,7 @@ export default function AchievementsScreen({ user, onBack }: Props) {
             ) : null}
 
             <View style={s.sectionHeadRow}>
-              <Text style={s.sectionTitle}>earned</Text>
+              <Text accessibilityRole="header" style={s.sectionTitle}>earned</Text>
               <Text style={s.sectionMeta}>{earned.length}</Text>
             </View>
             {earned.length === 0 ? (
@@ -166,7 +166,7 @@ export default function AchievementsScreen({ user, onBack }: Props) {
             {missed.length > 0 ? (
               <>
                 <View style={[s.sectionHeadRow, { marginTop: 20 }]}>
-                  <Text style={s.sectionTitle}>next up</Text>
+                  <Text accessibilityRole="header" style={s.sectionTitle}>next up</Text>
                 </View>
                 <View style={{ gap: 8 }}>
                   {missed.map((a) => (

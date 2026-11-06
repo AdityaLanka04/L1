@@ -108,7 +108,7 @@ export default function SectionSidebar({
             <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
               <View style={s.headerBlock}>
                 <Text style={s.kicker}>{kicker}</Text>
-                <Text style={s.pageTitle}>{pageTitle}</Text>
+                <Text accessibilityRole="header" style={s.pageTitle}>{pageTitle}</Text>
               </View>
 
               <View style={s.menu}>

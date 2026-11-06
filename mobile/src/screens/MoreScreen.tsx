@@ -128,7 +128,7 @@ export default function MoreScreen({ user, onNavigate, onNavigateToAI }: Props) 
             />
             <Text style={s.heroIndex}>01</Text>
             <View style={{ flex: 1 }} />
-            <Text style={s.heroTitle}>AI{'\n'}chat</Text>
+            <Text accessibilityRole="header" style={s.heroTitle}>AI{'\n'}chat</Text>
             <View style={s.heroFootRow}>
               <Ionicons name="chevron-forward" size={16} color={selectedTheme.bgPrimary} />
             </View>

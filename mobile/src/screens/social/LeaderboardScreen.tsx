@@ -126,7 +126,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
         </HapticTouchable>
         <View style={s.headerCopy}>
           <Text style={s.brandSub}>cerbyl / community</Text>
-          <Text style={s.headerTitle}>rankings</Text>
+          <Text accessibilityRole="header" style={s.headerTitle}>rankings</Text>
         </View>
         <HapticTouchable onPress={onRefresh} style={s.backBtn} haptic="light" accessibilityLabel="Refresh leaderboard">
           <Ionicons name="refresh" size={16} color={GOLD_M} />

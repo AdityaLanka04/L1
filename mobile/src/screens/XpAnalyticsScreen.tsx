@@ -171,7 +171,7 @@ export default function XpAnalyticsScreen({ user, onBack, onOpenAchievements, on
           <Text style={s.heroGhost}>xp</Text>
           <Text style={s.eyebrow}>{PERIOD_COPY[period]}</Text>
           <View style={s.heroValueRow}>
-            <Text style={s.heroTitle}>{loading ? '—' : totalXp}</Text>
+            <Text accessibilityRole="header" style={s.heroTitle}>{loading ? '—' : totalXp}</Text>
             {!loading && deltaPercent !== 0 ? (
               <View style={[s.deltaChip, deltaPercent > 0 ? s.deltaChipUp : s.deltaChipDown]}>
                 <Ionicons name={deltaPercent > 0 ? 'trending-up' : 'trending-down'} size={12} color={deltaPercent > 0 ? '#6FCF97' : '#EB5757'} />
@@ -189,7 +189,7 @@ export default function XpAnalyticsScreen({ user, onBack, onOpenAchievements, on
         </View>
 
         <View style={s.chartCard}>
-          <Text style={s.sectionTitle}>xp over time</Text>
+          <Text accessibilityRole="header" style={s.sectionTitle}>xp over time</Text>
           <View style={s.chartWrap} onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
             {chartWidth > 0 && !loading ? (
               <XpLineChart
@@ -209,7 +209,7 @@ export default function XpAnalyticsScreen({ user, onBack, onOpenAchievements, on
         </View>
 
         <View style={s.breakdownSection}>
-          <Text style={s.sectionTitle}>where it came from</Text>
+          <Text accessibilityRole="header" style={s.sectionTitle}>where it came from</Text>
           {loading ? (
             <ActivityIndicator color={selectedTheme.accent} style={{ marginTop: 24 }} />
           ) : bySource.length === 0 ? (
@@ -311,7 +311,7 @@ function XpMenuSidebar({
           <SafeAreaView style={{ flex: 1, paddingBottom: 6 }} edges={['top', 'bottom']}>
             <View style={s.hero}>
               <NeumorphicLayer grainOpacity={0.22} />
-              <Text style={s.heroTitle}>xp</Text>
+              <Text accessibilityRole="header" style={s.heroTitle}>xp</Text>
               <Text style={s.heroSub}>analytics menu</Text>
             </View>
 

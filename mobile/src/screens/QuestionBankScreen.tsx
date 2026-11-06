@@ -1045,7 +1045,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
           <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
           <View style={[s.modalHeader, { paddingTop: insets.top + 12 }]}>
             <View>
-              <Text style={s.modalTitle}>preview questions</Text>
+              <Text accessibilityRole="header" style={s.modalTitle}>preview questions</Text>
               <Text style={s.subtitle}>review, regenerate, or remove before saving</Text>
             </View>
             <HapticTouchable accessibilityLabel="Close" onPress={() => setShowPreview(false)}><Ionicons name="close" size={22} color={selectedTheme.accent} /></HapticTouchable>

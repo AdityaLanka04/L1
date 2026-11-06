@@ -115,7 +115,7 @@ export default function CanvasHubScreen({ user, onBack, onOpenNotes }: Props) {
         <View style={s.hero}>
           <NeumorphicLayer grainOpacity={0.26} />
           <Text style={s.heroGhost}>01</Text>
-          <Text style={s.heroTitle}>canvas hub</Text>
+          <Text accessibilityRole="header" style={s.heroTitle}>canvas hub</Text>
           <Text style={s.heroCopy}>{notes.length} canvas notes</Text>
         </View>
 
@@ -125,7 +125,7 @@ export default function CanvasHubScreen({ user, onBack, onOpenNotes }: Props) {
               <Ionicons name="brush-outline" size={20} color={selectedTheme.accentHover} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.bigTitle}>new canvas</Text>
+              <Text accessibilityRole="header" style={s.bigTitle}>new canvas</Text>
               <Text style={s.bigMeta}>open the full drawing workspace</Text>
             </View>
             <Ionicons name="chevron-forward" size={17} color={selectedTheme.textSecondary} />
@@ -135,7 +135,7 @@ export default function CanvasHubScreen({ user, onBack, onOpenNotes }: Props) {
               <Ionicons name="document-text-outline" size={20} color={selectedTheme.accentHover} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.bigTitle}>notes library</Text>
+              <Text accessibilityRole="header" style={s.bigTitle}>notes library</Text>
               <Text style={s.bigMeta}>open existing sketches and mixed notes</Text>
             </View>
             <Ionicons name="chevron-forward" size={17} color={selectedTheme.textSecondary} />
@@ -143,7 +143,7 @@ export default function CanvasHubScreen({ user, onBack, onOpenNotes }: Props) {
         </View>
 
         <View style={s.sectionHead}>
-          <Text style={s.sectionTitle}>recent canvases</Text>
+          <Text accessibilityRole="header" style={s.sectionTitle}>recent canvases</Text>
           <Text style={s.sectionHint}>saved canvas blocks from your notes</Text>
         </View>
 

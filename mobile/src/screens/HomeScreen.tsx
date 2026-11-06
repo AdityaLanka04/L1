@@ -381,7 +381,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
         {recentActivity.length > 0 && (
           <View style={styles.activitySection}>
             <View style={styles.activityHeader}>
-              <Text style={styles.sectionTitle}>recent activity</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>recent activity</Text>
             </View>
             <View style={styles.timelineWrap}>
               {recentActivity.map((item: any, idx: number) => {
@@ -422,7 +422,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
         {recommendedPrompts.length > 0 && (
           <View style={styles.activitySection}>
             <View style={styles.activityHeader}>
-              <Text style={styles.sectionTitle}>recommended for you</Text>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>recommended for you</Text>
             </View>
             <View style={{ gap: 8 }}>
               {recommendedPrompts.map((prompt, idx) => (
@@ -458,7 +458,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
               <NeumorphicTexture />
               <View style={styles.todayHeadRow}>
                 <View style={styles.sectionHeadRow}>
-                  <Text style={styles.sectionTitle}>today</Text>
+                  <Text accessibilityRole="header" style={styles.sectionTitle}>today</Text>
                 </View>
                 <Text style={styles.todayDateLabel}>{todayDateLabel}</Text>
               </View>
@@ -484,7 +484,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
               <LinearGradient colors={cbCardGradient.colors} start={cbCardGradient.start} end={cbCardGradient.end} style={StyleSheet.absoluteFillObject} />
               <NeumorphicTexture />
               <View style={styles.sectionHeadRow}>
-                <Text style={styles.sectionTitle}>weekly orbit</Text>
+                <Text accessibilityRole="header" style={styles.sectionTitle}>weekly orbit</Text>
               </View>
               <View style={styles.ringsWrap}>
                 {rings.map((ring) => (
@@ -507,7 +507,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
               <NeumorphicTexture />
               <View style={styles.xpHeadRow}>
                 <View style={[styles.sectionHeadRow, styles.xpHeadLeft]}>
-                  <Text style={styles.sectionTitle} numberOfLines={1}>xp this week</Text>
+                  <Text accessibilityRole="header" style={styles.sectionTitle} numberOfLines={1}>xp this week</Text>
                 </View>
                 <View style={styles.xpHeadRight}>
                   <Text style={styles.xpTotalValue} numberOfLines={1}>{weeklyXp}</Text>

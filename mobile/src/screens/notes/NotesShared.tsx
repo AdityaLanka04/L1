@@ -934,7 +934,7 @@ export function NotesHome({
               </HapticTouchable>
             ) : null}
             <View style={s.compactHeaderTitleWrap}>
-              <Text style={s.compactTitle}>notes</Text>
+              <Text accessibilityRole="header" style={s.compactTitle}>notes</Text>
               <Text style={s.compactSubtitle}>
                 {notes.length} note{notes.length === 1 ? '' : 's'}
                 {filter !== 'all' ? ` · ${activeFilterLabel}` : ''}
@@ -1483,7 +1483,7 @@ export function NotesGenerator({
         <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
           <Ionicons name="chevron-back" size={20} color={GOLD_L} />
         </HapticTouchable>
-        <Text style={[s.compactTitle, { flex: 1 }]}>create</Text>
+        <Text accessibilityRole="header" style={[s.compactTitle, { flex: 1 }]}>create</Text>
         <HapticTouchable onPress={() => setSidebarOpen(true)} haptic="selection" accessibilityLabel="Open menu">
           <Ionicons name="menu-outline" size={22} color={GOLD_L} />
         </HapticTouchable>
@@ -1622,7 +1622,7 @@ export function NotesTemplates({
         <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
           <Ionicons name="chevron-back" size={20} color={GOLD_L} />
         </HapticTouchable>
-        <Text style={[s.compactTitle, { flex: 1 }]}>templates</Text>
+        <Text accessibilityRole="header" style={[s.compactTitle, { flex: 1 }]}>templates</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.listContent}>

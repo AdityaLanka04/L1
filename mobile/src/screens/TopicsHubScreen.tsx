@@ -159,7 +159,7 @@ export default function TopicsHubScreen({ user, onBack, onOpenTopic }: Props) {
               <View style={s.listHeader}>
                 <View>
                   <Text style={s.listKicker}>TOPIC LIBRARY</Text>
-                  <Text style={s.listTitle}>{filter === 'all' ? 'all topics' : filter.replace('_', ' ')}</Text>
+                  <Text accessibilityRole="header" style={s.listTitle}>{filter === 'all' ? 'all topics' : filter.replace('_', ' ')}</Text>
                 </View>
                 <Text style={s.listMeta}>{topics.length} topics</Text>
               </View>
