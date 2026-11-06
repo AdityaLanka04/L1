@@ -1261,7 +1261,7 @@ function createStyles(
   const GOLD_XL = theme.textPrimary;
   const GOLD_L = theme.accentHover;
   const GOLD_M = theme.accent;
-  const GOLD_D = darkenColor(theme.accent, theme.isLight ? 16 : 34);
+  const GOLD_D = theme.isLight ? darkenColor(theme.accent, 16) : theme.textSecondary;
   const DIM = theme.textSecondary;
   const BORDER = theme.border;
   const SHADOW = darkenColor(theme.primary, theme.isLight ? 72 : 4);

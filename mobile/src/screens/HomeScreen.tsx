@@ -547,7 +547,7 @@ function createStyles(theme: ReturnType<typeof useAppTheme>['selectedTheme'], la
   const SURFACE = theme.panel;
   const GOLD_L = theme.accentHover;
   const GOLD_MID = theme.accent;
-  const GOLD_D = darkenColor(theme.accent, theme.isLight ? 16 : 34);
+  const GOLD_D = theme.isLight ? darkenColor(theme.accent, 16) : theme.textSecondary;
   const GOLD_SOFT = theme.textPrimary;
   const DIM = theme.textSecondary;
   const CARD_BORDER = theme.border;

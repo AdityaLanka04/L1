@@ -99,7 +99,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
   const GOLD_XL = selectedTheme.accent;
   const GOLD_L  = selectedTheme.accentHover;
   const GOLD_M  = selectedTheme.accent;
-  const GOLD_D  = darkenColor(selectedTheme.accent, selectedTheme.isLight ? 12 : 26);
+  const GOLD_D  = selectedTheme.isLight ? darkenColor(selectedTheme.accent, 12) : selectedTheme.textSecondary;
   const DIM     = selectedTheme.textSecondary;
 
   if (!fontsLoaded) return null;

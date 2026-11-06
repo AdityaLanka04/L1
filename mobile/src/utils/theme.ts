@@ -148,6 +148,22 @@ function getRelativeLuminance(hex: string) {
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 }
 
+function contrastRatio(a: string, b: string) {
+  const la = getRelativeLuminance(a);
+  const lb = getRelativeLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+// The accent is used as text throughout the app, so nudge it (darker on light
+// themes, lighter on dark ones) until it meets WCAG AA 4.5:1 on the background.
+function ensureReadableAccent(accent: string, background: string, isLight: boolean) {
+  let result = accent;
+  for (let i = 0; i < 20 && contrastRatio(result, background) < 4.5; i += 1) {
+    result = isLight ? darkenColor(result, 3) : lightenColor(result, 3);
+  }
+  return result;
+}
+
 export function buildTheme(definition: ThemeDefinition & { primary?: string }): MobileTheme {
   const isLight = definition.mode === 'light';
   // Literal --cb-bg from the website (Home.css:8, #060607) — black, not the old
@@ -167,6 +183,7 @@ export function buildTheme(definition: ThemeDefinition & { primary?: string }): 
 
   return {
     ...definition,
+    accent: ensureReadableAccent(definition.accent, bgPrimary, isLight),
     primary,
     family: isLight ? 'Light' : 'Dark',
     bgPrimary,
