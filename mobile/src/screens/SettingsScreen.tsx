@@ -289,6 +289,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
             </View>
             <Text style={styles.prefLabel}>Notification alerts</Text>
             <Switch
+              accessibilityLabel="Notification alerts"
               value={pushEnabled}
               onValueChange={handlePushToggle}
               trackColor={{ false: switchTrackOff, true: switchTrackOn }}
@@ -343,7 +344,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
                 : 'Enter the 6-digit code we sent you.'}
             </Text>
             {deleteStep === 'password' && !isGoogleAccount ? (
-              <TextInput
+              <TextInput accessibilityLabel="Password"
                 style={styles.deleteInput}
                 value={deletePassword}
                 onChangeText={setDeletePassword}
@@ -354,7 +355,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
               />
             ) : null}
             {deleteStep === 'otp' ? (
-              <TextInput
+              <TextInput accessibilityLabel="6-digit code"
                 style={styles.deleteInput}
                 value={deleteOtp}
                 onChangeText={setDeleteOtp}

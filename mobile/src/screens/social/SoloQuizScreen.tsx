@@ -252,7 +252,7 @@ export default function SoloQuizScreen({ user, onBack, autoStart }: Props) {
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           <Text style={s.fieldLabel}>SUBJECT / TOPIC</Text>
-          <TextInput
+          <TextInput accessibilityLabel="e.g. Machine Learning, World War II, Calculus..."
             style={s.input}
             value={subject}
             onChangeText={t => { setSubject(t); setError(''); }}
@@ -275,7 +275,7 @@ export default function SoloQuizScreen({ user, onBack, autoStart }: Props) {
           </View>
 
           <Text style={s.fieldLabel}>QUESTIONS (5–20)</Text>
-          <TextInput
+          <TextInput accessibilityLabel="10"
             style={s.input}
             value={questionCountText}
             onChangeText={(t) => {
@@ -329,7 +329,7 @@ export default function SoloQuizScreen({ user, onBack, autoStart }: Props) {
             ))}
           </View>
 
-          {!!error && <Text style={s.errorText}>{error}</Text>}
+          {!!error && <Text accessibilityLiveRegion="polite" style={s.errorText}>{error}</Text>}
 
           <HapticTouchable
             style={[s.launchBtn, !subject.trim() && s.launchBtnDisabled]}
@@ -641,7 +641,7 @@ function HistoryView({
       <View style={s.searchRow}>
         <View style={s.searchBar}>
           <Ionicons name="search-outline" size={15} color={theme.accent} />
-          <TextInput
+          <TextInput accessibilityLabel="search past quizzes..."
             style={s.searchInput}
             placeholder="search past quizzes..."
             placeholderTextColor={theme.textSecondary}

@@ -982,7 +982,7 @@ export function NotesHome({
           <View style={s.searchRow}>
             <View style={s.searchBar}>
               <Ionicons name="search-outline" size={15} color={GOLD_D} />
-              <TextInput
+              <TextInput accessibilityLabel="search notes..."
                 style={s.searchInput}
                 placeholder="search notes..."
                 placeholderTextColor={DIM2}
@@ -1094,7 +1094,7 @@ export function NotesHome({
 
       <ModalShell visible={showFolderModal} title="Create Folder" subtitle="Add a new notes folder" onClose={() => setShowFolderModal(false)}>
         <View style={s.modalBody}>
-          <TextInput
+          <TextInput accessibilityLabel="folder name..."
             value={newFolderName}
             onChangeText={setNewFolderName}
             placeholder="folder name..."
@@ -1218,7 +1218,7 @@ export function NotesHome({
       <ModalShell visible={showAdvancedSearch} title="Advanced Search" subtitle="Search all notes with browser-style filters" onClose={() => setShowAdvancedSearch(false)}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={s.modalBody}>
-            <TextInput
+            <TextInput accessibilityLabel="Search all notes..."
               value={advancedQuery}
               onChangeText={setAdvancedQuery}
               onSubmitEditing={() => { void handleRunAdvancedSearch(); }}
@@ -1238,7 +1238,7 @@ export function NotesHome({
             </ScrollView>
 
             <Text style={s.modalSectionLabel}>modified from</Text>
-            <TextInput
+            <TextInput accessibilityLabel="YYYY-MM-DD"
               value={advancedDateFrom}
               onChangeText={setAdvancedDateFrom}
               placeholder="YYYY-MM-DD"
@@ -1247,7 +1247,7 @@ export function NotesHome({
             />
 
             <Text style={s.modalSectionLabel}>modified to</Text>
-            <TextInput
+            <TextInput accessibilityLabel="YYYY-MM-DD"
               value={advancedDateTo}
               onChangeText={setAdvancedDateTo}
               placeholder="YYYY-MM-DD"
@@ -1683,21 +1683,21 @@ export function NotesTemplates({
           setTemplateDraft({ name: '', description: '', content: '' });
         }}
       >
-        <TextInput
+        <TextInput accessibilityLabel="template name"
           value={templateDraft.name}
           onChangeText={(value) => setTemplateDraft((draft) => ({ ...draft, name: value }))}
           placeholder="template name"
           placeholderTextColor={DIM2}
           style={s.modalInput}
         />
-        <TextInput
+        <TextInput accessibilityLabel="description"
           value={templateDraft.description}
           onChangeText={(value) => setTemplateDraft((draft) => ({ ...draft, description: value }))}
           placeholder="description"
           placeholderTextColor={DIM2}
           style={s.modalInput}
         />
-        <TextInput
+        <TextInput accessibilityLabel="template content"
           value={templateDraft.content}
           onChangeText={(value) => setTemplateDraft((draft) => ({ ...draft, content: value }))}
           placeholder="template content"

@@ -202,7 +202,7 @@ export default function FriendsScreen({ user, onBack }: Props) {
             <View style={s.searchIcon}>
               <Ionicons name="search-outline" size={15} color={selectedTheme.accentHover} />
             </View>
-            <TextInput
+            <TextInput accessibilityLabel="search by username"
               style={s.searchInput}
               value={searchQ}
               onChangeText={doSearch}

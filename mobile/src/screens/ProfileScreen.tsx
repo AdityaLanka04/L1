@@ -254,7 +254,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
           {editing === 'username' ? (
             <View style={[styles.editBlock, styles.rowDivider]}>
               <Text accessibilityRole="header" style={styles.editTitle}>Username</Text>
-              <TextInput
+              <TextInput accessibilityLabel="username"
                 style={styles.editInput}
                 value={usernameInput}
                 onChangeText={setUsernameInput}
@@ -299,7 +299,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
             <View style={styles.editBlock}>
               <Text accessibilityRole="header" style={styles.editTitle}>{hasPassword ? 'Change Password' : 'Set Password'}</Text>
               {hasPassword ? (
-                <TextInput
+                <TextInput accessibilityLabel="current password"
                   style={styles.editInput}
                   value={currentPasswordInput}
                   onChangeText={setCurrentPasswordInput}
@@ -308,7 +308,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
                   secureTextEntry
                 />
               ) : null}
-              <TextInput
+              <TextInput accessibilityLabel="new password"
                 style={styles.editInput}
                 value={newPasswordInput}
                 onChangeText={setNewPasswordInput}
@@ -316,7 +316,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
                 placeholderTextColor={selectedTheme.textSecondary}
                 secureTextEntry
               />
-              <TextInput
+              <TextInput accessibilityLabel="confirm new password"
                 style={styles.editInput}
                 value={confirmPasswordInput}
                 onChangeText={setConfirmPasswordInput}
@@ -434,6 +434,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
             </View>
             <Text style={styles.prefLabel}>Notifications</Text>
             <Switch
+              accessibilityLabel="Notifications"
               value={notificationsEnabled}
               onValueChange={handleNotificationsToggle}
               trackColor={{ false: switchTrackOff, true: switchTrackOn }}

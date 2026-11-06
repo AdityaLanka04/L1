@@ -115,6 +115,7 @@ export default function ContextPanel({ visible, onClose, onChange }: Props) {
                       <Text style={s.hsCaption}>answer using curriculum textbooks</Text>
                     </View>
                     <Switch
+                      accessibilityLabel="HS mode"
                       value={hsMode}
                       onValueChange={toggleHsMode}
                       trackColor={{ false: rgbaFromHex(selectedTheme.accent, 0.18), true: rgbaFromHex(selectedTheme.accent, 0.5) }}

@@ -277,7 +277,7 @@ export default function GamesScreen({ user, onBack }: Props) {
         <View style={s.searchRow}>
           <View style={s.searchBar}>
             <Ionicons name="search-outline" size={15} color={GOLD_D} />
-            <TextInput
+            <TextInput accessibilityLabel="search battles..."
               style={s.searchInput}
               placeholder="search battles..."
               placeholderTextColor={DIM}
@@ -476,7 +476,7 @@ export default function GamesScreen({ user, onBack }: Props) {
             )}
 
             <Text style={modal.label}>SUBJECT</Text>
-            <TextInput
+            <TextInput accessibilityLabel="e.g., Mathematics, History..."
               style={modal.input}
               value={subject}
               onChangeText={(t) => { setSubject(t); setShowSubjectSuggestions(true); }}
@@ -504,7 +504,7 @@ export default function GamesScreen({ user, onBack }: Props) {
             )}
 
             <Text style={modal.label}>INSTRUCTIONS (OPTIONAL)</Text>
-            <TextInput
+            <TextInput accessibilityLabel="e.g. focus on chapters 3-5, no calculator questions..."
               style={[modal.input, modal.instructionsInput]}
               value={instructions}
               onChangeText={setInstructions}
@@ -529,7 +529,7 @@ export default function GamesScreen({ user, onBack }: Props) {
             </View>
 
             <Text style={modal.label}>QUESTIONS (5–20)</Text>
-            <TextInput
+            <TextInput accessibilityLabel="10"
               style={modal.input}
               value={questionCountText}
               onChangeText={(t) => {

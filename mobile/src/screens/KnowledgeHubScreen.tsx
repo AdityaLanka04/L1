@@ -326,9 +326,9 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
           </View>
           <View style={s.modalBody}>
             <Text style={s.label}>URL</Text>
-            <TextInput value={importUrl} onChangeText={setImportUrl} placeholder="https://example.com/file.pdf" placeholderTextColor={selectedTheme.textSecondary} style={s.input} autoCapitalize="none" keyboardType="url" autoFocus />
+            <TextInput accessibilityLabel="https://example.com/file.pdf" value={importUrl} onChangeText={setImportUrl} placeholder="https://example.com/file.pdf" placeholderTextColor={selectedTheme.textSecondary} style={s.input} autoCapitalize="none" keyboardType="url" autoFocus />
             <Text style={s.label}>subject</Text>
-            <TextInput value={importSubject} onChangeText={setImportSubject} placeholder="optional label" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
+            <TextInput accessibilityLabel="optional label" value={importSubject} onChangeText={setImportSubject} placeholder="optional label" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
             <HapticTouchable style={s.primaryBtn} onPress={importUrlSource} disabled={actionBusy === 'import-url'}>
               {actionBusy === 'import-url' ? <ActivityIndicator color={selectedTheme.bgPrimary} /> : <Text style={s.primaryText}>import URL</Text>}
             </HapticTouchable>
@@ -389,6 +389,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
             <Text style={s.sectionHint}>also answer using shared curriculum textbooks</Text>
           </View>
           <Switch
+            accessibilityLabel="HS curriculum mode"
             value={hsMode}
             onValueChange={toggleHs}
             trackColor={{ false: rgbaFromHex(selectedTheme.accent, 0.18), true: rgbaFromHex(selectedTheme.accent, 0.5) }}

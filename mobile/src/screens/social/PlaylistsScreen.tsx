@@ -283,13 +283,13 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
             <ScrollView contentContainerStyle={m.createBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={m.formGroup}>
                 <Text style={m.fieldLabel}>title</Text>
-                <TextInput style={m.input} value={newTitle} onChangeText={setNewTitle} placeholder="playlist title..." placeholderTextColor={DIM} />
+                <TextInput accessibilityLabel="playlist title..." style={m.input} value={newTitle} onChangeText={setNewTitle} placeholder="playlist title..." placeholderTextColor={DIM} />
 
                 <Text style={m.fieldLabel}>description</Text>
-                <TextInput style={[m.input, m.inputMultiline]} value={newDesc} onChangeText={setNewDesc} placeholder="what's this about..." placeholderTextColor={DIM} multiline textAlignVertical="top" />
+                <TextInput accessibilityLabel="what's this about..." style={[m.input, m.inputMultiline]} value={newDesc} onChangeText={setNewDesc} placeholder="what's this about..." placeholderTextColor={DIM} multiline textAlignVertical="top" />
 
                 <Text style={m.fieldLabel}>category</Text>
-                <TextInput style={m.input} value={newCat} onChangeText={setNewCat} placeholder="e.g. Mathematics, Study skills..." placeholderTextColor={DIM} autoCapitalize="words" />
+                <TextInput accessibilityLabel="e.g. Mathematics, Study skills..." style={m.input} value={newCat} onChangeText={setNewCat} placeholder="e.g. Mathematics, Study skills..." placeholderTextColor={DIM} autoCapitalize="words" />
                 <View style={m.optionRow}>
                   {CATEGORIES.map(c => (
                     <HapticTouchable key={c} style={[m.optionPill, newCat === c && m.optionPillActive]} onPress={() => setNewCat(c === newCat ? '' : c)} haptic="selection">
@@ -310,6 +310,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
                 <View style={m.toggleRow}>
                   <Text style={m.fieldLabel}>public</Text>
                   <Switch
+                    accessibilityLabel="Public playlist"
                     value={newPublic}
                     onValueChange={setNewPublic}
                     trackColor={{ true: switchTrackOn, false: switchTrackOff }}
@@ -346,7 +347,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
             <Text style={m.label}>search</Text>
             <View style={s.searchBox}>
               <Ionicons name="search-outline" size={15} color={DIM} />
-              <TextInput
+              <TextInput accessibilityLabel="title, description, creator..."
                 style={s.searchInput}
                 value={search}
                 onChangeText={setSearch}

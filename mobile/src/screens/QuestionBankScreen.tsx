@@ -659,7 +659,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                   })}
                 </View>
               ) : (
-                <TextInput
+                <TextInput accessibilityLabel="type your answer"
                   value={answers[String(q.id)] || ''}
                   onChangeText={(value) => setAnswers((prev) => ({ ...prev, [q.id]: value }))}
                   editable={!result}
@@ -731,7 +731,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
             <ScrollView contentContainerStyle={s.genContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View style={s.formGroup}>
                 <Text style={s.fieldLabel}>topic</Text>
-                <TextInput value={topic} onChangeText={setTopic} placeholder="calculus, biology, react hooks..." placeholderTextColor={selectedTheme.textSecondary} style={s.input} autoFocus />
+                <TextInput accessibilityLabel="calculus, biology, react hooks..." value={topic} onChangeText={setTopic} placeholder="calculus, biology, react hooks..." placeholderTextColor={selectedTheme.textSecondary} style={s.input} autoFocus />
                 <Text style={s.fieldLabel}>difficulty</Text>
                 <View style={s.choiceRow}>
                   {['adaptive', 'mixed', 'easy', 'medium', 'hard'].map((item) => (
@@ -741,7 +741,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                   ))}
                 </View>
                 <Text style={s.fieldLabel}>question count</Text>
-                <TextInput value={count} onChangeText={setCount} keyboardType="number-pad" placeholder="10" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
+                <TextInput accessibilityLabel="10" value={count} onChangeText={setCount} keyboardType="number-pad" placeholder="10" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
               </View>
               <HapticTouchable style={[s.genSubmit, generating && s.genSubmitDisabled]} onPress={generateSet} disabled={generating} activeOpacity={0.88} haptic="medium">
                 {generating ? <ActivityIndicator color={ink} size="small" /> : (
@@ -832,7 +832,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                 {selectedDocIds.length > 0 ? (
                   <>
                     <Text style={s.fieldLabel}>custom instructions (optional)</Text>
-                    <TextInput
+                    <TextInput accessibilityLabel="e.g. focus on chapters 3-5, or match the sample question style..."
                       value={pdfCustomPrompt}
                       onChangeText={setPdfCustomPrompt}
                       placeholder="e.g. focus on chapters 3-5, or match the sample question style..."
@@ -849,7 +849,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                     </View>
 
                     <Text style={s.fieldLabel}>question count</Text>
-                    <TextInput value={pdfQuestionCount} onChangeText={setPdfQuestionCount} keyboardType="number-pad" placeholder="10" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
+                    <TextInput accessibilityLabel="10" value={pdfQuestionCount} onChangeText={setPdfQuestionCount} keyboardType="number-pad" placeholder="10" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
 
                     <Text style={s.fieldLabel}>difficulty mix</Text>
                     {(['easy', 'medium', 'hard'] as const).map((level) => (
@@ -907,10 +907,10 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
             <ScrollView contentContainerStyle={s.genContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View style={s.formGroup}>
                 <Text style={s.fieldLabel}>question set title</Text>
-                <TextInput value={customTitle} onChangeText={setCustomTitle} placeholder="e.g. Physics Chapter 5 Review" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
+                <TextInput accessibilityLabel="e.g. Physics Chapter 5 Review" value={customTitle} onChangeText={setCustomTitle} placeholder="e.g. Physics Chapter 5 Review" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
 
                 <Text style={s.fieldLabel}>content</Text>
-                <TextInput
+                <TextInput accessibilityLabel="paste your notes, an article, or any study material — the AI will turn it into practice questions..."
                   value={customContent}
                   onChangeText={setCustomContent}
                   placeholder="paste your notes, an article, or any study material — the AI will turn it into practice questions..."
@@ -924,7 +924,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                 </Text>
 
                 <Text style={s.fieldLabel}>custom instructions (optional)</Text>
-                <TextInput
+                <TextInput accessibilityLabel="e.g. ask scenario-based questions, keep explanations short..."
                   value={pdfCustomPrompt}
                   onChangeText={setPdfCustomPrompt}
                   placeholder="e.g. ask scenario-based questions, keep explanations short..."
@@ -941,7 +941,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                 </View>
 
                 <Text style={s.fieldLabel}>question count</Text>
-                <TextInput value={pdfQuestionCount} onChangeText={setPdfQuestionCount} keyboardType="number-pad" placeholder="10" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
+                <TextInput accessibilityLabel="10" value={pdfQuestionCount} onChangeText={setPdfQuestionCount} keyboardType="number-pad" placeholder="10" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
 
                 <Text style={s.fieldLabel}>difficulty mix</Text>
                 {(['easy', 'medium', 'hard'] as const).map((level) => (
@@ -1012,7 +1012,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
 
         <View style={s.searchBox}>
           <Ionicons name="search-outline" size={15} color={selectedTheme.textSecondary} />
-          <TextInput value={query} onChangeText={setQuery} placeholder="search sets" placeholderTextColor={selectedTheme.textSecondary} style={s.searchInput} />
+          <TextInput accessibilityLabel="search sets" value={query} onChangeText={setQuery} placeholder="search sets" placeholderTextColor={selectedTheme.textSecondary} style={s.searchInput} />
         </View>
 
         {loading ? (
@@ -1087,7 +1087,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                 {q.explanation ? <MathText style={s.explainText}>{q.explanation}</MathText> : null}
 
                 <View style={s.regenRow}>
-                  <TextInput
+                  <TextInput accessibilityLabel="feedback for regeneration..."
                     value={regenIndex === idx ? regenFeedback : ''}
                     onChangeText={(value) => { setRegenIndex(idx); setRegenFeedback(value); }}
                     onFocus={() => setRegenIndex(idx)}

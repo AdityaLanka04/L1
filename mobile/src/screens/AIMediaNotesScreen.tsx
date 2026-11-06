@@ -626,7 +626,7 @@ function AIMediaHub({
               <View style={s.inputCardInner}>
                 <Text style={s.inputCardLabel}>YOUTUBE URL</Text>
 
-                <TextInput
+                <TextInput accessibilityLabel="paste youtube link here..."
                   style={s.urlInput}
                   placeholder="paste youtube link here..."
                   placeholderTextColor={GOLD_D + '80'}
@@ -640,7 +640,7 @@ function AIMediaHub({
                 />
 
                 {!!error && (
-                  <Text style={s.errorText}>{error}</Text>
+                  <Text accessibilityLiveRegion="polite" style={s.errorText}>{error}</Text>
                 )}
 
                 <HapticTouchable
@@ -693,7 +693,7 @@ function AIMediaHub({
                   </Text>
                 </View>
 
-                {!!error && <Text style={s.errorText}>{error}</Text>}
+                {!!error && <Text accessibilityLiveRegion="polite" style={s.errorText}>{error}</Text>}
 
                 {recordedFile && !recorderState.isRecording && (
                   <HapticTouchable
@@ -738,7 +738,7 @@ function AIMediaHub({
                   {pickedFile ? pickedFile.name : 'tap to choose a file'}
                 </Text>
 
-                {!!error && <Text style={s.errorText}>{error}</Text>}
+                {!!error && <Text accessibilityLiveRegion="polite" style={s.errorText}>{error}</Text>}
 
                 {pickedFile && (
                   <HapticTouchable
@@ -1064,7 +1064,7 @@ function PodcastMode({
     return (
       <View style={s.podcastLaunch}>
         <Text style={s.podcastTitle}>podcast mode</Text>
-        {!!error && <Text style={s.errorText}>{error}</Text>}
+        {!!error && <Text accessibilityLiveRegion="polite" style={s.errorText}>{error}</Text>}
         <HapticTouchable style={s.podcastPrimary} onPress={start} disabled={busy === 'start'} haptic="medium">
           {busy === 'start' ? <ActivityIndicator color={INK} /> : <Text style={s.podcastPrimaryText}>start podcast</Text>}
         </HapticTouchable>
@@ -1079,7 +1079,7 @@ function PodcastMode({
         <Text style={s.podcastTitle}>{episodeTitle}</Text>
         <Text style={s.podcastProgress}>chapter {Math.max(currentIndex + 1, 1)} of {Math.max(totalSegments, chapters?.length || 1)}</Text>
         <Text style={s.podcastSegment}>{currentSegment || 'Press next to continue the podcast.'}</Text>
-        {!!error && <Text style={s.errorText}>{error}</Text>}
+        {!!error && <Text accessibilityLiveRegion="polite" style={s.errorText}>{error}</Text>}
         <View style={s.podcastControls}>
           <PodcastButton label="bookmark" onPress={bookmark} busy={busy === 'bookmark'} />
           <PodcastButton label={hasMore ? 'next' : 'replay'} onPress={next} busy={busy === 'next'} />
@@ -1112,7 +1112,7 @@ function PodcastMode({
 
       <View style={s.podcastSection}>
         <Text accessibilityRole="header" style={s.podcastSectionTitle}>ask the podcast</Text>
-        <TextInput
+        <TextInput accessibilityLabel="ask for an example, recap, or simpler explanation..."
           value={question}
           onChangeText={setQuestion}
           placeholder="ask for an example, recap, or simpler explanation..."

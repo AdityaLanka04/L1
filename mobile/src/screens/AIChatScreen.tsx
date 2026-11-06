@@ -926,7 +926,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
             <HapticTouchable accessibilityLabel="Take photo" onPress={takePhoto} style={s.composerIconBtn} activeOpacity={0.7} haptic="medium">
               <Ionicons name="camera-outline" size={19} color={selectedTheme.textSecondary} />
             </HapticTouchable>
-            <TextInput
+            <TextInput accessibilityLabel="ASK CERBYL"
               style={[s.input, !input && s.inputPlaceholder]}
               value={input}
               onChangeText={setInput}
@@ -1064,7 +1064,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
                   {sidebarSearchOpen ? (
                     <View style={s.sidebarSearchWrap}>
                       <Ionicons name="search" size={14} color={selectedTheme.textSecondary} style={s.sidebarSearchIcon} />
-                      <TextInput
+                      <TextInput accessibilityLabel="search chats..."
                         value={sidebarSearch}
                         onChangeText={setSidebarSearch}
                         placeholder="search chats..."
@@ -1137,7 +1137,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
           <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setNewFolderModalOpen(false)} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
             <Text accessibilityRole="header" style={s.centerCardTitle}>new folder</Text>
-            <TextInput
+            <TextInput accessibilityLabel="folder name"
               style={s.centerCardInput}
               value={newFolderName}
               onChangeText={setNewFolderName}
@@ -1162,7 +1162,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
           <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setRenameTarget(null)} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
             <Text accessibilityRole="header" style={s.centerCardTitle}>rename chat</Text>
-            <TextInput
+            <TextInput accessibilityLabel="chat title"
               style={s.centerCardInput}
               value={renameText}
               onChangeText={setRenameText}
@@ -1227,7 +1227,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
           <View style={s.centerCard}>
             <Text accessibilityRole="header" style={s.centerCardTitle}>what went wrong?</Text>
             <Text style={s.centerCardSub}>optional — helps us improve cerbyl</Text>
-            <TextInput
+            <TextInput accessibilityLabel="tell us more..."
               style={[s.centerCardInput, { minHeight: 70 }]}
               value={feedbackComment}
               onChangeText={setFeedbackComment}

@@ -1263,7 +1263,7 @@ function FlashcardsCreate({
           {mode === 'ai' ? (
             <View style={s.formGroup}>
               <Text style={s.fieldLabel}>Topic</Text>
-              <TextInput
+              <TextInput accessibilityLabel="e.g. Quantum physics, Spanish vocab..."
                 value={topic}
                 onChangeText={setTopic}
                 placeholder="e.g. Quantum physics, Spanish vocab..."
@@ -1297,7 +1297,7 @@ function FlashcardsCreate({
               </View>
 
               <Text style={s.fieldLabel}>Notes (optional)</Text>
-              <TextInput
+              <TextInput accessibilityLabel="Focus on formulas, definitions, exam recall..."
                 value={additionalSpecs}
                 onChangeText={setAdditionalSpecs}
                 placeholder="Focus on formulas, definitions, exam recall..."
@@ -1311,7 +1311,7 @@ function FlashcardsCreate({
           ) : (
             <View style={s.formGroup}>
               <Text style={s.fieldLabel}>Set title</Text>
-              <TextInput
+              <TextInput accessibilityLabel="e.g. AP Biology Unit 3"
                 value={manualTitle}
                 onChangeText={setManualTitle}
                 placeholder="e.g. AP Biology Unit 3"
@@ -1333,7 +1333,7 @@ function FlashcardsCreate({
                       </HapticTouchable>
                     ) : null}
                   </View>
-                  <TextInput
+                  <TextInput accessibilityLabel="Question"
                     value={card.question}
                     onChangeText={(value) => updateManualCard(index, 'question', value)}
                     placeholder="Question"
@@ -1343,7 +1343,7 @@ function FlashcardsCreate({
                     textAlignVertical="top"
                     onFocus={scrollToFocusedInput}
                   />
-                  <TextInput
+                  <TextInput accessibilityLabel="Answer"
                     value={card.answer}
                     onChangeText={(value) => updateManualCard(index, 'answer', value)}
                     placeholder="Answer"
@@ -1544,7 +1544,7 @@ function FlashcardsSets({
           <View style={s.searchRow}>
             <View style={s.searchBar}>
               <Ionicons name="search-outline" size={15} color={GOLD_D} />
-              <TextInput
+              <TextInput accessibilityLabel="search sets..."
                 style={s.searchInput}
                 placeholder="search sets..."
                 placeholderTextColor={DIM2}

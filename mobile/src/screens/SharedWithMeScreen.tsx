@@ -324,7 +324,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
 
         <View style={s.searchBox}>
           <Ionicons name="search-outline" size={15} color={selectedTheme.textSecondary} />
-          <TextInput
+          <TextInput accessibilityLabel="search shared content..."
             style={s.searchInput}
             value={search}
             onChangeText={setSearch}
@@ -345,7 +345,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
         ) : loadError ? (
           <HapticTouchable onPress={load} haptic="light" style={s.errorBanner}>
             <Ionicons name="alert-circle-outline" size={16} color={selectedTheme.danger} />
-            <Text style={s.errorBannerText}>couldn't load — tap to retry</Text>
+            <Text accessibilityLiveRegion="polite" style={s.errorBannerText}>couldn't load — tap to retry</Text>
           </HapticTouchable>
         ) : filteredItems.length === 0 ? (
           <View style={s.empty}>

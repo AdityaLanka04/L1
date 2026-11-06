@@ -354,7 +354,7 @@ export default function LearningPathsScreen({ onBack, onNavigate, embedded = fal
             </View>
 
             <View style={s.libraryTools}>
-              <View style={s.searchBox}><Ionicons name="search-outline" size={15} color={selectedTheme.textSecondary} /><TextInput style={s.searchInput} value={search} onChangeText={setSearch} placeholder="Search paths" placeholderTextColor={selectedTheme.textSecondary} />{!!search && <HapticTouchable accessibilityLabel="Clear search" onPress={() => setSearch('')} haptic="light"><Ionicons name="close-circle" size={15} color={selectedTheme.textSecondary} /></HapticTouchable>}</View>
+              <View style={s.searchBox}><Ionicons name="search-outline" size={15} color={selectedTheme.textSecondary} /><TextInput accessibilityLabel="Search paths" style={s.searchInput} value={search} onChangeText={setSearch} placeholder="Search paths" placeholderTextColor={selectedTheme.textSecondary} />{!!search && <HapticTouchable accessibilityLabel="Clear search" onPress={() => setSearch('')} haptic="light"><Ionicons name="close-circle" size={15} color={selectedTheme.textSecondary} /></HapticTouchable>}</View>
             </View>
 
             {!filtered.length ? (
@@ -454,7 +454,7 @@ function CreatePathModal({ visible, topic, difficulty, length, goals, generating
         <View style={styles.sheetHeader}><View style={{ flex: 1 }}><Text accessibilityRole="header" style={styles.sheetTitle}>Build your route</Text><Text style={styles.createSub}>Describe the destination. Cerbyl will plan every step.</Text></View><HapticTouchable accessibilityLabel="Close" style={styles.sheetClose} onPress={onClose}><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.createScroll}>
           <Text style={styles.formLabel}>WHAT DO YOU WANT TO MASTER?</Text>
-          <TextInput style={styles.topicInput} value={topic} onChangeText={onTopic} placeholder="e.g. Backend system design" placeholderTextColor={theme.textSecondary} autoFocus multiline />
+          <TextInput accessibilityLabel="e.g. Backend system design" style={styles.topicInput} value={topic} onChangeText={onTopic} placeholder="e.g. Backend system design" placeholderTextColor={theme.textSecondary} autoFocus multiline />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionRow}>{SUGGESTED_TOPICS.map((item) => <HapticTouchable key={item} style={styles.suggestionChip} onPress={() => onTopic(item)} haptic="selection"><Text style={styles.suggestionText}>{item}</Text></HapticTouchable>)}</ScrollView>
           <Text style={styles.formLabel}>DIFFICULTY</Text>
           <View style={styles.optionRow}>{DIFFICULTIES.map((item) => <HapticTouchable key={item} style={[styles.optionPill, difficulty === item && styles.optionPillActive]} onPress={() => onDifficulty(item)} haptic="selection"><Text style={[styles.optionPillText, difficulty === item && styles.optionPillTextActive]}>{item.toUpperCase()}</Text></HapticTouchable>)}</View>

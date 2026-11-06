@@ -131,7 +131,7 @@ export default function XpHistoryScreen({ user, onBack }: Props) {
 
         <View style={s.searchRow}>
           <Ionicons name="search-outline" size={16} color={selectedTheme.textSecondary} />
-          <TextInput
+          <TextInput accessibilityLabel="search activity..."
             style={s.searchInput}
             value={search}
             onChangeText={setSearch}
@@ -200,7 +200,7 @@ export default function XpHistoryScreen({ user, onBack }: Props) {
         ) : loadError ? (
           <HapticTouchable onPress={load} haptic="light" style={s.errorBanner}>
             <Ionicons name="alert-circle-outline" size={16} color={selectedTheme.danger} />
-            <Text style={s.errorBannerText}>couldn't load — tap to retry</Text>
+            <Text accessibilityLiveRegion="polite" style={s.errorBannerText}>couldn't load — tap to retry</Text>
           </HapticTouchable>
         ) : filtered.length === 0 ? (
           <View style={s.emptyWrap}>

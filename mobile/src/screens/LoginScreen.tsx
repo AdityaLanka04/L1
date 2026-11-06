@@ -374,18 +374,18 @@ export default function LoginScreen({ onLogin }: Props) {
                 </HapticTouchable>
               </View>
 
-              {success ? <View style={s.successBox}><Text style={s.success}>{success}</Text></View> : null}
-              {error ? <View style={s.errorBox}><Text style={s.error}>{error}</Text></View> : null}
+              {success ? <View style={s.successBox}><Text accessibilityLiveRegion="polite" style={s.success}>{success}</Text></View> : null}
+              {error ? <View style={s.errorBox}><Text accessibilityLiveRegion="polite" style={s.error}>{error}</Text></View> : null}
 
               <View style={s.form}>
                 {mode === 'login' ? (
                   <>
                     <Text style={s.label}>username or email</Text>
-                    <TextInput style={s.input} value={username} onChangeText={setUsername} placeholder="enter username" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="none" autoCorrect={false} />
+                    <TextInput accessibilityLabel="Username or email" autoComplete="username" textContentType="username" style={s.input} value={username} onChangeText={setUsername} placeholder="enter username" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="none" autoCorrect={false} />
 
                     <Text style={[s.label, s.spacedLabel]}>password</Text>
                     <View style={s.inputGroup}>
-                      <TextInput style={[s.input, s.inputWithIcon]} value={password} onChangeText={setPassword} placeholder="enter password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showPassword} />
+                      <TextInput accessibilityLabel="Password" autoComplete="current-password" textContentType="password" style={[s.input, s.inputWithIcon]} value={password} onChangeText={setPassword} placeholder="enter password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showPassword} />
                       <HapticTouchable accessibilityLabel={showPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                         <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                       </HapticTouchable>
@@ -422,7 +422,7 @@ export default function LoginScreen({ onLogin }: Props) {
                         {resetStep === 'contact' ? (
                           <>
                             <Text style={s.label}>account email or phone</Text>
-                            <TextInput style={s.input} value={resetIdentifier} onChangeText={setResetIdentifier} placeholder="you@example.com or phone number" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="none" />
+                            <TextInput accessibilityLabel="Email or phone number" style={s.input} value={resetIdentifier} onChangeText={setResetIdentifier} placeholder="you@example.com or phone number" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="none" />
                             <HapticTouchable style={s.secondaryBtn} onPress={handleRequestPasswordReset} activeOpacity={0.88} disabled={resetLoading} haptic="medium">
                               {resetLoading ? <ActivityIndicator color={CB_ACCENT} /> : <Text style={s.secondaryBtnText}>send OTP</Text>}
                             </HapticTouchable>
@@ -430,7 +430,7 @@ export default function LoginScreen({ onLogin }: Props) {
                         ) : resetStep === 'otp' ? (
                           <>
                             <Text style={s.label}>enter OTP</Text>
-                            <TextInput style={s.input} value={resetOtp} onChangeText={setResetOtp} placeholder="6-digit OTP" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} keyboardType="number-pad" maxLength={6} />
+                            <TextInput accessibilityLabel="6-digit verification code" autoComplete="sms-otp" textContentType="oneTimeCode" style={s.input} value={resetOtp} onChangeText={setResetOtp} placeholder="6-digit OTP" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} keyboardType="number-pad" maxLength={6} />
                             <HapticTouchable style={s.secondaryBtn} onPress={handleVerifyResetOtpStep} activeOpacity={0.88} haptic="medium">
                               <Text style={s.secondaryBtnText}>continue</Text>
                             </HapticTouchable>
@@ -442,14 +442,14 @@ export default function LoginScreen({ onLogin }: Props) {
                           <>
                             <Text style={s.label}>new password</Text>
                             <View style={s.inputGroup}>
-                              <TextInput style={[s.input, s.inputWithIcon]} value={resetPassword} onChangeText={setResetPassword} placeholder="new password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showResetPassword} />
+                              <TextInput accessibilityLabel="New password" autoComplete="new-password" textContentType="newPassword" style={[s.input, s.inputWithIcon]} value={resetPassword} onChangeText={setResetPassword} placeholder="new password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showResetPassword} />
                               <HapticTouchable accessibilityLabel={showResetPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowResetPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                                 <Ionicons name={showResetPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                               </HapticTouchable>
                             </View>
                             <Text style={[s.label, s.spacedLabel]}>confirm password</Text>
                             <View style={s.inputGroup}>
-                              <TextInput style={[s.input, s.inputWithIcon]} value={resetConfirmPassword} onChangeText={setResetConfirmPassword} placeholder="confirm password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showResetConfirmPassword} />
+                              <TextInput accessibilityLabel="Confirm new password" style={[s.input, s.inputWithIcon]} value={resetConfirmPassword} onChangeText={setResetConfirmPassword} placeholder="confirm password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showResetConfirmPassword} />
                               <HapticTouchable accessibilityLabel={showResetConfirmPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowResetConfirmPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                                 <Ionicons name={showResetConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                               </HapticTouchable>
@@ -473,7 +473,7 @@ export default function LoginScreen({ onLogin }: Props) {
                 ) : verificationPending ? (
                   <>
                     <Text style={s.label}>verification code</Text>
-                    <TextInput
+                    <TextInput accessibilityLabel="6-digit verification code" autoComplete="sms-otp" textContentType="oneTimeCode"
                       style={s.input}
                       value={registrationOtp}
                       onChangeText={setRegistrationOtp}
@@ -520,26 +520,26 @@ export default function LoginScreen({ onLogin }: Props) {
                     <View style={s.row}>
                       <View style={s.half}>
                         <Text style={s.label}>first name</Text>
-                        <TextInput style={s.input} value={regFirstName} onChangeText={setRegFirstName} placeholder="first" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="words" />
+                        <TextInput accessibilityLabel="First name" autoComplete="given-name" textContentType="givenName" style={s.input} value={regFirstName} onChangeText={setRegFirstName} placeholder="first" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="words" />
                       </View>
                       <View style={s.half}>
                         <Text style={s.label}>last name</Text>
-                        <TextInput style={s.input} value={regLastName} onChangeText={setRegLastName} placeholder="last" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="words" />
+                        <TextInput accessibilityLabel="Last name" autoComplete="family-name" textContentType="familyName" style={s.input} value={regLastName} onChangeText={setRegLastName} placeholder="last" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="words" />
                       </View>
                     </View>
 
                     <Text style={[s.label, s.spacedLabel]}>email</Text>
-                    <TextInput style={s.input} value={regEmail} onChangeText={setRegEmail} placeholder="you@example.com" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="none" keyboardType="email-address" />
+                    <TextInput accessibilityLabel="Email" autoComplete="email" textContentType="emailAddress" style={s.input} value={regEmail} onChangeText={setRegEmail} placeholder="you@example.com" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="none" keyboardType="email-address" />
 
                     <Text style={[s.label, s.spacedLabel]}>phone number (optional)</Text>
-                    <TextInput style={s.input} value={regPhone} onChangeText={setRegPhone} placeholder="for logging in with your phone" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} keyboardType="phone-pad" />
+                    <TextInput accessibilityLabel="Phone number" autoComplete="tel" textContentType="telephoneNumber" style={s.input} value={regPhone} onChangeText={setRegPhone} placeholder="for logging in with your phone" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} keyboardType="phone-pad" />
 
                     <Text style={[s.label, s.spacedLabel]}>username</Text>
-                    <TextInput style={s.input} value={regUsername} onChangeText={setRegUsername} placeholder="choose a username" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="none" autoCorrect={false} />
+                    <TextInput accessibilityLabel="Choose a username" autoComplete="username-new" textContentType="username" style={s.input} value={regUsername} onChangeText={setRegUsername} placeholder="choose a username" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="none" autoCorrect={false} />
 
                     <Text style={[s.label, s.spacedLabel]}>password</Text>
                     <View style={s.inputGroup}>
-                      <TextInput style={[s.input, s.inputWithIcon]} value={regPassword} onChangeText={setRegPassword} placeholder="8+ chars, uppercase + symbol" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showRegPassword} />
+                      <TextInput accessibilityLabel="Password, 8 or more characters with an uppercase letter and a symbol" autoComplete="new-password" textContentType="newPassword" style={[s.input, s.inputWithIcon]} value={regPassword} onChangeText={setRegPassword} placeholder="8+ chars, uppercase + symbol" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showRegPassword} />
                       <HapticTouchable accessibilityLabel={showRegPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowRegPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                         <Ionicons name={showRegPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                       </HapticTouchable>
@@ -547,7 +547,7 @@ export default function LoginScreen({ onLogin }: Props) {
 
                     <Text style={[s.label, s.spacedLabel]}>confirm password</Text>
                     <View style={s.inputGroup}>
-                      <TextInput style={[s.input, s.inputWithIcon]} value={regConfirmPassword} onChangeText={setRegConfirmPassword} placeholder="re-enter password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showRegConfirmPassword} />
+                      <TextInput accessibilityLabel="Confirm password" style={[s.input, s.inputWithIcon]} value={regConfirmPassword} onChangeText={setRegConfirmPassword} placeholder="re-enter password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showRegConfirmPassword} />
                       <HapticTouchable accessibilityLabel={showRegConfirmPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowRegConfirmPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                         <Ionicons name={showRegConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                       </HapticTouchable>

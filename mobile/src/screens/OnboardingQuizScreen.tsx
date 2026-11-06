@@ -464,7 +464,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
 
               <Panel panelStyle={s.panel} panelClipStyle={s.panelClip}>
                 <Text style={s.sectionLabel}>02 · what's your main subject or field of study?</Text>
-                <TextInput
+                <TextInput accessibilityLabel="e.g., Computer Science, Biology, Mathematics..."
                   style={s.input}
                   placeholder="e.g., Computer Science, Biology, Mathematics..."
                   placeholderTextColor={selectedTheme.textSecondary}

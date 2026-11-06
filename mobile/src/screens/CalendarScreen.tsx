@@ -467,7 +467,7 @@ export default function CalendarScreen({ user, onBack, onNavigate }: Props) {
           <View style={s.modalCard}>
             <Text accessibilityRole="header" style={s.modalTitle}>new reminder</Text>
             <Text style={s.modalSub}>{selected ? new Date(selected + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : ''}</Text>
-            <TextInput
+            <TextInput accessibilityLabel="reminder title"
               style={s.modalInput}
               value={newTitle}
               onChangeText={setNewTitle}

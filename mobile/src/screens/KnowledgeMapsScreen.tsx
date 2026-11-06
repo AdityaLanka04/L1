@@ -511,7 +511,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
             ) : nodeTab === 'notes' ? (
               <View style={s.sheetForm}>
                 <Text style={s.formLabel}>PERSONAL NOTES</Text>
-                <TextInput value={nodeNotes} onChangeText={setNodeNotes} placeholder="Capture what you understand, questions, or memory cues…" placeholderTextColor={selectedTheme.textSecondary} style={[s.input, s.notesInput]} multiline textAlignVertical="top" />
+                <TextInput accessibilityLabel="Capture what you understand, questions, or memory cues…" value={nodeNotes} onChangeText={setNodeNotes} placeholder="Capture what you understand, questions, or memory cues…" placeholderTextColor={selectedTheme.textSecondary} style={[s.input, s.notesInput]} multiline textAlignVertical="top" />
                 <HapticTouchable style={s.primaryBtn} onPress={saveNotes} disabled={busyNode === selectedNode?.id} haptic="medium">
                   {busyNode === selectedNode?.id ? <ActivityIndicator color={s.accentInk.color} /> : <><Ionicons name="save-outline" size={16} color={s.accentInk.color} /><Text style={s.primaryText}>SAVE NOTES</Text></>}
                 </HapticTouchable>
@@ -519,7 +519,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
             ) : (
               <View style={s.sheetForm}>
                 <Text style={s.formLabel}>ASK ABOUT THIS TOPIC</Text>
-                <TextInput value={chatQuestion} onChangeText={setChatQuestion} placeholder="Ask for an analogy, prerequisites, or a simpler explanation…" placeholderTextColor={selectedTheme.textSecondary} style={[s.input, s.askInput]} multiline textAlignVertical="top" />
+                <TextInput accessibilityLabel="Ask for an analogy, prerequisites, or a simpler explanation…" value={chatQuestion} onChangeText={setChatQuestion} placeholder="Ask for an analogy, prerequisites, or a simpler explanation…" placeholderTextColor={selectedTheme.textSecondary} style={[s.input, s.askInput]} multiline textAlignVertical="top" />
                 <HapticTouchable style={s.primaryBtn} onPress={askNode} disabled={chatLoading} haptic="medium">
                   {chatLoading ? <ActivityIndicator color={s.accentInk.color} /> : <><Ionicons name="send" size={15} color={s.accentInk.color} /><Text style={s.primaryText}>ASK TOPIC</Text></>}
                 </HapticTouchable>
@@ -599,7 +599,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
           <View style={s.createHeader}><View><Text style={s.nodeSheetKicker}>NEW KNOWLEDGE MAP</Text><Text accessibilityRole="header" style={s.createTitle}>What do you want to understand?</Text></View><HapticTouchable accessibilityLabel="Close" style={s.sheetClose} onPress={() => setShowCreate(false)}><Ionicons name="close" size={20} color={selectedTheme.accentHover} /></HapticTouchable></View>
           <View style={s.createBody}>
             <Text style={s.formLabel}>ROOT TOPIC</Text>
-            <TextInput value={topic} onChangeText={setTopic} placeholder="Machine learning, photosynthesis…" placeholderTextColor={selectedTheme.textSecondary} style={s.input} autoFocus returnKeyType="done" onSubmitEditing={() => createMap()} />
+            <TextInput accessibilityLabel="Machine learning, photosynthesis…" value={topic} onChangeText={setTopic} placeholder="Machine learning, photosynthesis…" placeholderTextColor={selectedTheme.textSecondary} style={s.input} autoFocus returnKeyType="done" onSubmitEditing={() => createMap()} />
             <Text style={s.createHint}>Start broad. You can expand any concept into subtopics after the map is created.</Text>
             <HapticTouchable style={s.primaryBtn} onPress={() => createMap()} disabled={creating} haptic="medium">{creating ? <ActivityIndicator color={s.accentInk.color} /> : <><Ionicons name="sparkles" size={16} color={s.accentInk.color} /><Text style={s.primaryText}>BUILD KNOWLEDGE MAP</Text></>}</HapticTouchable>
           </View>
@@ -831,8 +831,8 @@ function ChildNodeModal({ visible, parent, topic, description, busy, onTopic, on
         <View style={styles.sheetHandle} />
         <View style={styles.createHeader}><View style={{ flex: 1 }}><Text style={styles.nodeSheetKicker}>ADD TO {parent?.topic_name?.toUpperCase()}</Text><Text accessibilityRole="header" style={styles.createTitle}>New connected topic</Text></View><HapticTouchable accessibilityLabel="Close" style={styles.sheetClose} onPress={onClose}><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
         <View style={styles.createBody}>
-          <Text style={styles.formLabel}>TOPIC</Text><TextInput value={topic} onChangeText={onTopic} placeholder="Specific subtopic" placeholderTextColor={theme.textSecondary} style={styles.input} autoFocus />
-          <Text style={styles.formLabel}>DESCRIPTION</Text><TextInput value={description} onChangeText={onDescription} placeholder="Why this belongs in the map…" placeholderTextColor={theme.textSecondary} style={[styles.input, styles.askInput]} multiline textAlignVertical="top" />
+          <Text style={styles.formLabel}>TOPIC</Text><TextInput accessibilityLabel="Specific subtopic" value={topic} onChangeText={onTopic} placeholder="Specific subtopic" placeholderTextColor={theme.textSecondary} style={styles.input} autoFocus />
+          <Text style={styles.formLabel}>DESCRIPTION</Text><TextInput accessibilityLabel="Why this belongs in the map…" value={description} onChangeText={onDescription} placeholder="Why this belongs in the map…" placeholderTextColor={theme.textSecondary} style={[styles.input, styles.askInput]} multiline textAlignVertical="top" />
           <HapticTouchable style={styles.primaryBtn} onPress={onAdd} disabled={busy} haptic="medium">{busy ? <ActivityIndicator color={styles.accentInk.color} /> : <><Ionicons name="add" size={17} color={styles.accentInk.color} /><Text style={styles.primaryText}>ADD TO GRAPH</Text></>}</HapticTouchable>
         </View>
       </KeyboardAvoidingView>

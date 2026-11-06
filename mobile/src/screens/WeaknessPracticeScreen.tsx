@@ -496,7 +496,7 @@ export default function WeaknessPracticeScreen({ user, onBack, links }: Props) {
             {error ? (
               <View style={s.errorBar}>
                 <Ionicons name="alert-circle-outline" size={15} color={selectedTheme.danger} />
-                <Text style={s.errorText} numberOfLines={2}>{error}</Text>
+                <Text accessibilityLiveRegion="polite" style={s.errorText} numberOfLines={2}>{error}</Text>
                 <HapticTouchable onPress={() => setError('')} haptic="light" accessibilityLabel="Dismiss error">
                   <Ionicons name="close" size={15} color={selectedTheme.textSecondary} />
                 </HapticTouchable>

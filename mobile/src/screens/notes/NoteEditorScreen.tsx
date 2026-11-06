@@ -633,7 +633,7 @@ export default function NoteEditorScreen({
         >
           <View style={styles.editorShell}>
             <Text style={styles.dateStamp}>{pageDate}</Text>
-            <TextInput
+            <TextInput accessibilityLabel="Title"
               value={title}
               onChangeText={setTitle}
               placeholder="Title"
@@ -663,7 +663,7 @@ export default function NoteEditorScreen({
                 </View>
               </View>
             ) : null}
-            <TextInput
+            <TextInput accessibilityLabel="Start writing..."
               value={bodyText}
               onChangeText={setBodyText}
               placeholder="Start writing..."
@@ -824,7 +824,7 @@ export default function NoteEditorScreen({
               ))}
             </View>
             <View style={styles.inlineForm}>
-              <TextInput
+              <TextInput accessibilityLabel="New folder"
                 value={newFolderName}
                 onChangeText={setNewFolderName}
                 placeholder="New folder"
@@ -888,14 +888,14 @@ export default function NoteEditorScreen({
 
                 {showTemplateForm ? (
                   <View style={styles.inlineStack}>
-                    <TextInput
+                    <TextInput accessibilityLabel="Template name"
                       value={templateDraft.name}
                       onChangeText={(value) => setTemplateDraft((current) => ({ ...current, name: value }))}
                       placeholder="Template name"
                       placeholderTextColor={selectedTheme.textSecondary}
                       style={styles.inlineInput}
                     />
-                    <TextInput
+                    <TextInput accessibilityLabel="Short description"
                       value={templateDraft.description}
                       onChangeText={(value) => setTemplateDraft((current) => ({ ...current, description: value }))}
                       placeholder="Short description"
