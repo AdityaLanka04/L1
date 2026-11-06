@@ -462,7 +462,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
                 ['notes', 'document-text-outline', 'Notes'],
                 ['ask', 'chatbubble-ellipses-outline', 'Ask'],
               ] as [NodePanelTab, React.ComponentProps<typeof Ionicons>['name'], string][]).map(([key, icon, label]) => (
-                <HapticTouchable key={key} style={[s.nodeTab, nodeTab === key && s.nodeTabActive]} onPress={() => setNodeTab(key)} haptic="selection">
+                <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(nodeTab === key) }} key={key} style={[s.nodeTab, nodeTab === key && s.nodeTabActive]} onPress={() => setNodeTab(key)} haptic="selection">
                   <Ionicons name={icon} size={15} color={nodeTab === key ? s.accentInk.color : selectedTheme.textSecondary} />
                   <Text style={[s.nodeTabText, nodeTab === key && s.nodeTabTextActive]}>{label}</Text>
                 </HapticTouchable>

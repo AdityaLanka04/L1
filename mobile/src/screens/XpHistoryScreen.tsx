@@ -148,7 +148,7 @@ export default function XpHistoryScreen({ user, onBack }: Props) {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
-          <HapticTouchable
+          <HapticTouchable accessibilityState={{ selected: !!(activeType === 'all') }}
             style={[s.chip, activeType === 'all' && s.chipActive]}
             onPress={() => setActiveType('all')}
             haptic="selection"
@@ -159,7 +159,7 @@ export default function XpHistoryScreen({ user, onBack }: Props) {
           {types.map((type) => {
             const active = type === activeType;
             return (
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(active) }}
                 key={type}
                 style={[s.chip, active && s.chipActive]}
                 onPress={() => setActiveType(type)}
@@ -176,7 +176,7 @@ export default function XpHistoryScreen({ user, onBack }: Props) {
         <View style={s.sortRow}>
           <Text style={s.resultCount}>{filtered.length} {filtered.length === 1 ? 'entry' : 'entries'} · +{totalPoints} xp</Text>
           <View style={s.sortToggle}>
-            <HapticTouchable
+            <HapticTouchable accessibilityState={{ selected: !!(sortMode === 'newest') }}
               style={[s.sortBtn, sortMode === 'newest' && s.sortBtnActive]}
               onPress={() => setSortMode('newest')}
               haptic="selection"
@@ -184,7 +184,7 @@ export default function XpHistoryScreen({ user, onBack }: Props) {
             >
               <Text style={[s.sortBtnLabel, sortMode === 'newest' && s.sortBtnLabelActive]}>newest</Text>
             </HapticTouchable>
-            <HapticTouchable
+            <HapticTouchable accessibilityState={{ selected: !!(sortMode === 'points') }}
               style={[s.sortBtn, sortMode === 'points' && s.sortBtnActive]}
               onPress={() => setSortMode('points')}
               haptic="selection"

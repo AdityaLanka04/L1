@@ -263,7 +263,7 @@ export default function SoloQuizScreen({ user, onBack, autoStart }: Props) {
           <Text style={s.fieldLabel}>DIFFICULTY</Text>
           <View style={s.chipRow}>
             {(['adaptive', 'easy', 'medium', 'hard'] as const).map(d => (
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(difficulty === d) }}
                 key={d}
                 style={[s.chip, difficulty === d && s.chipActive]}
                 onPress={() => setDifficulty(d)}
@@ -298,7 +298,7 @@ export default function SoloQuizScreen({ user, onBack, autoStart }: Props) {
               { key: 'sequential' as const, name: 'Sequential', desc: 'Answer each question to proceed. Results shown at the end.' },
               { key: 'instant' as const, name: 'Instant Feedback', desc: 'See if your answer is correct immediately after selecting.' },
             ]).map(m => (
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(quizMode === m.key) }}
                 key={m.key}
                 style={[s.optionCard, quizMode === m.key && s.optionCardActive]}
                 onPress={() => setQuizMode(m.key)}
@@ -317,7 +317,7 @@ export default function SoloQuizScreen({ user, onBack, autoStart }: Props) {
               { key: 'stopwatch' as const, name: 'Stopwatch', desc: 'Track how fast you complete the quiz.' },
               { key: 'none' as const, name: 'No Timer', desc: 'Take your time, no pressure.' },
             ]).map(t => (
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(timingMode === t.key) }}
                 key={t.key}
                 style={[s.optionCard, timingMode === t.key && s.optionCardActive]}
                 onPress={() => setTimingMode(t.key)}
@@ -497,7 +497,7 @@ function QuizSession({
               ? (isCorrectOption ? s.optionBtnCorrect : active ? s.optionBtnIncorrect : null)
               : null;
             return (
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(active && !showInstantFeedback) }}
                 key={i}
                 style={[s.optionBtn, active && !showInstantFeedback && s.optionBtnActive, feedbackStyle]}
                 onPress={() => { if (!optionsLocked) onSelect(i); }}

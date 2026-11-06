@@ -290,7 +290,7 @@ export default function LearningPathsScreen({ onBack, onNavigate, embedded = fal
                 const complete = status === 'completed';
                 const active = focusedNode?.id === node.id;
                 return (
-                  <HapticTouchable key={node.id} style={[s.navStep, active && s.navStepActive, locked && s.navStepLocked]} onPress={() => setActiveNode(node)} disabled={locked} haptic="selection">
+                  <HapticTouchable accessibilityState={{ selected: !!(active) }} key={node.id} style={[s.navStep, active && s.navStepActive, locked && s.navStepLocked]} onPress={() => setActiveNode(node)} disabled={locked} haptic="selection">
                     <View style={[s.navStepIcon, complete && s.navStepIconDone, active && s.navStepIconActive]}><Ionicons name={complete ? 'checkmark' : locked ? 'lock-closed' : active ? 'play' : 'ellipse'} size={complete ? 13 : 9} color={complete || active ? ink : selectedTheme.textSecondary} /></View>
                     <View style={{ flex: 1 }}><Text style={s.navStepNumber}>STEP {String(index + 1).padStart(2, '0')}</Text><Text style={s.navStepTitle} numberOfLines={1}>{node.title}</Text></View>
                   </HapticTouchable>
@@ -457,12 +457,12 @@ function CreatePathModal({ visible, topic, difficulty, length, goals, generating
           <TextInput accessibilityLabel="e.g. Backend system design" style={styles.topicInput} value={topic} onChangeText={onTopic} placeholder="e.g. Backend system design" placeholderTextColor={theme.textSecondary} autoFocus multiline />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionRow}>{SUGGESTED_TOPICS.map((item) => <HapticTouchable key={item} style={styles.suggestionChip} onPress={() => onTopic(item)} haptic="selection"><Text style={styles.suggestionText}>{item}</Text></HapticTouchable>)}</ScrollView>
           <Text style={styles.formLabel}>DIFFICULTY</Text>
-          <View style={styles.optionRow}>{DIFFICULTIES.map((item) => <HapticTouchable key={item} style={[styles.optionPill, difficulty === item && styles.optionPillActive]} onPress={() => onDifficulty(item)} haptic="selection"><Text style={[styles.optionPillText, difficulty === item && styles.optionPillTextActive]}>{item.toUpperCase()}</Text></HapticTouchable>)}</View>
+          <View style={styles.optionRow}>{DIFFICULTIES.map((item) => <HapticTouchable accessibilityState={{ selected: !!(difficulty === item) }} key={item} style={[styles.optionPill, difficulty === item && styles.optionPillActive]} onPress={() => onDifficulty(item)} haptic="selection"><Text style={[styles.optionPillText, difficulty === item && styles.optionPillTextActive]}>{item.toUpperCase()}</Text></HapticTouchable>)}</View>
           <Text style={styles.formLabel}>PATH LENGTH</Text>
           <View style={styles.optionRow}>{LENGTHS.map((item) => {
             const stepsLabel = item === 'short' ? '3–5' : item === 'medium' ? '6–9' : '10+';
             return (
-              <HapticTouchable key={item} style={[styles.optionPill, length === item && styles.optionPillActive]} onPress={() => onLength(item)} haptic="selection">
+              <HapticTouchable accessibilityState={{ selected: !!(length === item) }} key={item} style={[styles.optionPill, length === item && styles.optionPillActive]} onPress={() => onLength(item)} haptic="selection">
                 <Text style={[styles.optionPillText, length === item && styles.optionPillTextActive]}>{item.toUpperCase()} · {stepsLabel}</Text>
               </HapticTouchable>
             );

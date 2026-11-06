@@ -383,7 +383,7 @@ export function FilterChip({
   icon?: React.ComponentProps<typeof Ionicons>['name'];
 }) {
   return (
-    <HapticTouchable
+    <HapticTouchable accessibilityState={{ selected: !!(active) }}
       style={[s.filterChip, active && s.filterChipActive]}
       onPress={onPress}
       activeOpacity={0.85}
@@ -995,7 +995,7 @@ export function NotesHome({
                 </HapticTouchable>
               )}
             </View>
-            <HapticTouchable
+            <HapticTouchable accessibilityState={{ selected: !!(filter === 'favorites') }}
               style={[s.searchIconBtn, filter === 'favorites' && s.searchIconBtnActive]}
               onPress={() => setFilter((current) => (current === 'favorites' ? 'all' : 'favorites'))}
               haptic="selection"
@@ -1125,7 +1125,7 @@ export function NotesHome({
               chatSessions.map((session) => {
                 const selected = selectedSessions.includes(session.id);
                 return (
-                  <HapticTouchable
+                  <HapticTouchable accessibilityState={{ selected: !!(selected) }}
                     key={session.id}
                     style={[s.selectRow, selected && s.selectRowActive]}
                     onPress={() => setSelectedSessions((current) => (
@@ -1184,7 +1184,7 @@ export function NotesHome({
             {notes.map((note) => {
               const selected = selectedConvertNoteIds.includes(note.id);
               return (
-                <HapticTouchable
+                <HapticTouchable accessibilityState={{ selected: !!(selected) }}
                   key={note.id}
                   style={[s.selectRow, selected && s.selectRowActive]}
                   onPress={() => setSelectedConvertNoteIds((current) => (

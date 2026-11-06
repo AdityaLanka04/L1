@@ -127,7 +127,7 @@ export default function RLInsightsScreen({ user, onBack }: Props) {
 
             <View style={s.tabRow}>
               {TABS.map((t) => (
-                <HapticTouchable key={t.id} style={[s.tabBtn, tab === t.id && s.tabBtnActive]} onPress={() => setTab(t.id)} haptic="selection">
+                <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(tab === t.id) }} key={t.id} style={[s.tabBtn, tab === t.id && s.tabBtnActive]} onPress={() => setTab(t.id)} haptic="selection">
                   <Text style={[s.tabText, tab === t.id && s.tabTextActive]}>{t.label}</Text>
                 </HapticTouchable>
               ))}

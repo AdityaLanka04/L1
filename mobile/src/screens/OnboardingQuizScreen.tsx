@@ -447,7 +447,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
                   {LEARNING_STAGES.map(stage => {
                     const selected = answers.learningStage === stage;
                     return (
-                      <HapticTouchable
+                      <HapticTouchable accessibilityState={{ selected: !!(selected) }}
                         key={stage}
                         style={[s.choice, selected && s.choiceSelected]}
                         onPress={() => setAnswers(prev => ({ ...prev, learningStage: stage }))}
@@ -535,7 +535,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
                   {BRAINWAVE_GOALS.map(goal => {
                     const selected = answers.brainwaveGoals.includes(goal.value);
                     return (
-                      <HapticTouchable
+                      <HapticTouchable accessibilityState={{ selected: !!(selected) }}
                         key={goal.value}
                         style={[s.choice, selected && s.choiceSelected]}
                         onPress={() => toggleGoal(goal.value)}
@@ -558,7 +558,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
                     const preset = WEEKLY_PRESETS[key];
                     const selected = weeklyPreset === key;
                     return (
-                      <HapticTouchable
+                      <HapticTouchable accessibilityState={{ selected: !!(selected) }}
                         key={key}
                         style={[s.presetCard, selected && s.presetCardSelected]}
                         onPress={() => setWeeklyPreset(key)}
@@ -604,7 +604,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
                     {q.options.map(option => {
                       const selected = answers.learningPreferences[q.id]?.includes(option.value) || false;
                       return (
-                        <HapticTouchable
+                        <HapticTouchable accessibilityState={{ selected: !!(selected) }}
                           key={option.value}
                           style={[s.choice, selected && s.choiceSelected]}
                           onPress={() => togglePreference(q.id, option.value)}

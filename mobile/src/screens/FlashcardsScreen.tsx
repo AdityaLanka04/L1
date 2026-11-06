@@ -999,7 +999,7 @@ function OptionPill({
   onPress: () => void;
 }) {
   return (
-    <HapticTouchable
+    <HapticTouchable accessibilityState={{ selected: !!(active) }}
       style={[s.optionPill, active && s.optionPillActive]}
       onPress={onPress}
       activeOpacity={0.85}
@@ -1557,7 +1557,7 @@ function FlashcardsSets({
                 </HapticTouchable>
               )}
             </View>
-            <HapticTouchable
+            <HapticTouchable accessibilityState={{ selected: !!(showFavoritesOnly) }}
               style={[s.searchIconBtn, showFavoritesOnly && s.searchIconBtnActive]}
               onPress={() => setShowFavoritesOnly((value) => !value)}
               haptic="selection"
@@ -1570,7 +1570,7 @@ function FlashcardsSets({
           <View style={s.collectionHeader}>
             <Text style={s.collectionCount}>{filteredSets.length} {filteredSets.length === 1 ? 'set' : 'sets'}</Text>
             <View style={s.viewToggle}>
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(viewMode === 'grid') }}
                 style={[s.viewToggleBtn, viewMode === 'grid' && s.viewToggleBtnActive]}
                 onPress={() => setViewMode('grid')}
                 haptic="selection"
@@ -1578,7 +1578,7 @@ function FlashcardsSets({
               >
                 <Ionicons name="grid-outline" size={15} color={viewMode === 'grid' ? INK : DIM2} />
               </HapticTouchable>
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(viewMode === 'list') }}
                 style={[s.viewToggleBtn, viewMode === 'list' && s.viewToggleBtnActive]}
                 onPress={() => setViewMode('list')}
                 haptic="selection"

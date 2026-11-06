@@ -502,7 +502,7 @@ export default function CalendarScreen({ user, onBack, onNavigate }: Props) {
             </View>
             <View style={s.monthGrid}>
               {MONTHS.map((m, idx) => (
-                <HapticTouchable
+                <HapticTouchable accessibilityState={{ selected: !!(idx === month) }}
                   key={m}
                   style={[s.monthGridItem, idx === month && s.monthGridItemActive]}
                   onPress={() => { goToMonth(year, idx); setShowMonthPicker(false); }}

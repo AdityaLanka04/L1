@@ -588,7 +588,7 @@ function AIMediaHub({
           </View>
 
           <View style={s.modeSwitcher}>
-            <HapticTouchable
+            <HapticTouchable accessibilityState={{ selected: !!(mode === 'youtube') }}
               style={[s.modeBtn, mode === 'youtube' && s.modeBtnActive]}
               onPress={() => { setMode('youtube'); setError(''); }}
               activeOpacity={0.8}
@@ -598,7 +598,7 @@ function AIMediaHub({
                 YouTube
               </Text>
             </HapticTouchable>
-            <HapticTouchable
+            <HapticTouchable accessibilityState={{ selected: !!(mode === 'record') }}
               style={[s.modeBtn, mode === 'record' && s.modeBtnActive]}
               onPress={() => { setMode('record'); setError(''); }}
               activeOpacity={0.8}
@@ -608,7 +608,7 @@ function AIMediaHub({
                 Record Audio
               </Text>
             </HapticTouchable>
-            <HapticTouchable
+            <HapticTouchable accessibilityState={{ selected: !!(mode === 'upload') }}
               style={[s.modeBtn, mode === 'upload' && s.modeBtnActive]}
               onPress={() => { setMode('upload'); setError(''); }}
               activeOpacity={0.8}
@@ -1091,7 +1091,7 @@ function PodcastMode({
         <View style={s.podcastSection}>
           <Text accessibilityRole="header" style={s.podcastSectionTitle}>chapters</Text>
           {chapters.map((chapter, index) => (
-            <HapticTouchable key={`${chapter.index}-${index}`} style={[s.chapterRow, currentIndex === chapter.index && s.chapterRowActive]} onPress={() => jump(chapter.index ?? index)} haptic="selection">
+            <HapticTouchable accessibilityState={{ selected: !!(currentIndex === chapter.index) }} key={`${chapter.index}-${index}`} style={[s.chapterRow, currentIndex === chapter.index && s.chapterRowActive]} onPress={() => jump(chapter.index ?? index)} haptic="selection">
               <Text style={s.chapterIndex}>{String((chapter.index ?? index) + 1).padStart(2, '0')}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={s.chapterTitle}>{chapter.title || `Chapter ${(chapter.index ?? index) + 1}`}</Text>
@@ -1240,7 +1240,7 @@ function AIMediaResults({
 
       <View style={s.tabRow}>
         {(['notes', 'transcript', 'podcast'] as Tab[]).map(t => (
-          <HapticTouchable
+          <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(tab === t) }}
             key={t}
             style={[s.tab, tab === t && s.tabActive]}
             onPress={() => setTab(t)}

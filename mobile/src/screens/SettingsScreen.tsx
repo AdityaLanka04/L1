@@ -168,10 +168,10 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
           <LinearGradient colors={cbCardGradient.colors} start={cbCardGradient.start} end={cbCardGradient.end} style={StyleSheet.absoluteFillObject} />
           <NeumorphicTexture grainOpacity={0.18} />
           <View style={styles.themeTabRow}>
-            <HapticTouchable style={[styles.themeTab, activeTab === 'presets' && styles.themeTabActive]} onPress={() => setActiveTab('presets')} haptic="selection">
+            <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(activeTab === 'presets') }} style={[styles.themeTab, activeTab === 'presets' && styles.themeTabActive]} onPress={() => setActiveTab('presets')} haptic="selection">
               <Text style={[styles.themeTabText, activeTab === 'presets' && styles.themeTabTextActive]}>presets</Text>
             </HapticTouchable>
-            <HapticTouchable style={[styles.themeTab, activeTab === 'custom' && styles.themeTabActive]} onPress={() => setActiveTab('custom')} haptic="selection">
+            <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(activeTab === 'custom') }} style={[styles.themeTab, activeTab === 'custom' && styles.themeTabActive]} onPress={() => setActiveTab('custom')} haptic="selection">
               <Text style={[styles.themeTabText, activeTab === 'custom' && styles.themeTabTextActive]}>custom</Text>
             </HapticTouchable>
           </View>
@@ -183,7 +183,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
                 {darkThemes.map((theme) => {
                   const active = pendingPresetId === theme.id;
                   return (
-                    <HapticTouchable key={theme.id} style={[styles.presetBtn, active && styles.presetBtnActive]} onPress={() => setPendingPresetId(theme.id)} haptic="selection">
+                    <HapticTouchable accessibilityState={{ selected: !!(active) }} key={theme.id} style={[styles.presetBtn, active && styles.presetBtnActive]} onPress={() => setPendingPresetId(theme.id)} haptic="selection">
                       <View style={styles.presetColors}>
                         <View style={[styles.presetSwatch, { backgroundColor: primaryPalette.dark[0].value }]} />
                         <View style={[styles.presetSwatch, { backgroundColor: theme.accent }]} />
@@ -199,7 +199,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
                 {lightThemes.map((theme) => {
                   const active = pendingPresetId === theme.id;
                   return (
-                    <HapticTouchable key={theme.id} style={[styles.presetBtn, active && styles.presetBtnActive]} onPress={() => setPendingPresetId(theme.id)} haptic="selection">
+                    <HapticTouchable accessibilityState={{ selected: !!(active) }} key={theme.id} style={[styles.presetBtn, active && styles.presetBtnActive]} onPress={() => setPendingPresetId(theme.id)} haptic="selection">
                       <View style={styles.presetColors}>
                         <View style={[styles.presetSwatch, { backgroundColor: primaryPalette.light[0].value, borderWidth: 1, borderColor: selectedTheme.borderStrong }]} />
                         <View style={[styles.presetSwatch, { backgroundColor: theme.accent }]} />
@@ -229,7 +229,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
               <Text style={styles.themeSectionLabel}>mode</Text>
               <View style={styles.modeRow}>
                 {(['dark', 'light'] as ThemeMode[]).map((mode) => (
-                  <HapticTouchable key={mode} style={[styles.modeBtn, pendingMode === mode && styles.modeBtnActive]} onPress={() => setPendingMode(mode)} haptic="selection">
+                  <HapticTouchable accessibilityState={{ selected: !!(pendingMode === mode) }} key={mode} style={[styles.modeBtn, pendingMode === mode && styles.modeBtnActive]} onPress={() => setPendingMode(mode)} haptic="selection">
                     <Text style={[styles.modeBtnText, pendingMode === mode && styles.modeBtnTextActive]}>{mode}</Text>
                   </HapticTouchable>
                 ))}
@@ -240,7 +240,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
                 {primaryPalette[pendingMode].map((color) => {
                   const active = pendingPrimary === color.value;
                   return (
-                    <HapticTouchable key={color.value} style={[styles.swatchBtn, active && styles.swatchBtnActive]} onPress={() => setPendingPrimary(color.value)} haptic="selection">
+                    <HapticTouchable accessibilityState={{ selected: !!(active) }} key={color.value} style={[styles.swatchBtn, active && styles.swatchBtnActive]} onPress={() => setPendingPrimary(color.value)} haptic="selection">
                       <View style={[styles.swatchCircle, { backgroundColor: color.value, borderWidth: pendingMode === 'light' ? 1 : 0, borderColor: selectedTheme.borderStrong }]} />
                       <Text style={styles.swatchLabel}>{color.name}</Text>
                     </HapticTouchable>
@@ -253,7 +253,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
                 {colorPalette.map((color) => {
                   const active = pendingAccent === color.value;
                   return (
-                    <HapticTouchable key={color.value} style={[styles.swatchBtn, active && styles.swatchBtnActive]} onPress={() => setPendingAccent(color.value)} haptic="selection">
+                    <HapticTouchable accessibilityState={{ selected: !!(active) }} key={color.value} style={[styles.swatchBtn, active && styles.swatchBtnActive]} onPress={() => setPendingAccent(color.value)} haptic="selection">
                       <View style={[styles.swatchCircle, { backgroundColor: color.value }]} />
                       <Text style={styles.swatchLabel}>{color.name}</Text>
                     </HapticTouchable>

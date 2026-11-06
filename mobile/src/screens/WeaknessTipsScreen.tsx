@@ -133,7 +133,7 @@ export default function WeaknessTipsScreen({ user, topic, onBack, links }: Props
             <Text style={s.label}>difficulty</Text>
             <View style={s.pills}>
               {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
-                <HapticTouchable key={d} style={[s.pill, difficulty === d && s.pillActive]} onPress={() => setDifficulty(d)} haptic="selection">
+                <HapticTouchable accessibilityState={{ selected: !!(difficulty === d) }} key={d} style={[s.pill, difficulty === d && s.pillActive]} onPress={() => setDifficulty(d)} haptic="selection">
                   <Text style={[s.pillText, difficulty === d && s.pillTextActive]}>{d}</Text>
                 </HapticTouchable>
               ))}

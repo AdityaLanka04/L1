@@ -788,7 +788,7 @@ export default function NoteEditorScreen({
             {NOTE_FONT_OPTIONS.map((font) => {
               const active = customFont === font;
               return (
-                <HapticTouchable
+                <HapticTouchable accessibilityState={{ selected: !!(active) }}
                   key={font}
                   style={[styles.fontChip, active && styles.fontChipActive]}
                   onPress={() => setCustomFont(font)}
@@ -851,14 +851,14 @@ export default function NoteEditorScreen({
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={{ gap: 12, paddingBottom: 8 }}>
             <View style={styles.segmentRow}>
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(templateTab === 'built-in') }}
                 style={[styles.segmentBtn, templateTab === 'built-in' && styles.segmentBtnActive]}
                 onPress={() => setTemplateTab('built-in')}
                 haptic="selection"
               >
                 <Text style={[styles.segmentText, templateTab === 'built-in' && styles.segmentTextActive]}>Built-in</Text>
               </HapticTouchable>
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(templateTab === 'custom') }}
                 style={[styles.segmentBtn, templateTab === 'custom' && styles.segmentBtnActive]}
                 onPress={() => setTemplateTab('custom')}
                 haptic="selection"
@@ -959,7 +959,7 @@ export default function NoteEditorScreen({
               ] as const).map(([value, label]) => {
                 const active = aiAction === value;
                 return (
-                  <HapticTouchable
+                  <HapticTouchable accessibilityState={{ selected: !!(active) }}
                     key={value}
                     style={[styles.aiChip, active && styles.aiChipActive]}
                     onPress={() => setAiAction(value)}

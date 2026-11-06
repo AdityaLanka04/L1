@@ -153,7 +153,7 @@ export default function XpAnalyticsScreen({ user, onBack, onOpenAchievements, on
           {PERIODS.map((p) => {
             const active = p.key === period;
             return (
-              <HapticTouchable
+              <HapticTouchable accessibilityState={{ selected: !!(active) }}
                 key={p.key}
                 style={[s.periodBtn, active && s.periodBtnActive]}
                 onPress={() => selectPeriod(p.key)}
@@ -397,7 +397,7 @@ function XpWeeksPanel({
               {weeks.map((offset) => {
                 const active = offset === weekOffset;
                 return (
-                  <HapticTouchable
+                  <HapticTouchable accessibilityState={{ selected: !!(active) }}
                     key={offset}
                     style={[s.row, active && s.rowActive]}
                     onPress={() => onSelect(offset)}

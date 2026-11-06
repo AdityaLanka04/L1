@@ -148,7 +148,7 @@ export default function TopicsHubScreen({ user, onBack, onOpenTopic }: Props) {
                 ['progressing', 'Progressing', overview.progressing_topics],
                 ['needs_work', 'Needs Work', overview.needs_work_topics],
               ] as [Filter, string, number][]).map(([key, label, count]) => (
-                <HapticTouchable key={key} style={[s.filterBtn, filter === key && s.filterBtnActive]} onPress={() => setFilter(key)} haptic="selection">
+                <HapticTouchable accessibilityState={{ selected: !!(filter === key) }} key={key} style={[s.filterBtn, filter === key && s.filterBtnActive]} onPress={() => setFilter(key)} haptic="selection">
                   <Text style={[s.filterText, filter === key && s.filterTextActive]}>{label}</Text>
                   <Text style={[s.filterCount, filter === key && s.filterTextActive]}>{count}</Text>
                 </HapticTouchable>

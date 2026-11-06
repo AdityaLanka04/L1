@@ -133,7 +133,7 @@ export default function WeaknessIntelligence({ user, areas, onOpenTopic, onAskTu
 
       <View style={s.tabs}>
         {(['overview', 'heatmap', 'charts', 'badges'] as Tab[]).map((key) => (
-          <HapticTouchable key={key} style={[s.tab, tab === key && s.tabActive]} onPress={() => setTab(key)} haptic="selection">
+          <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(tab === key) }} key={key} style={[s.tab, tab === key && s.tabActive]} onPress={() => setTab(key)} haptic="selection">
             <Text style={[s.tabText, tab === key && s.tabTextActive]}>{key}</Text>
           </HapticTouchable>
         ))}

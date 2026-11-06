@@ -647,7 +647,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                     const isCorrect = result && option.toLowerCase() === String(detail?.correct_answer || '').toLowerCase();
                     const isWrong = result && active && !detail?.is_correct;
                     return (
-                      <HapticTouchable
+                      <HapticTouchable accessibilityState={{ selected: !!(active) }}
                         key={option}
                         style={[s.option, active && s.optionActive, isCorrect && s.optionCorrect, isWrong && s.optionWrong]}
                         onPress={() => !result && setAnswers((prev) => ({ ...prev, [q.id]: option }))}
@@ -716,13 +716,13 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
           </View>
 
           <View style={s.modeTabRow}>
-            <HapticTouchable style={[s.modeTab, generateMode === 'topic' && s.modeTabActive]} onPress={() => setGenerateMode('topic')} haptic="selection">
+            <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(generateMode === 'topic') }} style={[s.modeTab, generateMode === 'topic' && s.modeTabActive]} onPress={() => setGenerateMode('topic')} haptic="selection">
               <Text style={[s.modeTabText, generateMode === 'topic' && s.modeTabTextActive]}>topic</Text>
             </HapticTouchable>
-            <HapticTouchable style={[s.modeTab, generateMode === 'pdf' && s.modeTabActive]} onPress={() => setGenerateMode('pdf')} haptic="selection">
+            <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(generateMode === 'pdf') }} style={[s.modeTab, generateMode === 'pdf' && s.modeTabActive]} onPress={() => setGenerateMode('pdf')} haptic="selection">
               <Text style={[s.modeTabText, generateMode === 'pdf' && s.modeTabTextActive]}>from PDF</Text>
             </HapticTouchable>
-            <HapticTouchable style={[s.modeTab, generateMode === 'paste' && s.modeTabActive]} onPress={() => setGenerateMode('paste')} haptic="selection">
+            <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(generateMode === 'paste') }} style={[s.modeTab, generateMode === 'paste' && s.modeTabActive]} onPress={() => setGenerateMode('paste')} haptic="selection">
               <Text style={[s.modeTabText, generateMode === 'paste' && s.modeTabTextActive]}>paste text</Text>
             </HapticTouchable>
           </View>
@@ -735,7 +735,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                 <Text style={s.fieldLabel}>difficulty</Text>
                 <View style={s.choiceRow}>
                   {['adaptive', 'mixed', 'easy', 'medium', 'hard'].map((item) => (
-                    <HapticTouchable key={item} style={[s.choice, difficulty === item && s.choiceActive]} onPress={() => setDifficulty(item)} haptic="selection">
+                    <HapticTouchable accessibilityState={{ selected: !!(difficulty === item) }} key={item} style={[s.choice, difficulty === item && s.choiceActive]} onPress={() => setDifficulty(item)} haptic="selection">
                       <Text style={[s.choiceText, difficulty === item && s.choiceTextActive]}>{item}</Text>
                     </HapticTouchable>
                   ))}
@@ -775,7 +775,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                       const isSelected = selectedDocIds.includes(doc.id);
                       const topics = doc.analysis?.main_topics?.slice(0, 2) ?? [];
                       return (
-                        <HapticTouchable
+                        <HapticTouchable accessibilityState={{ selected: !!(isSelected) }}
                           key={doc.id}
                           style={[s.docCard, isSelected && s.docCardSelected]}
                           onPress={() => toggleDocSelection(doc.id)}
@@ -804,7 +804,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                 )}
 
                 {selectedDocIds.length >= 2 ? (
-                  <HapticTouchable style={[s.choice, showSmartOptions && s.choiceActive]} onPress={() => setShowSmartOptions((v) => !v)} haptic="selection">
+                  <HapticTouchable accessibilityState={{ selected: !!(showSmartOptions) }} style={[s.choice, showSmartOptions && s.choiceActive]} onPress={() => setShowSmartOptions((v) => !v)} haptic="selection">
                     <Text style={[s.choiceText, showSmartOptions && s.choiceTextActive]}>Smart mode</Text>
                   </HapticTouchable>
                 ) : null}
@@ -815,7 +815,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                       <View key={doc.id} style={s.selectedSourceItem}>
                         <Ionicons name="document-text-outline" size={13} color={selectedTheme.textSecondary} />
                         <Text style={s.selectedSourceName} numberOfLines={1}>{doc.filename}</Text>
-                        <HapticTouchable
+                        <HapticTouchable accessibilityState={{ selected: !!(referenceDocId === doc.id) }}
                           style={[s.refToggle, referenceDocId === doc.id && s.refToggleActive]}
                           onPress={() => toggleReferenceDoc(doc.id)}
                           haptic="selection"
@@ -869,7 +869,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                     <Text style={s.fieldLabel}>question types</Text>
                     <View style={s.choiceRow}>
                       {QUESTION_TYPE_OPTIONS.map((type) => (
-                        <HapticTouchable key={type} style={[s.choice, pdfQuestionTypes.includes(type) && s.choiceActive]} onPress={() => toggleQuestionType(type)} haptic="selection">
+                        <HapticTouchable accessibilityState={{ selected: !!(pdfQuestionTypes.includes(type)) }} key={type} style={[s.choice, pdfQuestionTypes.includes(type) && s.choiceActive]} onPress={() => toggleQuestionType(type)} haptic="selection">
                           <Text style={[s.choiceText, pdfQuestionTypes.includes(type) && s.choiceTextActive]}>{formatQuestionType(type)}</Text>
                         </HapticTouchable>
                       ))}
@@ -961,7 +961,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                 <Text style={s.fieldLabel}>question types</Text>
                 <View style={s.choiceRow}>
                   {QUESTION_TYPE_OPTIONS.map((type) => (
-                    <HapticTouchable key={type} style={[s.choice, pdfQuestionTypes.includes(type) && s.choiceActive]} onPress={() => toggleQuestionType(type)} haptic="selection">
+                    <HapticTouchable accessibilityState={{ selected: !!(pdfQuestionTypes.includes(type)) }} key={type} style={[s.choice, pdfQuestionTypes.includes(type) && s.choiceActive]} onPress={() => toggleQuestionType(type)} haptic="selection">
                       <Text style={[s.choiceText, pdfQuestionTypes.includes(type) && s.choiceTextActive]}>{formatQuestionType(type)}</Text>
                     </HapticTouchable>
                   ))}

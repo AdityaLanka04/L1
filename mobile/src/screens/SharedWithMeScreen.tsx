@@ -422,7 +422,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
             <View style={{ flex: 1 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickerTabs} style={{ flexGrow: 0 }}>
                 {(['all', 'note', 'chat', 'quiz', 'question_bank'] as const).map((f) => (
-                  <HapticTouchable key={f} style={[s.pickerTab, pickerFilter === f && s.pickerTabActive]} onPress={() => setPickerFilter(f)} haptic="selection">
+                  <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(pickerFilter === f) }} key={f} style={[s.pickerTab, pickerFilter === f && s.pickerTabActive]} onPress={() => setPickerFilter(f)} haptic="selection">
                     {f !== 'all' && <Ionicons name={TYPE_ICON[f]} size={13} color={pickerFilter === f ? selectedTheme.accentHover : selectedTheme.textSecondary} />}
                     <Text style={[s.pickerTabText, pickerFilter === f && s.pickerTabTextActive]}>{f === 'all' ? 'all' : f === 'note' ? 'notes' : f === 'chat' ? 'chats' : f === 'quiz' ? 'quizzes' : 'question bank'}</Text>
                   </HapticTouchable>

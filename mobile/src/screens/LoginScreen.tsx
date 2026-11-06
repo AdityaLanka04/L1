@@ -366,10 +366,10 @@ export default function LoginScreen({ onLogin }: Props) {
               </View>
 
               <View style={s.tabs}>
-                <HapticTouchable style={[s.tab, mode === 'login' && s.tabActive]} onPress={() => switchMode('login')} haptic="selection">
+                <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(mode === 'login') }} style={[s.tab, mode === 'login' && s.tabActive]} onPress={() => switchMode('login')} haptic="selection">
                   <Text style={[s.tabText, mode === 'login' && s.tabTextActive]}>sign in</Text>
                 </HapticTouchable>
-                <HapticTouchable style={[s.tab, mode === 'register' && s.tabActive]} onPress={() => switchMode('register')} haptic="selection">
+                <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(mode === 'register') }} style={[s.tab, mode === 'register' && s.tabActive]} onPress={() => switchMode('register')} haptic="selection">
                   <Text style={[s.tabText, mode === 'register' && s.tabTextActive]}>create account</Text>
                 </HapticTouchable>
               </View>

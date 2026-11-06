@@ -189,7 +189,7 @@ export default function ActivityTimelineScreen({ user, onBack, onNavigate }: Pro
         contentContainerStyle={s.filterRow}
       >
         {FILTERS.map((f) => (
-          <HapticTouchable
+          <HapticTouchable accessibilityState={{ selected: !!(filter === f) }}
             key={f}
             style={[s.chip, filter === f && s.chipActive]}
             onPress={() => setFilter(f)}

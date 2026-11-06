@@ -292,7 +292,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
                 <TextInput accessibilityLabel="e.g. Mathematics, Study skills..." style={m.input} value={newCat} onChangeText={setNewCat} placeholder="e.g. Mathematics, Study skills..." placeholderTextColor={DIM} autoCapitalize="words" />
                 <View style={m.optionRow}>
                   {CATEGORIES.map(c => (
-                    <HapticTouchable key={c} style={[m.optionPill, newCat === c && m.optionPillActive]} onPress={() => setNewCat(c === newCat ? '' : c)} haptic="selection">
+                    <HapticTouchable accessibilityState={{ selected: !!(newCat === c) }} key={c} style={[m.optionPill, newCat === c && m.optionPillActive]} onPress={() => setNewCat(c === newCat ? '' : c)} haptic="selection">
                       <Text style={[m.optionPillText, newCat === c && m.optionPillTextActive]}>{c}</Text>
                     </HapticTouchable>
                   ))}
@@ -301,7 +301,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
                 <Text style={m.fieldLabel}>difficulty</Text>
                 <View style={m.optionRow}>
                   {DIFFICULTIES.map(d => (
-                    <HapticTouchable key={d} style={[m.optionPill, newDiff === d && m.optionPillActive]} onPress={() => setNewDiff(d)} haptic="selection">
+                    <HapticTouchable accessibilityState={{ selected: !!(newDiff === d) }} key={d} style={[m.optionPill, newDiff === d && m.optionPillActive]} onPress={() => setNewDiff(d)} haptic="selection">
                       <Text style={[m.optionPillText, newDiff === d && m.optionPillTextActive]}>{d}</Text>
                     </HapticTouchable>
                   ))}
@@ -367,7 +367,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
             <Text style={m.label}>category</Text>
             <View style={m.chipsWrap}>
               {['', ...CATEGORIES].map(c => (
-                <HapticTouchable key={c || 'all'} style={[m.chip, catFilter === c && m.chipActive]} onPress={() => setCatFilter(c)} haptic="selection">
+                <HapticTouchable accessibilityState={{ selected: !!(catFilter === c) }} key={c || 'all'} style={[m.chip, catFilter === c && m.chipActive]} onPress={() => setCatFilter(c)} haptic="selection">
                   <Text style={[m.chipText, catFilter === c && m.chipTextActive]}>{c || 'all subjects'}</Text>
                 </HapticTouchable>
               ))}
@@ -376,7 +376,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
             <Text style={m.label}>difficulty</Text>
             <View style={m.diffRow}>
               {['', ...DIFFICULTIES].map(d => (
-                <HapticTouchable key={d || 'any'} style={[m.diffBtn, diffFilter === d && m.diffBtnActive]} onPress={() => setDiffFilter(d)} haptic="selection">
+                <HapticTouchable accessibilityState={{ selected: !!(diffFilter === d) }} key={d || 'any'} style={[m.diffBtn, diffFilter === d && m.diffBtnActive]} onPress={() => setDiffFilter(d)} haptic="selection">
                   <Text style={[m.diffText, diffFilter === d && { color: DIFF_COLOR[d] ?? selectedTheme.accentHover }]}>{d || 'any level'}</Text>
                 </HapticTouchable>
               ))}

@@ -137,7 +137,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
       <View style={s.tabShell}>
       <View style={s.tabRow}>
         {(['global', 'friends'] as const).map(t => (
-          <HapticTouchable key={t} style={[s.tabItem, tab === t && s.tabItemActive]} onPress={() => setTab(t)} haptic="selection">
+          <HapticTouchable accessibilityRole="tab" accessibilityState={{ selected: !!(tab === t) }} key={t} style={[s.tabItem, tab === t && s.tabItemActive]} onPress={() => setTab(t)} haptic="selection">
             <Ionicons name={t === 'global' ? 'earth-outline' : 'people-outline'} size={13} color={tab === t ? GOLD_L : DIM} />
             <Text style={[s.tabText, tab === t && s.tabTextActive]}>{t}</Text>
           </HapticTouchable>
