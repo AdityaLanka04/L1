@@ -162,13 +162,14 @@ function MainTabs({ user, onLogout, onUserUpdate, onRetakeQuiz, onNavigate, requ
                     onPress={() => goTo(i)}
                     activeOpacity={0.78}
                     haptic="selection"
-                    accessibilityLabel={`${t.label} tab`}
+                    accessibilityRole="tab"
+                    accessibilityLabel={t.label}
                     accessibilityState={{ selected: active }}
                   >
                     <View style={s.iconWrap}>
                       <Ionicons name={active ? t.activeIcon : t.icon} size={18} color={active ? selectedTheme.accentHover : selectedTheme.textSecondary} />
                     </View>
-                    <Text allowFontScaling={false} style={[s.tabLabel, s.tabLabelRail, { color: active ? selectedTheme.textPrimary : selectedTheme.textSecondary }]}>{t.label}</Text>
+                    <Text maxFontSizeMultiplier={1.2} style={[s.tabLabel, s.tabLabelRail, { color: active ? selectedTheme.textPrimary : selectedTheme.textSecondary }]}>{t.label}</Text>
                   </HapticTouchable>
                 );
               })}
@@ -211,13 +212,14 @@ function MainTabs({ user, onLogout, onUserUpdate, onRetakeQuiz, onNavigate, requ
                         onPress={() => goTo(i)}
                         activeOpacity={0.78}
                         haptic="selection"
-                        accessibilityLabel={`${t.label} tab`}
+                        accessibilityRole="tab"
+                        accessibilityLabel={t.label}
                         accessibilityState={{ selected: active }}
                       >
                         <View style={s.iconWrap}>
                           <Ionicons name={active ? t.activeIcon : t.icon} size={18} color={active ? selectedTheme.accentHover : selectedTheme.textSecondary} />
                         </View>
-                        <Text allowFontScaling={false} style={[s.tabLabel, { color: active ? selectedTheme.textPrimary : selectedTheme.textSecondary }]}>{t.label}</Text>
+                        <Text maxFontSizeMultiplier={1.2} style={[s.tabLabel, { color: active ? selectedTheme.textPrimary : selectedTheme.textSecondary }]}>{t.label}</Text>
                       </HapticTouchable>
                     );
                   })}
