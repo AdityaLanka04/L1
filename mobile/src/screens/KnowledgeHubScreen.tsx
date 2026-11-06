@@ -311,7 +311,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
           </HapticTouchable>
         </View>
 
-        {loading ? <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 46 }} /> : null}
+        {loading ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 46 }} /> : null}
         {!loading && tab === 'deck' ? renderDeck() : null}
         {!loading && tab === 'library' ? renderLibrary() : null}
         {!loading && tab === 'ask' ? renderAsk() : null}
@@ -330,7 +330,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
             <Text style={s.label}>subject</Text>
             <TextInput accessibilityLabel="optional label" value={importSubject} onChangeText={setImportSubject} placeholder="optional label" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
             <HapticTouchable style={s.primaryBtn} onPress={importUrlSource} disabled={actionBusy === 'import-url'}>
-              {actionBusy === 'import-url' ? <ActivityIndicator color={selectedTheme.bgPrimary} /> : <Text style={s.primaryText}>import URL</Text>}
+              {actionBusy === 'import-url' ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.bgPrimary} /> : <Text style={s.primaryText}>import URL</Text>}
             </HapticTouchable>
           </View>
         </KeyboardAvoidingView>
@@ -368,7 +368,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
                   haptic="warning"
                 >
                   {deckBusyId === doc.doc_id ? (
-                    <ActivityIndicator size="small" color={selectedTheme.danger} />
+                    <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.danger} />
                   ) : (
                     <Ionicons name="close" size={13} color={selectedTheme.danger} />
                   )}
@@ -418,7 +418,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
       <View style={s.sectionStack}>
         <View style={s.libraryToolbar}>
           <HapticTouchable style={s.libraryToolBtn} onPress={pickDocuments} disabled={actionBusy === 'upload-docs'} haptic="medium">
-            {actionBusy === 'upload-docs' ? <ActivityIndicator size="small" color={selectedTheme.bgPrimary} /> : <Ionicons name="cloud-upload-outline" size={16} color={selectedTheme.bgPrimary} />}
+            {actionBusy === 'upload-docs' ? <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.bgPrimary} /> : <Ionicons name="cloud-upload-outline" size={16} color={selectedTheme.bgPrimary} />}
             <Text style={s.libraryToolBtnText}>upload</Text>
           </HapticTouchable>
           <HapticTouchable style={[s.libraryToolBtn, s.libraryToolBtnAlt]} onPress={() => setShowImportModal(true)} haptic="selection">
@@ -445,7 +445,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
                   >
                     <View style={[s.check, active && s.checkActive]}>
                       {deckBusyId === doc.doc_id ? (
-                        <ActivityIndicator size="small" color={active ? selectedTheme.bgPrimary : selectedTheme.accentHover} />
+                        <ActivityIndicator accessibilityLabel="Loading" size="small" color={active ? selectedTheme.bgPrimary : selectedTheme.accentHover} />
                       ) : active ? (
                         <Ionicons name="checkmark" size={13} color={selectedTheme.bgPrimary} />
                       ) : null}
@@ -456,7 +456,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
                     </View>
                   </HapticTouchable>
                   <HapticTouchable accessibilityLabel="Delete" style={s.deleteBtn} onPress={() => removeDoc(doc)} haptic="warning">
-                    {actionBusy === `delete-${doc.doc_id}` ? <ActivityIndicator color={selectedTheme.danger} size="small" /> : <Ionicons name="trash-outline" size={15} color={selectedTheme.danger} />}
+                    {actionBusy === `delete-${doc.doc_id}` ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.danger} size="small" /> : <Ionicons name="trash-outline" size={15} color={selectedTheme.danger} />}
                   </HapticTouchable>
                 </View>
               );
@@ -486,7 +486,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
             <Text style={s.secondaryText}>search</Text>
           </HapticTouchable>
           <HapticTouchable style={s.primarySmallBtn} onPress={() => ask('answer')} disabled={asking}>
-            {asking ? <ActivityIndicator color={selectedTheme.bgPrimary} size="small" /> : <Text style={s.primaryText}>ask</Text>}
+            {asking ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.bgPrimary} size="small" /> : <Text style={s.primaryText}>ask</Text>}
           </HapticTouchable>
         </View>
 

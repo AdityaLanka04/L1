@@ -38,7 +38,7 @@ export default function PulsingSquares({ size = 'default' }: { size?: 'default' 
   const cubeSize = size === 'small' ? 12 : 17;
   const gap = size === 'small' ? 8 : 11;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap }}>
+    <View accessible accessibilityRole="progressbar" accessibilityLabel="Loading" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap }}>
       <Cube delayMs={0} color={color} cubeSize={cubeSize} />
       <Cube delayMs={200} color={color} cubeSize={cubeSize} />
       <Cube delayMs={400} color={color} cubeSize={cubeSize} />

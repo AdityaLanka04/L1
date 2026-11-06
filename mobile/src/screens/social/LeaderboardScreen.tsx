@@ -109,7 +109,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
       <CircleBackground />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={GOLD_M} size="large" />
+        <ActivityIndicator accessibilityLabel="Loading" color={GOLD_M} size="large" />
       </View>
     </View>
   );

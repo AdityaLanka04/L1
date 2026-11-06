@@ -148,7 +148,7 @@ export default function CanvasHubScreen({ user, onBack, onOpenNotes }: Props) {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 32 }} />
+          <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 32 }} />
         ) : notes.length === 0 ? (
           <View style={s.empty}>
             <Ionicons name="color-palette-outline" size={40} color={selectedTheme.accent} />

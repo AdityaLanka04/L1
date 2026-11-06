@@ -1371,7 +1371,7 @@ function FlashcardsCreate({
             haptic="medium"
           >
             {submitting ? (
-              <ActivityIndicator color={BASE_ACTION_TEXT} size="small" />
+              <ActivityIndicator accessibilityLabel="Loading" color={BASE_ACTION_TEXT} size="small" />
             ) : (
               <View style={s.createSubmitRow}>
                 <Text style={s.createSubmitText}>

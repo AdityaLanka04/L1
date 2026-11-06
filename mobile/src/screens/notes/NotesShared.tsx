@@ -514,7 +514,7 @@ export function NotesTrashScreen({
       </View>
 
       {loading ? (
-        <ActivityIndicator color={ACCENT} style={{ marginTop: 40 }} />
+        <ActivityIndicator accessibilityLabel="Loading" color={ACCENT} style={{ marginTop: 40 }} />
       ) : trash.length === 0 ? (
         <View style={s.empty}>
           <Text style={s.emptyTitle}>trash is empty</Text>
@@ -971,7 +971,7 @@ export function NotesHome({
       </View>
 
       {loading ? (
-        <ActivityIndicator color={ACCENT} style={{ marginTop: 40 }} />
+        <ActivityIndicator accessibilityLabel="Loading" color={ACCENT} style={{ marginTop: 40 }} />
       ) : (
         // Same grid approach as the flashcards page (ScrollView + flexWrap +
         // percentage width, intrinsic card height) -- FlatList's numColumns
@@ -1527,7 +1527,7 @@ export function NotesGenerator({
 
       {creating && (
         <View style={s.loadingOverlay}>
-          <ActivityIndicator color={ACCENT} size="large" />
+          <ActivityIndicator accessibilityLabel="Loading" color={ACCENT} size="large" />
           <Text style={[s.emptyHint, { marginTop: 12 }]}>creating note…</Text>
         </View>
       )}
@@ -1725,7 +1725,7 @@ export function NotesTemplates({
 
       {creating && (
         <View style={s.loadingOverlay}>
-          <ActivityIndicator color={ACCENT} size="large" />
+          <ActivityIndicator accessibilityLabel="Loading" color={ACCENT} size="large" />
           <Text style={[s.emptyHint, { marginTop: 12 }]}>creating note…</Text>
         </View>
       )}

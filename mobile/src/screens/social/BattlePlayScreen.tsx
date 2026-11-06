@@ -203,7 +203,7 @@ export default function BattlePlayScreen({ user, battleId, onExit }: Props) {
         <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
         <GeoBackground />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <ActivityIndicator color={GOLD_M} size="large" />
+          <ActivityIndicator accessibilityLabel="Loading" color={GOLD_M} size="large" />
           <Text style={{ fontFamily: 'Inter_600SemiBold', color: DIM, fontSize: 12 }}>
             {phase === 'submitting' ? 'submitting your score…' : 'loading battle…'}
           </Text>

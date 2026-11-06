@@ -376,7 +376,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
                 haptic="light"
                 disabled={deleteBusy}
               >
-                {deleteBusy ? <ActivityIndicator color="#fff" /> : <Text style={[styles.deleteBtnText, { color: '#fff' }]}>{deleteStep === 'password' ? 'Send code' : 'Delete'}</Text>}
+                {deleteBusy ? <ActivityIndicator accessibilityLabel="Loading" color="#fff" /> : <Text style={[styles.deleteBtnText, { color: '#fff' }]}>{deleteStep === 'password' ? 'Send code' : 'Delete'}</Text>}
               </HapticTouchable>
             </View>
           </View>

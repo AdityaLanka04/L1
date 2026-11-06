@@ -196,7 +196,7 @@ export default function XpHistoryScreen({ user, onBack }: Props) {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 60 }} />
+          <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 60 }} />
         ) : loadError ? (
           <HapticTouchable onPress={load} haptic="light" style={s.errorBanner}>
             <Ionicons name="alert-circle-outline" size={16} color={selectedTheme.danger} />

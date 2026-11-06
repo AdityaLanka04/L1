@@ -230,7 +230,7 @@ export default function SpacedRepetitionScreen({ user, onBack }: Props) {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
+          <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
         ) : (
           <>
             <View style={s.dueCard}>
@@ -282,7 +282,7 @@ export default function SpacedRepetitionScreen({ user, onBack }: Props) {
                 <Text accessibilityRole="header" style={s.statsTitle}>study tips</Text>
                 {!suggestions ? (
                   <HapticTouchable style={s.tipsRefresh} onPress={loadSuggestions} disabled={loadingSuggestions} haptic="selection">
-                    {loadingSuggestions ? <ActivityIndicator size="small" color={s.accentInk.color} /> : <Text style={s.tipsRefreshText}>get AI tips</Text>}
+                    {loadingSuggestions ? <ActivityIndicator accessibilityLabel="Loading" size="small" color={s.accentInk.color} /> : <Text style={s.tipsRefreshText}>get AI tips</Text>}
                   </HapticTouchable>
                 ) : null}
               </View>

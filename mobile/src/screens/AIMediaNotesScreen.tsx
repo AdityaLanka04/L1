@@ -803,7 +803,7 @@ function AIMediaHub({
                   )}
                 </View>
                 {openingId === item.id
-                  ? <ActivityIndicator color={GOLD_L} size="small" />
+                  ? <ActivityIndicator accessibilityLabel="Loading" color={GOLD_L} size="small" />
                   : <Text style={s.histDate}>{fmtDate(item.created_at)}</Text>}
               </TileGleam>
             ))
@@ -1066,7 +1066,7 @@ function PodcastMode({
         <Text style={s.podcastTitle}>podcast mode</Text>
         {!!error && <Text accessibilityLiveRegion="polite" style={s.errorText}>{error}</Text>}
         <HapticTouchable style={s.podcastPrimary} onPress={start} disabled={busy === 'start'} haptic="medium">
-          {busy === 'start' ? <ActivityIndicator color={INK} /> : <Text style={s.podcastPrimaryText}>start podcast</Text>}
+          {busy === 'start' ? <ActivityIndicator accessibilityLabel="Loading" color={INK} /> : <Text style={s.podcastPrimaryText}>start podcast</Text>}
         </HapticTouchable>
       </View>
     );
@@ -1097,7 +1097,7 @@ function PodcastMode({
                 <Text style={s.chapterTitle}>{chapter.title || `Chapter ${(chapter.index ?? index) + 1}`}</Text>
                 {!!chapter.summary && <MathText style={s.chapterSummary} numberOfLines={2}>{chapter.summary}</MathText>}
               </View>
-              {busy === `jump-${chapter.index ?? index}` ? <ActivityIndicator color={GOLD_M} size="small" /> : null}
+              {busy === `jump-${chapter.index ?? index}` ? <ActivityIndicator accessibilityLabel="Loading" color={GOLD_M} size="small" /> : null}
             </HapticTouchable>
           ))}
         </View>
@@ -1121,7 +1121,7 @@ function PodcastMode({
           multiline
         />
         <HapticTouchable style={s.podcastSecondary} onPress={() => ask()} disabled={busy === 'ask' || !question.trim()} haptic="selection">
-          {busy === 'ask' ? <ActivityIndicator color={GOLD_L} /> : <Text style={s.podcastSecondaryText}>ask</Text>}
+          {busy === 'ask' ? <ActivityIndicator accessibilityLabel="Loading" color={GOLD_L} /> : <Text style={s.podcastSecondaryText}>ask</Text>}
         </HapticTouchable>
         {!!answer && <MathText style={s.podcastAnswer}>{answer}</MathText>}
         {followUps.length ? (
@@ -1168,7 +1168,7 @@ function PodcastMode({
 function PodcastButton({ label, onPress, busy }: { label: string; onPress: () => void; busy?: boolean }) {
   return (
     <HapticTouchable style={s.podcastControl} onPress={onPress} disabled={busy} haptic="medium">
-      {busy ? <ActivityIndicator color={GOLD_L} size="small" /> : <Text style={s.podcastControlText}>{label}</Text>}
+      {busy ? <ActivityIndicator accessibilityLabel="Loading" color={GOLD_L} size="small" /> : <Text style={s.podcastControlText}>{label}</Text>}
     </HapticTouchable>
   );
 }

@@ -608,7 +608,7 @@ export default function GamesScreen({ user, onBack }: Props) {
             <HapticTouchable onPress={doCreate} haptic="medium" style={{ opacity: creating ? 0.7 : 1, width: '100%' }}>
               <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={modal.launchBtn}>
                 {creating
-                  ? <ActivityIndicator color={INK} />
+                  ? <ActivityIndicator accessibilityLabel="Loading" color={INK} />
                   : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={modal.launchText}>SEND CHALLENGE</Text>
                       <Ionicons name="chevron-forward" size={14} color={INK} />

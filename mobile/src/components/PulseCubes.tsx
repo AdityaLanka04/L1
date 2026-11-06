@@ -20,7 +20,7 @@ export default function PulseCubes({ color, size = 11, style }: Props) {
   }, [cubes]);
 
   return (
-    <View style={[styles.row, style]}>
+    <View accessible accessibilityRole="progressbar" accessibilityLabel="Loading" style={[styles.row, style]}>
       {cubes.map((cube, i) => (
         <Animated.View
           key={i}

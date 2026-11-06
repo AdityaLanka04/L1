@@ -240,7 +240,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
           </View>
 
           {loadingDetail ? (
-            <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 60 }} />
+            <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 60 }} />
           ) : detail?.content_type === 'note' ? (
             <View style={s.card}>
               <MarkdownText>{detail.content || ''}</MarkdownText>
@@ -341,7 +341,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
+          <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
         ) : loadError ? (
           <HapticTouchable onPress={load} haptic="light" style={s.errorBanner}>
             <Ionicons name="alert-circle-outline" size={16} color={selectedTheme.danger} />
@@ -470,7 +470,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
                       <Text style={s.centerCardCancelText}>back</Text>
                     </HapticTouchable>
                     <HapticTouchable style={s.centerCardSave} onPress={submitShare} haptic="medium" disabled={sharing || selectedFriendIds.size === 0}>
-                      {sharing ? <ActivityIndicator size="small" color={selectedTheme.bgPrimary} /> : <Text style={s.centerCardSaveText}>share</Text>}
+                      {sharing ? <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.bgPrimary} /> : <Text style={s.centerCardSaveText}>share</Text>}
                     </HapticTouchable>
                   </View>
                 </>

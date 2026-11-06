@@ -1,7 +1,7 @@
 import { TouchableOpacity, TouchableOpacityProps } from 'react-native';
 import { HapticVariant, triggerHaptic } from '../utils/haptics';
 
-const DEFAULT_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
+const DEFAULT_HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
 
 type Props = TouchableOpacityProps & {
   haptic?: HapticVariant;

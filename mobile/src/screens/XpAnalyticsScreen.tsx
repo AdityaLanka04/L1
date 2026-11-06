@@ -202,7 +202,7 @@ export default function XpAnalyticsScreen({ user, onBack, onOpenAchievements, on
               />
             ) : (
               <View style={s.chartLoading}>
-                <ActivityIndicator color={selectedTheme.accent} />
+                <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} />
               </View>
             )}
           </View>
@@ -211,7 +211,7 @@ export default function XpAnalyticsScreen({ user, onBack, onOpenAchievements, on
         <View style={s.breakdownSection}>
           <Text accessibilityRole="header" style={s.sectionTitle}>where it came from</Text>
           {loading ? (
-            <ActivityIndicator color={selectedTheme.accent} style={{ marginTop: 24 }} />
+            <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} style={{ marginTop: 24 }} />
           ) : bySource.length === 0 ? (
             <View style={s.emptyWrap}>
               <Ionicons name="bar-chart-outline" size={26} color={selectedTheme.textSecondary} />

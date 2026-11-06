@@ -115,7 +115,7 @@ export default function TopicsHubScreen({ user, onBack, onOpenTopic }: Props) {
         {!user.id ? (
           <EmptyState icon="person-circle-outline" title="reload your session" copy="Your account needs to refresh before your topics can load." styles={s} />
         ) : loading ? (
-          <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
+          <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
         ) : !overview || overview.total_topics === 0 ? (
           <EmptyState icon="book-outline" title="no topics yet" copy="Study with quizzes, flashcards, or chat to start building your topic mastery profile." styles={s} />
         ) : (

@@ -421,7 +421,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
           </View>
 
           {detailLoading ? (
-            <View style={s.centerLoading}><ActivityIndicator color={selectedTheme.accent} size="large" /><Text style={s.loadingText}>building your map…</Text></View>
+            <View style={s.centerLoading}><ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" /><Text style={s.loadingText}>building your map…</Text></View>
           ) : (
             <GraphCanvas
               graph={graph}
@@ -472,7 +472,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
             {nodeTab === 'learn' ? (
               <ScrollView contentContainerStyle={s.sheetScroll} showsVerticalScrollIndicator={false}>
                 {exploringNode === selectedNode?.id ? (
-                  <View style={s.lessonLoading}><ActivityIndicator color={selectedTheme.accent} /><Text style={s.loadingText}>learning this topic…</Text></View>
+                  <View style={s.lessonLoading}><ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} /><Text style={s.loadingText}>learning this topic…</Text></View>
                 ) : selectedNode?.ai_explanation ? (
                   <>
                     <LearningSection icon="information-circle-outline" title="Overview" styles={s}><Text style={s.bodyText}>{selectedNode.ai_explanation}</Text></LearningSection>
@@ -500,7 +500,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
                 <View style={s.sheetActions}>
                   {selectedNode?.expansion_status !== 'expanded' && (
                     <HapticTouchable style={s.secondaryAction} onPress={() => selectedNode && expandNode(selectedNode)} disabled={busyNode === selectedNode?.id} haptic="medium">
-                      {busyNode === selectedNode?.id ? <ActivityIndicator color={selectedTheme.accentHover} size="small" /> : <Ionicons name="git-branch-outline" size={16} color={selectedTheme.accentHover} />}
+                      {busyNode === selectedNode?.id ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accentHover} size="small" /> : <Ionicons name="git-branch-outline" size={16} color={selectedTheme.accentHover} />}
                       <Text style={s.secondaryActionText}>EXPAND SUBTOPICS</Text>
                     </HapticTouchable>
                   )}
@@ -513,7 +513,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
                 <Text style={s.formLabel}>PERSONAL NOTES</Text>
                 <TextInput accessibilityLabel="Capture what you understand, questions, or memory cues…" value={nodeNotes} onChangeText={setNodeNotes} placeholder="Capture what you understand, questions, or memory cues…" placeholderTextColor={selectedTheme.textSecondary} style={[s.input, s.notesInput]} multiline textAlignVertical="top" />
                 <HapticTouchable style={s.primaryBtn} onPress={saveNotes} disabled={busyNode === selectedNode?.id} haptic="medium">
-                  {busyNode === selectedNode?.id ? <ActivityIndicator color={s.accentInk.color} /> : <><Ionicons name="save-outline" size={16} color={s.accentInk.color} /><Text style={s.primaryText}>SAVE NOTES</Text></>}
+                  {busyNode === selectedNode?.id ? <ActivityIndicator accessibilityLabel="Loading" color={s.accentInk.color} /> : <><Ionicons name="save-outline" size={16} color={s.accentInk.color} /><Text style={s.primaryText}>SAVE NOTES</Text></>}
                 </HapticTouchable>
               </View>
             ) : (
@@ -521,7 +521,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
                 <Text style={s.formLabel}>ASK ABOUT THIS TOPIC</Text>
                 <TextInput accessibilityLabel="Ask for an analogy, prerequisites, or a simpler explanation…" value={chatQuestion} onChangeText={setChatQuestion} placeholder="Ask for an analogy, prerequisites, or a simpler explanation…" placeholderTextColor={selectedTheme.textSecondary} style={[s.input, s.askInput]} multiline textAlignVertical="top" />
                 <HapticTouchable style={s.primaryBtn} onPress={askNode} disabled={chatLoading} haptic="medium">
-                  {chatLoading ? <ActivityIndicator color={s.accentInk.color} /> : <><Ionicons name="send" size={15} color={s.accentInk.color} /><Text style={s.primaryText}>ASK TOPIC</Text></>}
+                  {chatLoading ? <ActivityIndicator accessibilityLabel="Loading" color={s.accentInk.color} /> : <><Ionicons name="send" size={15} color={s.accentInk.color} /><Text style={s.primaryText}>ASK TOPIC</Text></>}
                 </HapticTouchable>
                 {!!chatAnswer && <ScrollView style={s.answerScroll}><View style={s.answerCard}><Text style={s.bodyText}>{chatAnswer}</Text></View></ScrollView>}
               </View>
@@ -573,7 +573,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
           </View>
         )}
 
-        {loading ? <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 50 }} /> : !maps.length ? (
+        {loading ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 50 }} /> : !maps.length ? (
           <View style={s.empty}><View style={s.emptyIcon}><Ionicons name="git-network-outline" size={31} color={selectedTheme.accentHover} /></View><Text style={s.emptyTitle}>start your first map</Text><Text style={s.emptyText}>Choose a broad topic, then expand it into a living network of connected ideas.</Text></View>
         ) : (
           <View style={s.mapList}>
@@ -601,7 +601,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
             <Text style={s.formLabel}>ROOT TOPIC</Text>
             <TextInput accessibilityLabel="Machine learning, photosynthesis…" value={topic} onChangeText={setTopic} placeholder="Machine learning, photosynthesis…" placeholderTextColor={selectedTheme.textSecondary} style={s.input} autoFocus returnKeyType="done" onSubmitEditing={() => createMap()} />
             <Text style={s.createHint}>Start broad. You can expand any concept into subtopics after the map is created.</Text>
-            <HapticTouchable style={s.primaryBtn} onPress={() => createMap()} disabled={creating} haptic="medium">{creating ? <ActivityIndicator color={s.accentInk.color} /> : <><Ionicons name="sparkles" size={16} color={s.accentInk.color} /><Text style={s.primaryText}>BUILD KNOWLEDGE MAP</Text></>}</HapticTouchable>
+            <HapticTouchable style={s.primaryBtn} onPress={() => createMap()} disabled={creating} haptic="medium">{creating ? <ActivityIndicator accessibilityLabel="Loading" color={s.accentInk.color} /> : <><Ionicons name="sparkles" size={16} color={s.accentInk.color} /><Text style={s.primaryText}>BUILD KNOWLEDGE MAP</Text></>}</HapticTouchable>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -773,8 +773,8 @@ function GraphCanvas({ graph, selectedId, busyNode, exploringNode, onOpen, onLea
                 <View style={{ flex: 1 }}><Text style={styles.graphNodeTitle} numberOfLines={2}>{node.topic_name}</Text><Text style={styles.graphNodeMeta}>level {node.depth_level ?? 0}{node.user_notes ? ' · notes' : ''}</Text></View>
               </HapticTouchable>
               <View style={styles.graphNodeActions}>
-                <HapticTouchable style={styles.graphNodeAction} onPress={() => onLearn(node)} disabled={exploringNode === node.id} haptic="medium">{exploringNode === node.id ? <ActivityIndicator color={theme.accentHover} size="small" /> : <><Ionicons name="book-outline" size={12} color={theme.accentHover} /><Text style={styles.graphNodeActionText}>LEARN</Text></>}</HapticTouchable>
-                {!expanded && <HapticTouchable style={styles.graphNodeAction} onPress={() => onExpand(node)} disabled={busyNode === node.id} haptic="medium">{busyNode === node.id ? <ActivityIndicator color={theme.accentHover} size="small" /> : <><Ionicons name="add" size={13} color={theme.accentHover} /><Text style={styles.graphNodeActionText}>EXPAND</Text></>}</HapticTouchable>}
+                <HapticTouchable style={styles.graphNodeAction} onPress={() => onLearn(node)} disabled={exploringNode === node.id} haptic="medium">{exploringNode === node.id ? <ActivityIndicator accessibilityLabel="Loading" color={theme.accentHover} size="small" /> : <><Ionicons name="book-outline" size={12} color={theme.accentHover} /><Text style={styles.graphNodeActionText}>LEARN</Text></>}</HapticTouchable>
+                {!expanded && <HapticTouchable style={styles.graphNodeAction} onPress={() => onExpand(node)} disabled={busyNode === node.id} haptic="medium">{busyNode === node.id ? <ActivityIndicator accessibilityLabel="Loading" color={theme.accentHover} size="small" /> : <><Ionicons name="add" size={13} color={theme.accentHover} /><Text style={styles.graphNodeActionText}>EXPAND</Text></>}</HapticTouchable>}
               </View>
             </View>
           );
@@ -833,7 +833,7 @@ function ChildNodeModal({ visible, parent, topic, description, busy, onTopic, on
         <View style={styles.createBody}>
           <Text style={styles.formLabel}>TOPIC</Text><TextInput accessibilityLabel="Specific subtopic" value={topic} onChangeText={onTopic} placeholder="Specific subtopic" placeholderTextColor={theme.textSecondary} style={styles.input} autoFocus />
           <Text style={styles.formLabel}>DESCRIPTION</Text><TextInput accessibilityLabel="Why this belongs in the map…" value={description} onChangeText={onDescription} placeholder="Why this belongs in the map…" placeholderTextColor={theme.textSecondary} style={[styles.input, styles.askInput]} multiline textAlignVertical="top" />
-          <HapticTouchable style={styles.primaryBtn} onPress={onAdd} disabled={busy} haptic="medium">{busy ? <ActivityIndicator color={styles.accentInk.color} /> : <><Ionicons name="add" size={17} color={styles.accentInk.color} /><Text style={styles.primaryText}>ADD TO GRAPH</Text></>}</HapticTouchable>
+          <HapticTouchable style={styles.primaryBtn} onPress={onAdd} disabled={busy} haptic="medium">{busy ? <ActivityIndicator accessibilityLabel="Loading" color={styles.accentInk.color} /> : <><Ionicons name="add" size={17} color={styles.accentInk.color} /><Text style={styles.primaryText}>ADD TO GRAPH</Text></>}</HapticTouchable>
         </View>
       </KeyboardAvoidingView>
     </Modal>

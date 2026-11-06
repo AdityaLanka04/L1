@@ -409,7 +409,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
             <Text style={s.heroWord}>all set!</Text>
             <Text style={s.welcomeBody}>Your AI tutor is now personalized to match your unique learning preferences.</Text>
             <View style={s.redirectRow}>
-              <ActivityIndicator size="small" color={selectedTheme.accentHover} />
+              <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.accentHover} />
               <Text style={s.btnSub}>taking you in…</Text>
             </View>
           </Panel>
@@ -634,7 +634,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
                 >
                   <LinearGradient colors={[selectedTheme.accentHover, selectedTheme.accent]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={s.btn}>
                     {saving ? (
-                      <ActivityIndicator color={selectedTheme.bgPrimary} />
+                      <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.bgPrimary} />
                     ) : (
                       <>
                         <Text style={s.btnText}>complete setup</Text>

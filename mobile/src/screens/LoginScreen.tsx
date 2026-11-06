@@ -393,7 +393,7 @@ export default function LoginScreen({ onLogin }: Props) {
 
                     <HapticTouchable style={s.btnWrap} onPress={handleLogin} activeOpacity={0.88} disabled={loading} haptic="medium">
                       <View style={s.btn}>
-                        {loading ? <ActivityIndicator color={'#0a0a0b'} /> : <Text style={s.btnText}>sign in</Text>}
+                        {loading ? <ActivityIndicator accessibilityLabel="Loading" color={'#0a0a0b'} /> : <Text style={s.btnText}>sign in</Text>}
                       </View>
                     </HapticTouchable>
 
@@ -424,7 +424,7 @@ export default function LoginScreen({ onLogin }: Props) {
                             <Text style={s.label}>account email or phone</Text>
                             <TextInput accessibilityLabel="Email or phone number" style={s.input} value={resetIdentifier} onChangeText={setResetIdentifier} placeholder="you@example.com or phone number" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} autoCapitalize="none" />
                             <HapticTouchable style={s.secondaryBtn} onPress={handleRequestPasswordReset} activeOpacity={0.88} disabled={resetLoading} haptic="medium">
-                              {resetLoading ? <ActivityIndicator color={CB_ACCENT} /> : <Text style={s.secondaryBtnText}>send OTP</Text>}
+                              {resetLoading ? <ActivityIndicator accessibilityLabel="Loading" color={CB_ACCENT} /> : <Text style={s.secondaryBtnText}>send OTP</Text>}
                             </HapticTouchable>
                           </>
                         ) : resetStep === 'otp' ? (
@@ -455,7 +455,7 @@ export default function LoginScreen({ onLogin }: Props) {
                               </HapticTouchable>
                             </View>
                             <HapticTouchable style={s.secondaryBtn} onPress={handleConfirmPasswordReset} activeOpacity={0.88} disabled={resetLoading} haptic="medium">
-                              {resetLoading ? <ActivityIndicator color={CB_ACCENT} /> : <Text style={s.secondaryBtnText}>reset password</Text>}
+                              {resetLoading ? <ActivityIndicator accessibilityLabel="Loading" color={CB_ACCENT} /> : <Text style={s.secondaryBtnText}>reset password</Text>}
                             </HapticTouchable>
                             <HapticTouchable style={s.textButton} onPress={() => { animateLayout(); setResetStep('otp'); }} activeOpacity={0.8} disabled={resetLoading} haptic="selection">
                               <Text style={s.textButtonLabel}>back</Text>
@@ -485,7 +485,7 @@ export default function LoginScreen({ onLogin }: Props) {
 
                     <HapticTouchable style={s.btnWrap} onPress={handleVerifyRegistration} activeOpacity={0.88} disabled={loading} haptic="medium">
                       <View style={s.btn}>
-                        {loading ? <ActivityIndicator color={'#0a0a0b'} /> : <Text style={s.btnText}>verify account</Text>}
+                        {loading ? <ActivityIndicator accessibilityLabel="Loading" color={'#0a0a0b'} /> : <Text style={s.btnText}>verify account</Text>}
                       </View>
                     </HapticTouchable>
 
@@ -555,7 +555,7 @@ export default function LoginScreen({ onLogin }: Props) {
 
                     <HapticTouchable style={s.btnWrap} onPress={handleRegister} activeOpacity={0.88} disabled={loading} haptic="medium">
                       <View style={s.btn}>
-                        {loading ? <ActivityIndicator color={'#0a0a0b'} /> : <Text style={s.btnText}>create account</Text>}
+                        {loading ? <ActivityIndicator accessibilityLabel="Loading" color={'#0a0a0b'} /> : <Text style={s.btnText}>create account</Text>}
                       </View>
                     </HapticTouchable>
                   </>

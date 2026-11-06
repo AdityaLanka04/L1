@@ -106,7 +106,7 @@ export default function ContextPanel({ visible, onClose, onChange }: Props) {
               </View>
 
               {loading ? (
-                <ActivityIndicator color={selectedTheme.accent} style={{ marginTop: 40 }} />
+                <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} style={{ marginTop: 40 }} />
               ) : (
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
                   <View style={s.hsCard}>
@@ -140,7 +140,7 @@ export default function ContextPanel({ visible, onClose, onChange }: Props) {
                           </View>
                           <HapticTouchable accessibilityLabel="Remove document" onPress={() => removeDoc(doc.doc_id)} style={s.docDelete} haptic="warning">
                             {removingId === doc.doc_id ? (
-                              <ActivityIndicator size="small" color={selectedTheme.danger} />
+                              <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.danger} />
                             ) : (
                               <Ionicons name="close" size={15} color={selectedTheme.danger} />
                             )}

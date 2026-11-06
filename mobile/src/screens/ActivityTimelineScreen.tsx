@@ -203,7 +203,7 @@ export default function ActivityTimelineScreen({ user, onBack, onNavigate }: Pro
 
       <View style={s.body}>
         {loading ? (
-          <ActivityIndicator color={GOLD_D} style={{ marginTop: 60 }} />
+          <ActivityIndicator accessibilityLabel="Loading" color={GOLD_D} style={{ marginTop: 60 }} />
         ) : groupedTimeline.length === 0 ? (
           <View style={s.empty}>
             <Ionicons name="pulse-outline" size={32} color={DIM} />

@@ -275,7 +275,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
                   disabled={savingUsername}
                 >
                   {savingUsername ? (
-                    <ActivityIndicator size="small" color={selectedTheme.isLight ? darkenColor(selectedTheme.accent, 32) : selectedTheme.bgPrimary} />
+                    <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.isLight ? darkenColor(selectedTheme.accent, 32) : selectedTheme.bgPrimary} />
                   ) : (
                     <Text style={styles.editSaveText}>save</Text>
                   )}
@@ -336,7 +336,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
                   disabled={savingPassword}
                 >
                   {savingPassword ? (
-                    <ActivityIndicator size="small" color={selectedTheme.isLight ? darkenColor(selectedTheme.accent, 32) : selectedTheme.bgPrimary} />
+                    <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.isLight ? darkenColor(selectedTheme.accent, 32) : selectedTheme.bgPrimary} />
                   ) : (
                     <Text style={styles.editSaveText}>save</Text>
                   )}
@@ -361,7 +361,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
 
           {loadingProfile ? (
             <View style={styles.linkRow}>
-              <ActivityIndicator size="small" color={selectedTheme.accent} />
+              <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.accent} />
               <Text style={[styles.linkSubLabel, { marginLeft: 10 }]}>loading profile…</Text>
             </View>
           ) : (

@@ -321,7 +321,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
               </View>
 
               <HapticTouchable style={[m.createSubmitBtn, creating && m.createSubmitBtnDisabled]} onPress={doCreate} haptic="medium" disabled={creating}>
-                {creating ? <ActivityIndicator color={ink} size="small" /> : (
+                {creating ? <ActivityIndicator accessibilityLabel="Loading" color={ink} size="small" /> : (
                   <View style={m.createSubmitRow}>
                     <Text style={m.createSubmitText}>create playlist</Text>
                     <Ionicons name="chevron-forward" size={14} color={ink} />

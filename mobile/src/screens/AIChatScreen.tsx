@@ -1076,7 +1076,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
                   ) : null}
 
                   {sessionsLoading ? (
-                    <ActivityIndicator color={selectedTheme.accent} style={{ marginTop: 32 }} />
+                    <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} style={{ marginTop: 32 }} />
                   ) : filteredSessions.length === 0 ? (
                     <View style={s.sidebarEmptyWrap}>
                       <Ionicons name="chatbubbles-outline" size={28} color={selectedTheme.textSecondary} />
@@ -1150,7 +1150,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
                 <Text style={s.centerCardCancelText}>cancel</Text>
               </HapticTouchable>
               <HapticTouchable style={s.centerCardSave} onPress={submitCreateFolder} haptic="medium" disabled={creatingFolder || !newFolderName.trim()}>
-                {creatingFolder ? <ActivityIndicator size="small" color={selectedTheme.bgPrimary} /> : <Text style={s.centerCardSaveText}>create</Text>}
+                {creatingFolder ? <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.bgPrimary} /> : <Text style={s.centerCardSaveText}>create</Text>}
               </HapticTouchable>
             </View>
           </View>
@@ -1175,7 +1175,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
                 <Text style={s.centerCardCancelText}>cancel</Text>
               </HapticTouchable>
               <HapticTouchable style={s.centerCardSave} onPress={submitRename} haptic="medium" disabled={renaming || !renameText.trim()}>
-                {renaming ? <ActivityIndicator size="small" color={selectedTheme.bgPrimary} /> : <Text style={s.centerCardSaveText}>save</Text>}
+                {renaming ? <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.bgPrimary} /> : <Text style={s.centerCardSaveText}>save</Text>}
               </HapticTouchable>
             </View>
           </View>
@@ -1212,7 +1212,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
                     <Text style={s.centerCardCancelText}>cancel</Text>
                   </HapticTouchable>
                   <HapticTouchable style={s.centerCardSave} onPress={submitShare} haptic="medium" disabled={sharing || selectedFriendIds.size === 0}>
-                    {sharing ? <ActivityIndicator size="small" color={selectedTheme.bgPrimary} /> : <Text style={s.centerCardSaveText}>share</Text>}
+                    {sharing ? <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.bgPrimary} /> : <Text style={s.centerCardSaveText}>share</Text>}
                   </HapticTouchable>
                 </View>
               </>

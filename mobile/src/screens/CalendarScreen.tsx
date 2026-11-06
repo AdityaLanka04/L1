@@ -317,7 +317,7 @@ export default function CalendarScreen({ user, onBack, onNavigate }: Props) {
 
           {/* Calendar grid */}
           {loading ? (
-            <ActivityIndicator color={GOLD_D} style={{ marginTop: 40 }} />
+            <ActivityIndicator accessibilityLabel="Loading" color={GOLD_D} style={{ marginTop: 40 }} />
           ) : (
             <View style={s.grid}>
               {Array.from({ length: firstDay }).map((_, i) => <View key={`e-${i}`} style={s.cell} />)}
@@ -480,7 +480,7 @@ export default function CalendarScreen({ user, onBack, onNavigate }: Props) {
                 <Text style={s.modalCancelText}>cancel</Text>
               </HapticTouchable>
               <HapticTouchable style={s.modalSave} onPress={submitCreateReminder} haptic="medium" disabled={creating || !newTitle.trim()}>
-                {creating ? <ActivityIndicator size="small" color={selectedTheme.isLight ? darkenColor(selectedTheme.accent, 34) : selectedTheme.bgPrimary} /> : <Text style={s.modalSaveText}>add</Text>}
+                {creating ? <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.isLight ? darkenColor(selectedTheme.accent, 34) : selectedTheme.bgPrimary} /> : <Text style={s.modalSaveText}>add</Text>}
               </HapticTouchable>
             </View>
           </View>

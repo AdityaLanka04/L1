@@ -173,7 +173,7 @@ export default function FriendsScreen({ user, onBack }: Props) {
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
       <GeoBackground />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={selectedTheme.accent} size="large" />
+        <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" />
       </View>
     </View>
   );
@@ -212,7 +212,7 @@ export default function FriendsScreen({ user, onBack }: Props) {
               autoCorrect={false}
             />
             {searching
-              ? <ActivityIndicator size="small" color={selectedTheme.accent} />
+              ? <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.accent} />
               : searchQ.length > 0 && (
                   <HapticTouchable accessibilityLabel="Clear search" onPress={() => { setSearchQ(''); setResults([]); }} haptic="light">
                     <Ionicons name="close-circle" size={15} color={selectedTheme.textSecondary} />

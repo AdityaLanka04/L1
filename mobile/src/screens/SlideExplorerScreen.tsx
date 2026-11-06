@@ -236,7 +236,7 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
               <Text style={s.readerTopMeta}>{analysis ? `${slideIndex + 1} of ${analysis.total_slides}` : 'preparing study guide'}</Text>
             </View>
             <HapticTouchable accessibilityLabel="Re-analyze deck" style={s.iconBtn} onPress={() => analyzeDeck(selectedDeck, true)} disabled={busy === `analyze-${selectedDeck.id}`} haptic="selection">
-              {busy === `analyze-${selectedDeck.id}` ? <ActivityIndicator color={selectedTheme.accent} size="small" /> : <Ionicons name="refresh-outline" size={17} color={selectedTheme.accent} />}
+              {busy === `analyze-${selectedDeck.id}` ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="small" /> : <Ionicons name="refresh-outline" size={17} color={selectedTheme.accent} />}
             </HapticTouchable>
           </View>
         )}
@@ -250,7 +250,7 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
               <Text style={s.heroCopy}>{slides.length} decks · {totals} slides ready for analysis</Text>
             </View>
             <HapticTouchable style={s.uploadHero} onPress={pickDecks} disabled={busy === 'upload'} haptic="medium">
-              {busy === 'upload' ? <ActivityIndicator color={selectedTheme.bgPrimary} size="small" /> : <Ionicons name="cloud-upload-outline" size={16} color={selectedTheme.bgPrimary} />}
+              {busy === 'upload' ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.bgPrimary} size="small" /> : <Ionicons name="cloud-upload-outline" size={16} color={selectedTheme.bgPrimary} />}
               <Text style={s.uploadText}>upload slides</Text>
             </HapticTouchable>
           </>
@@ -260,7 +260,7 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
           <View style={s.analysisPanel}>
             {busy === `analyze-${selectedDeck.id}` && !analysis ? (
               <View style={s.analysisLoading}>
-                <ActivityIndicator color={selectedTheme.accent} size="large" />
+                <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" />
                 <Text style={s.analysisLoadingTitle}>building your study guide</Text>
                 <Text style={s.analysisLoadingCopy}>Reading slides and organizing the key ideas.</Text>
               </View>
@@ -287,7 +287,7 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
                         <Image source={slideImage} style={s.slideImage} resizeMode="contain" onError={() => setImageFailed(true)} />
                       ) : (
                         <View style={s.imageFallback}>
-                          {slideImage === null && !imageFailed ? <ActivityIndicator color={selectedTheme.accent} /> : <Ionicons name="document-text-outline" size={32} color={selectedTheme.accent} />}
+                          {slideImage === null && !imageFailed ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} /> : <Ionicons name="document-text-outline" size={32} color={selectedTheme.accent} />}
                           <Text style={s.imageFallbackText}>slide {current.slide_number || slideIndex + 1}</Text>
                         </View>
                       )}
@@ -348,7 +348,7 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
         ) : null}
 
         {!selectedDeck && loading ? (
-          <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 44 }} />
+          <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 44 }} />
         ) : !selectedDeck && slides.length === 0 ? (
           <View style={s.empty}>
             <Ionicons name="albums-outline" size={40} color={selectedTheme.accent} />
@@ -368,7 +368,7 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
                     <Text style={s.deckMeta}>{deck.page_count || 0} slides · {deck.processing_status || 'ready'}</Text>
                   </View>
                   <HapticTouchable accessibilityLabel="Delete" style={s.deleteBtn} onPress={() => removeDeck(deck)} haptic="warning">
-                    {busy === `delete-${deck.id}` ? <ActivityIndicator color={selectedTheme.danger} size="small" /> : <Ionicons name="trash-outline" size={15} color={selectedTheme.danger} />}
+                    {busy === `delete-${deck.id}` ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.danger} size="small" /> : <Ionicons name="trash-outline" size={15} color={selectedTheme.danger} />}
                   </HapticTouchable>
                 </View>
                 <View style={s.actionRow}>
@@ -411,7 +411,7 @@ function InsightSection({ title, icon, children, styles }: { title: string; icon
 function MiniAction({ label, onPress, busy, styles }: { label: string; onPress: () => void; busy?: boolean; styles: ReturnType<typeof createStyles> }) {
   return (
     <HapticTouchable style={styles.miniAction} onPress={onPress} disabled={busy} haptic="medium">
-      {busy ? <ActivityIndicator color={styles.miniActionText.color} size="small" /> : <Text style={styles.miniActionText}>{label}</Text>}
+      {busy ? <ActivityIndicator accessibilityLabel="Loading" color={styles.miniActionText.color} size="small" /> : <Text style={styles.miniActionText}>{label}</Text>}
     </HapticTouchable>
   );
 }

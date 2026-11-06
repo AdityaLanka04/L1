@@ -744,7 +744,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                 <TextInput accessibilityLabel="10" value={count} onChangeText={setCount} keyboardType="number-pad" placeholder="10" placeholderTextColor={selectedTheme.textSecondary} style={s.input} />
               </View>
               <HapticTouchable style={[s.genSubmit, generating && s.genSubmitDisabled]} onPress={generateSet} disabled={generating} activeOpacity={0.88} haptic="medium">
-                {generating ? <ActivityIndicator color={ink} size="small" /> : (
+                {generating ? <ActivityIndicator accessibilityLabel="Loading" color={ink} size="small" /> : (
                   <View style={s.genSubmitRow}>
                     <Text style={s.genSubmitText}>generate set</Text>
                     <Ionicons name="chevron-forward" size={14} color={ink} />
@@ -757,7 +757,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
               <View style={s.formGroup}>
                 <Text style={s.fieldLabel}>PDF sources</Text>
                 <HapticTouchable style={s.uploadBtn} onPress={pickAndUploadPdf} disabled={uploadingPdf} haptic="medium">
-                  {uploadingPdf ? <ActivityIndicator color={ink} size="small" /> : (
+                  {uploadingPdf ? <ActivityIndicator accessibilityLabel="Loading" color={ink} size="small" /> : (
                     <>
                       <Ionicons name="cloud-upload-outline" size={16} color={ink} />
                       <Text style={s.uploadBtnText}>Choose PDF</Text>
@@ -881,7 +881,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
               {selectedDocIds.length > 0 ? (
                 <>
                   <HapticTouchable style={[s.genSubmit, pdfGenerating && s.genSubmitDisabled]} onPress={generateFromPdfSources} disabled={pdfGenerating} activeOpacity={0.88} haptic="medium">
-                    {pdfGenerating ? <ActivityIndicator color={ink} size="small" /> : (
+                    {pdfGenerating ? <ActivityIndicator accessibilityLabel="Loading" color={ink} size="small" /> : (
                       <View style={s.genSubmitRow}>
                         <Text style={s.genSubmitText}>generate set</Text>
                         <Ionicons name="chevron-forward" size={14} color={ink} />
@@ -891,13 +891,13 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
 
                   <View style={s.secondaryActionRow}>
                     <HapticTouchable style={s.secondaryActionBtn} onPress={previewFromPdfSources} disabled={pdfPreviewing} haptic="selection">
-                      {pdfPreviewing ? <ActivityIndicator color={selectedTheme.accentHover} size="small" /> : <Text style={s.secondaryActionText}>Preview & refine</Text>}
+                      {pdfPreviewing ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accentHover} size="small" /> : <Text style={s.secondaryActionText}>Preview & refine</Text>}
                     </HapticTouchable>
                     <HapticTouchable style={s.secondaryActionBtn} onPress={generateAdaptiveFromPdfSources} disabled={pdfAdaptiveLoading} haptic="selection">
-                      {pdfAdaptiveLoading ? <ActivityIndicator color={selectedTheme.accentHover} size="small" /> : <Text style={s.secondaryActionText}>Adaptive</Text>}
+                      {pdfAdaptiveLoading ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accentHover} size="small" /> : <Text style={s.secondaryActionText}>Adaptive</Text>}
                     </HapticTouchable>
                     <HapticTouchable style={s.secondaryActionBtn} onPress={generateRelatedFromPdfSources} disabled={pdfRelatedLoading} haptic="selection">
-                      {pdfRelatedLoading ? <ActivityIndicator color={selectedTheme.accentHover} size="small" /> : <Text style={s.secondaryActionText}>Related</Text>}
+                      {pdfRelatedLoading ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accentHover} size="small" /> : <Text style={s.secondaryActionText}>Related</Text>}
                     </HapticTouchable>
                   </View>
                 </>
@@ -969,7 +969,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
               </View>
 
               <HapticTouchable style={[s.genSubmit, pasteGenerating && s.genSubmitDisabled]} onPress={generateFromPastedContent} disabled={pasteGenerating} activeOpacity={0.88} haptic="medium">
-                {pasteGenerating ? <ActivityIndicator color={ink} size="small" /> : (
+                {pasteGenerating ? <ActivityIndicator accessibilityLabel="Loading" color={ink} size="small" /> : (
                   <View style={s.genSubmitRow}>
                     <Text style={s.genSubmitText}>generate set</Text>
                     <Ionicons name="chevron-forward" size={14} color={ink} />
@@ -1096,7 +1096,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                     style={s.regenInput}
                   />
                   <HapticTouchable accessibilityLabel="Regenerate question" style={s.regenBtn} onPress={() => regeneratePreviewQuestion(idx)} disabled={regenBusyIndex === idx} haptic="selection">
-                    {regenBusyIndex === idx ? <ActivityIndicator color={selectedTheme.accentHover} size="small" /> : <Ionicons name="refresh" size={15} color={selectedTheme.accentHover} />}
+                    {regenBusyIndex === idx ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accentHover} size="small" /> : <Ionicons name="refresh" size={15} color={selectedTheme.accentHover} />}
                   </HapticTouchable>
                   <HapticTouchable accessibilityLabel="Remove question" style={s.regenBtn} onPress={() => removePreviewQuestion(idx)} haptic="warning">
                     <Ionicons name="trash-outline" size={15} color={selectedTheme.danger} />
@@ -1111,7 +1111,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
               <Text style={s.secondaryText}>cancel</Text>
             </HapticTouchable>
             <HapticTouchable style={[s.primaryBtn, { flex: 2 }]} onPress={acceptPreviewQuestions} disabled={previewSaving || previewQuestions.length === 0}>
-              {previewSaving ? <ActivityIndicator color={selectedTheme.bgPrimary} /> : <Text style={s.primaryText}>save {previewQuestions.length} questions</Text>}
+              {previewSaving ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.bgPrimary} /> : <Text style={s.primaryText}>save {previewQuestions.length} questions</Text>}
             </HapticTouchable>
           </View>
         </KeyboardAvoidingView>
@@ -1156,7 +1156,7 @@ function SetCard({ set, color, busy, onOpen, onDelete, styles, ink }: {
         <View style={styles.cardProgressTop}><Text style={styles.cardProgressLabel}>BEST SCORE</Text><Text style={styles.cardPercent}>{best}%</Text></View>
         <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.max(2, best)}%`, backgroundColor: color }]} /></View>
         <View style={[styles.openBtn, { backgroundColor: color }]}>
-          {busy ? <ActivityIndicator color={ink} size="small" /> : (
+          {busy ? <ActivityIndicator accessibilityLabel="Loading" color={ink} size="small" /> : (
             <>
               <Text style={[styles.openBtnText, { color: ink }]}>PRACTICE</Text>
               <Ionicons name="chevron-forward" size={15} color={ink} />

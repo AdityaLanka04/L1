@@ -112,7 +112,7 @@ export default function AchievementsScreen({ user, onBack }: Props) {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
+          <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
         ) : (
           <>
             {loadError ? (

@@ -435,7 +435,7 @@ function NodeSheet({ node, visible, busy, onClose, onStart, theme, styles, ink }
           {!!node?.core_sections?.length && <SheetSection title="Module outline" icon="layers-outline" styles={styles}>{node.core_sections.slice(0, 4).map((section, index) => <View key={`${section.title}-${index}`} style={styles.outlineRow}><Text style={styles.outlineIndex}>{String(index + 1).padStart(2, '0')}</Text><View style={{ flex: 1 }}><Text style={styles.outlineTitle}>{section.title || `Section ${index + 1}`}</Text>{!!section.content && <MathText style={styles.outlineText} numberOfLines={3}>{section.content}</MathText>}</View></View>)}</SheetSection>}
           {!!summaries.length && <SheetSection title="Key takeaways" icon="bulb-outline" styles={styles}>{summaries.map((item, index) => <MathText key={`${item}-${index}`} style={styles.takeawayText}>{`— ${item}`}</MathText>)}</SheetSection>}
         </ScrollView>
-        {status !== 'completed' && <View style={styles.sheetFooter}><HapticTouchable style={styles.startBtn} onPress={onStart} disabled={busy} haptic="medium">{busy ? <ActivityIndicator color={ink} /> : <><Ionicons name={status === 'in_progress' ? 'arrow-forward' : 'play'} size={16} color={ink} /><Text style={styles.startBtnText}>{status === 'in_progress' ? 'CONTINUE MODULE' : 'START MODULE'}</Text></>}</HapticTouchable></View>}
+        {status !== 'completed' && <View style={styles.sheetFooter}><HapticTouchable style={styles.startBtn} onPress={onStart} disabled={busy} haptic="medium">{busy ? <ActivityIndicator accessibilityLabel="Loading" color={ink} /> : <><Ionicons name={status === 'in_progress' ? 'arrow-forward' : 'play'} size={16} color={ink} /><Text style={styles.startBtnText}>{status === 'in_progress' ? 'CONTINUE MODULE' : 'START MODULE'}</Text></>}</HapticTouchable></View>}
       </View>
     </Modal>
   );
@@ -469,7 +469,7 @@ function CreatePathModal({ visible, topic, difficulty, length, goals, generating
           })}</View>
           <Text style={styles.formLabel}>PERSONAL GOALS · OPTIONAL</Text>
           <TextInput style={styles.goalsInput} value={goals} onChangeText={onGoals} placeholder={'Build practical projects\nUnderstand the fundamentals'} placeholderTextColor={theme.textSecondary} multiline textAlignVertical="top" />
-          <HapticTouchable style={styles.startBtn} onPress={onGenerate} disabled={generating} haptic="medium">{generating ? <><ActivityIndicator color={ink} /><Text style={styles.startBtnText}>BUILDING YOUR ROUTE…</Text></> : <><Ionicons name="sparkles" size={17} color={ink} /><Text style={styles.startBtnText}>GENERATE LEARNING PATH</Text></>}</HapticTouchable>
+          <HapticTouchable style={styles.startBtn} onPress={onGenerate} disabled={generating} haptic="medium">{generating ? <><ActivityIndicator accessibilityLabel="Loading" color={ink} /><Text style={styles.startBtnText}>BUILDING YOUR ROUTE…</Text></> : <><Ionicons name="sparkles" size={17} color={ink} /><Text style={styles.startBtnText}>GENERATE LEARNING PATH</Text></>}</HapticTouchable>
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>

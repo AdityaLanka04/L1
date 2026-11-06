@@ -105,7 +105,7 @@ export default function RLInsightsScreen({ user, onBack }: Props) {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
+          <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="large" style={{ marginTop: 80 }} />
         ) : !data || totalInteractions === 0 ? (
           <View style={s.empty}>
             <Ionicons name="hardware-chip-outline" size={32} color={selectedTheme.accent} />

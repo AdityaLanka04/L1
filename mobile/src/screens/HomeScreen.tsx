@@ -337,7 +337,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
             {stats === null ? (
               <View style={styles.heroLoading}>
                 <Text style={styles.heroLoadingBrand}>cerbyl</Text>
-                <ActivityIndicator color={selectedTheme.accent} size="small" />
+                <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} size="small" />
                 <Text style={styles.heroLoadingText}>syncing your learning signal</Text>
               </View>
             ) : (
@@ -437,7 +437,7 @@ export default function HomeScreen({ user, onNavigate, onNavigateToAI, onSwipeLe
                   <NeumorphicTexture />
                   <View style={styles.timelineDot}>
                     {actingPrompt === prompt.text
-                      ? <ActivityIndicator size="small" color={selectedTheme.accentHover} />
+                      ? <ActivityIndicator accessibilityLabel="Loading" size="small" color={selectedTheme.accentHover} />
                       : <Ionicons name={prompt.priority === 'high' ? 'flash-outline' : 'bulb-outline'} size={15} color={selectedTheme.accentHover} />}
                   </View>
                   <View style={styles.timelineContent}>
