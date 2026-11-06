@@ -170,7 +170,7 @@ function RankAvatar({ rank, name, picture, size = 46 }: { rank: number; name: st
         alignItems: 'center', justifyContent: 'center', backgroundColor: rgbaFromHex(selectedTheme.panelAlt, 0.98),
       }}>
         {picture
-          ? <Image source={{ uri: picture }} style={{ width: size, height: size }} resizeMode="cover" />
+          ? <Image accessibilityLabel="Profile picture" source={{ uri: picture }} style={{ width: size, height: size }} resizeMode="cover" />
           : <Text style={{ fontFamily: 'Inter_900Black', fontSize: size * 0.34, color: selectedTheme.accentHover }}>{inits(name)}</Text>}
       </View>
     </LinearGradient>

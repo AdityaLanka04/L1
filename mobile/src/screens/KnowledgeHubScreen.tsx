@@ -472,7 +472,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
       <View style={s.sectionStack}>
         <View style={s.askComposer}>
           <Ionicons name="search" size={16} color={selectedTheme.textSecondary} style={{ marginTop: 3 }} />
-          <TextInput
+          <TextInput accessibilityLabel="Ask or search your knowledge base"
             value={askQuery}
             onChangeText={setAskQuery}
             placeholder={deck.length ? 'ask your deck...' : 'search or ask your knowledge base...'}

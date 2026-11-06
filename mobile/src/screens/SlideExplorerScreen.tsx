@@ -284,7 +284,7 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
                   <>
                     <View style={s.slideFrame}>
                       {slideImage && !imageFailed ? (
-                        <Image source={slideImage} style={s.slideImage} resizeMode="contain" onError={() => setImageFailed(true)} />
+                        <Image accessibilityLabel="Slide image" source={slideImage} style={s.slideImage} resizeMode="contain" onError={() => setImageFailed(true)} />
                       ) : (
                         <View style={s.imageFallback}>
                           {slideImage === null && !imageFailed ? <ActivityIndicator accessibilityLabel="Loading" color={selectedTheme.accent} /> : <Ionicons name="document-text-outline" size={32} color={selectedTheme.accent} />}

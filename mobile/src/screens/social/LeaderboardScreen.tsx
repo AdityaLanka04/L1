@@ -40,7 +40,7 @@ function Avatar({ name, picture, size = 44, medal }: { name: string; picture?: s
         style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
       >
         {picture
-          ? <Image source={{ uri: picture }} style={{ width: size, height: size }} resizeMode="cover" />
+          ? <Image accessibilityLabel="Profile picture" source={{ uri: picture }} style={{ width: size, height: size }} resizeMode="cover" />
           : <Text style={{ fontFamily: 'Inter_900Black', fontSize: size * 0.33, color: TEXT }}>{initials}</Text>}
       </LinearGradient>
     </LinearGradient>

@@ -820,7 +820,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
                           end={{ x: 1, y: 1 }}
                           style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]}
                         />
-                        {item.attachmentUri ? <Image source={{ uri: item.attachmentUri }} style={s.messageImage} /> : null}
+                        {item.attachmentUri ?  <Image accessibilityLabel="Attached image" source={{ uri: item.attachmentUri }} style={s.messageImage} /> : null}
                         <Text style={s.userText}>{item.text}</Text>
                       </>
                     ) : (
@@ -912,7 +912,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
         <View style={s.composerWrap}>
           {attachment ? (
             <View style={s.attachmentPreview}>
-              <Image source={{ uri: attachment.uri }} style={s.attachmentThumb} />
+              <Image accessibilityLabel="Attachment preview" source={{ uri: attachment.uri }} style={s.attachmentThumb} />
               <Text style={s.attachmentName} numberOfLines={1}>{attachment.name}</Text>
               <HapticTouchable accessibilityLabel="Remove attachment" onPress={removeAttachment} style={s.attachmentRemove} haptic="light">
                 <Ionicons name="close" size={13} color={selectedTheme.textPrimary} />

@@ -492,7 +492,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
 
               <Panel panelStyle={s.panel} panelClipStyle={s.panelClip}>
                 <Text style={s.sectionLabel}>03 · what other subjects are you interested in?</Text>
-                <TextInput
+                <TextInput accessibilityLabel="Add a subject"
                   style={s.input}
                   placeholder={answers.subjects.length > 0 ? '' : 'e.g., Calculus, Organic Chemistry, Data Structures...'}
                   placeholderTextColor={selectedTheme.textSecondary}

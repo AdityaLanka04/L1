@@ -468,7 +468,7 @@ function CreatePathModal({ visible, topic, difficulty, length, goals, generating
             );
           })}</View>
           <Text style={styles.formLabel}>PERSONAL GOALS · OPTIONAL</Text>
-          <TextInput style={styles.goalsInput} value={goals} onChangeText={onGoals} placeholder={'Build practical projects\nUnderstand the fundamentals'} placeholderTextColor={theme.textSecondary} multiline textAlignVertical="top" />
+          <TextInput accessibilityLabel="Learning goals, one per line" style={styles.goalsInput} value={goals} onChangeText={onGoals} placeholder={'Build practical projects\nUnderstand the fundamentals'} placeholderTextColor={theme.textSecondary} multiline textAlignVertical="top" />
           <HapticTouchable style={styles.startBtn} onPress={onGenerate} disabled={generating} haptic="medium">{generating ? <><ActivityIndicator accessibilityLabel="Loading" color={ink} /><Text style={styles.startBtnText}>BUILDING YOUR ROUTE…</Text></> : <><Ionicons name="sparkles" size={17} color={ink} /><Text style={styles.startBtnText}>GENERATE LEARNING PATH</Text></>}</HapticTouchable>
         </ScrollView>
       </KeyboardAvoidingView>

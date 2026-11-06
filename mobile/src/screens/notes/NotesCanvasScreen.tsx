@@ -2212,7 +2212,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
               <Text style={[styles.textModalTitle, { color: theme.accentHover }]}>
                 {textTarget ? `${textTarget.mode === 'edit' ? 'Edit' : 'Add'} ${textTarget.tool === 'sticky' ? 'Sticky Note' : 'Text'}` : 'Edit'}
               </Text>
-              <TextInput
+              <TextInput accessibilityLabel="Text for canvas"
                 value={textDraft}
                 onChangeText={setTextDraft}
                 multiline

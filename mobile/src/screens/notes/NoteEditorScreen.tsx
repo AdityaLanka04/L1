@@ -971,7 +971,7 @@ export default function NoteEditorScreen({
               })}
             </View>
 
-            <TextInput
+            <TextInput accessibilityLabel="AI prompt"
               value={aiPrompt}
               onChangeText={setAiPrompt}
               placeholder={aiAction === 'generate' ? 'Write a prompt for a new note...' : 'Optional instructions for the rewrite'}
