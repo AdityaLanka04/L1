@@ -436,7 +436,7 @@ export function ModalShell({
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <View style={s.modalRoot}>
-        <Pressable style={s.modalBackdrop} onPress={onClose} />
+        <Pressable accessibilityLabel="Dismiss" style={s.modalBackdrop} onPress={onClose} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.modalKeyboard}>
           <View style={s.modalCard}>
             <View style={s.modalHeader}>
@@ -444,7 +444,7 @@ export function ModalShell({
                 <Text style={s.modalTitle}>{title}</Text>
                 {subtitle ? <Text style={s.modalSubtitle}>{subtitle}</Text> : null}
               </View>
-              <HapticTouchable onPress={onClose} style={s.modalCloseBtn} haptic="selection">
+              <HapticTouchable accessibilityLabel="Close" onPress={onClose} style={s.modalCloseBtn} haptic="selection">
                 <Ionicons name="close" size={18} color={GOLD_D} />
               </HapticTouchable>
             </View>
@@ -503,7 +503,7 @@ export function NotesTrashScreen({
       <GeoBackground />
       <AmbientBubbles theme={CURRENT_THEME} variant="notes" opacity={0.82} />
       <View style={s.header}>
-        <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
         <View style={{ flex: 1 }}>
@@ -929,7 +929,7 @@ export function NotesHome({
         <View style={s.compactHeader}>
           <View style={s.compactHeaderMain}>
             {onBack ? (
-              <HapticTouchable onPress={onBack} style={s.compactBackBtn} haptic="selection">
+              <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={s.compactBackBtn} haptic="selection">
                 <Ionicons name="chevron-back" size={20} color={GOLD_L} />
               </HapticTouchable>
             ) : null}
@@ -950,7 +950,7 @@ export function NotesHome({
       ) : (
         <View style={s.mobileHeader}>
           {onBack ? (
-            <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+            <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
               <Ionicons name="chevron-back" size={22} color={GOLD_L} />
             </HapticTouchable>
           ) : null}
@@ -990,7 +990,7 @@ export function NotesHome({
                 onChangeText={setSearch}
               />
               {!!search && (
-                <HapticTouchable onPress={() => setSearch('')} haptic="selection">
+                <HapticTouchable accessibilityLabel="Clear search" onPress={() => setSearch('')} haptic="selection">
                   <Ionicons name="close-circle" size={16} color={GOLD_D} />
                 </HapticTouchable>
               )}
@@ -1480,7 +1480,7 @@ export function NotesGenerator({
       <GeoBackground />
       <AmbientBubbles theme={CURRENT_THEME} variant="notes" opacity={0.82} />
       <View style={s.header}>
-        <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
           <Ionicons name="chevron-back" size={20} color={GOLD_L} />
         </HapticTouchable>
         <Text style={[s.compactTitle, { flex: 1 }]}>create</Text>
@@ -1619,7 +1619,7 @@ export function NotesTemplates({
       <GeoBackground />
       <AmbientBubbles theme={CURRENT_THEME} variant="notes" opacity={0.82} />
       <View style={s.header}>
-        <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
           <Ionicons name="chevron-back" size={20} color={GOLD_L} />
         </HapticTouchable>
         <Text style={[s.compactTitle, { flex: 1 }]}>templates</Text>

@@ -270,7 +270,7 @@ export default function LearningPathsScreen({ onBack, onNavigate, embedded = fal
         <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
         <GeoBackground />
         <View style={s.detailHeader}>
-          <HapticTouchable onPress={() => { setSelectedPath(null); setActiveNode(null); setSelectedNode(null); }} haptic="selection"><Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} /></HapticTouchable>
+          <HapticTouchable accessibilityLabel="Go back" onPress={() => { setSelectedPath(null); setActiveNode(null); setSelectedNode(null); }} haptic="selection"><Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} /></HapticTouchable>
           <View style={s.headerCopy}><Text style={s.kicker}>LEARNING PATH</Text><Text style={s.detailHeaderTitle} numberOfLines={1}>{selectedPath.title}</Text></View>
           <Text style={s.percentBadgeText}>{percent}%</Text>
         </View>
@@ -333,7 +333,7 @@ export default function LearningPathsScreen({ onBack, onNavigate, embedded = fal
       <GeoBackground />
       <View style={s.libraryScreen}>
         <View style={s.libraryHeader}>
-          <HapticTouchable onPress={onBack} haptic="selection">
+          <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
           </HapticTouchable>
           <View style={{ flex: 1, marginLeft: 12 }}>
@@ -354,7 +354,7 @@ export default function LearningPathsScreen({ onBack, onNavigate, embedded = fal
             </View>
 
             <View style={s.libraryTools}>
-              <View style={s.searchBox}><Ionicons name="search-outline" size={15} color={selectedTheme.textSecondary} /><TextInput style={s.searchInput} value={search} onChangeText={setSearch} placeholder="Search paths" placeholderTextColor={selectedTheme.textSecondary} />{!!search && <HapticTouchable onPress={() => setSearch('')} haptic="light"><Ionicons name="close-circle" size={15} color={selectedTheme.textSecondary} /></HapticTouchable>}</View>
+              <View style={s.searchBox}><Ionicons name="search-outline" size={15} color={selectedTheme.textSecondary} /><TextInput style={s.searchInput} value={search} onChangeText={setSearch} placeholder="Search paths" placeholderTextColor={selectedTheme.textSecondary} />{!!search && <HapticTouchable accessibilityLabel="Clear search" onPress={() => setSearch('')} haptic="light"><Ionicons name="close-circle" size={15} color={selectedTheme.textSecondary} /></HapticTouchable>}</View>
             </View>
 
             {!filtered.length ? (
@@ -404,7 +404,7 @@ function PathCard({ path, onOpen, onDelete, color, styles, ink }: { path: Learni
   return (
     <HapticTouchable style={styles.pathCard} onPress={onOpen} haptic="selection" activeOpacity={0.88}>
       <View style={[styles.pathCardBanner, { backgroundColor: color }]}>
-        <HapticTouchable style={styles.deleteBtn} onPress={(event) => { event.stopPropagation(); onDelete(); }} haptic="warning">
+        <HapticTouchable accessibilityLabel="Delete" style={styles.deleteBtn} onPress={(event) => { event.stopPropagation(); onDelete(); }} haptic="warning">
           <Ionicons name="trash-outline" size={13} color="#171411" />
         </HapticTouchable>
         <Text style={styles.pathCardTitle} numberOfLines={3}>{path.title}</Text>
@@ -427,7 +427,7 @@ function NodeSheet({ node, visible, busy, onClose, onStart, theme, styles, ink }
       <View style={styles.modalRoot}>
         <LinearGradient colors={[theme.bgTop, theme.bgPrimary, theme.bgBottom]} style={StyleSheet.absoluteFillObject} />
         <View style={styles.sheetHandle} />
-        <View style={styles.sheetHeader}><View style={{ flex: 1 }}><Text style={styles.kicker}>MODULE {String((node?.order_index ?? 0) + 1).padStart(2, '0')}</Text><Text style={styles.sheetTitle}>{node?.title}</Text></View><HapticTouchable style={styles.sheetClose} onPress={onClose} haptic="light"><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
+        <View style={styles.sheetHeader}><View style={{ flex: 1 }}><Text style={styles.kicker}>MODULE {String((node?.order_index ?? 0) + 1).padStart(2, '0')}</Text><Text style={styles.sheetTitle}>{node?.title}</Text></View><HapticTouchable accessibilityLabel="Close" style={styles.sheetClose} onPress={onClose} haptic="light"><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetScroll}>
           {!!node?.description && <Text style={styles.sheetDescription}>{node.description}</Text>}
           <View style={styles.nodeInfoRow}><View style={styles.nodeInfoPill}><Ionicons name="time-outline" size={13} color={theme.accentHover} /><Text style={styles.nodeInfoText}>{node?.estimated_minutes ?? 20} MIN</Text></View><View style={styles.nodeInfoPill}><Ionicons name="sparkles-outline" size={13} color={theme.accentHover} /><Text style={styles.nodeInfoText}>{node?.progress?.xp_earned ?? 0} XP</Text></View><View style={styles.nodeInfoPill}><Text style={styles.nodeInfoText}>{status.replace('_', ' ').toUpperCase()}</Text></View></View>
@@ -451,7 +451,7 @@ function CreatePathModal({ visible, topic, difficulty, length, goals, generating
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalRoot}>
         <LinearGradient colors={[theme.bgTop, theme.bgPrimary, theme.bgBottom]} style={StyleSheet.absoluteFillObject} />
         <View style={styles.sheetHandle} />
-        <View style={styles.sheetHeader}><View style={{ flex: 1 }}><Text style={styles.sheetTitle}>Build your route</Text><Text style={styles.createSub}>Describe the destination. Cerbyl will plan every step.</Text></View><HapticTouchable style={styles.sheetClose} onPress={onClose}><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
+        <View style={styles.sheetHeader}><View style={{ flex: 1 }}><Text style={styles.sheetTitle}>Build your route</Text><Text style={styles.createSub}>Describe the destination. Cerbyl will plan every step.</Text></View><HapticTouchable accessibilityLabel="Close" style={styles.sheetClose} onPress={onClose}><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.createScroll}>
           <Text style={styles.formLabel}>WHAT DO YOU WANT TO MASTER?</Text>
           <TextInput style={styles.topicInput} value={topic} onChangeText={onTopic} placeholder="e.g. Backend system design" placeholderTextColor={theme.textSecondary} autoFocus multiline />

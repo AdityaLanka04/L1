@@ -614,7 +614,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
         <GeoBackground />
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
           <View style={s.topBar}>
-            <HapticTouchable onPress={() => setSelectedSet(null)} haptic="selection">
+            <HapticTouchable accessibilityLabel="Go back" onPress={() => setSelectedSet(null)} haptic="selection">
               <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
             </HapticTouchable>
             <Text style={s.topMeta}>{current + 1}/{questions.length}</Text>
@@ -709,7 +709,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
         <AmbientBubbles theme={selectedTheme} variant="flashcards" opacity={0.72} />
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={s.header}>
-            <HapticTouchable onPress={() => setShowGenerate(false)} style={{ marginRight: 12 }} haptic="selection">
+            <HapticTouchable accessibilityLabel="Go back" onPress={() => setShowGenerate(false)} style={{ marginRight: 12 }} haptic="selection">
               <Ionicons name="chevron-back" size={20} color={selectedTheme.accentHover} />
             </HapticTouchable>
             <Text style={[s.genTitle, { flex: 1 }]}>generate questions</Text>
@@ -786,7 +786,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                             <View style={[s.docCheck, isSelected && s.docCheckActive]}>
                               {isSelected ? <Ionicons name="checkmark" size={11} color={ink} /> : null}
                             </View>
-                            <HapticTouchable style={s.docDeleteBtn} onPress={() => removeDocument(doc)} haptic="warning">
+                            <HapticTouchable accessibilityLabel="Delete" style={s.docDeleteBtn} onPress={() => removeDocument(doc)} haptic="warning">
                               <Ionicons name="trash-outline" size={12} color={selectedTheme.textSecondary} />
                             </HapticTouchable>
                           </View>
@@ -856,10 +856,10 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                       <View key={level} style={s.difficultyRow}>
                         <Text style={s.difficultyLabel}>{level} · {pdfDifficultyCounts[level]} ({pdfDifficultyMix[level]}%)</Text>
                         <View style={s.stepperRow}>
-                          <HapticTouchable style={s.stepperBtn} onPress={() => adjustDifficulty(level, -5)} haptic="selection">
+                          <HapticTouchable accessibilityLabel="Decrease difficulty" style={s.stepperBtn} onPress={() => adjustDifficulty(level, -5)} haptic="selection">
                             <Ionicons name="remove" size={14} color={selectedTheme.textPrimary} />
                           </HapticTouchable>
-                          <HapticTouchable style={s.stepperBtn} onPress={() => adjustDifficulty(level, 5)} haptic="selection">
+                          <HapticTouchable accessibilityLabel="Increase difficulty" style={s.stepperBtn} onPress={() => adjustDifficulty(level, 5)} haptic="selection">
                             <Ionicons name="add" size={14} color={selectedTheme.textPrimary} />
                           </HapticTouchable>
                         </View>
@@ -948,10 +948,10 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                   <View key={level} style={s.difficultyRow}>
                     <Text style={s.difficultyLabel}>{level} · {pdfDifficultyCounts[level]} ({pdfDifficultyMix[level]}%)</Text>
                     <View style={s.stepperRow}>
-                      <HapticTouchable style={s.stepperBtn} onPress={() => adjustDifficulty(level, -5)} haptic="selection">
+                      <HapticTouchable accessibilityLabel="Decrease difficulty" style={s.stepperBtn} onPress={() => adjustDifficulty(level, -5)} haptic="selection">
                         <Ionicons name="remove" size={14} color={selectedTheme.textPrimary} />
                       </HapticTouchable>
-                      <HapticTouchable style={s.stepperBtn} onPress={() => adjustDifficulty(level, 5)} haptic="selection">
+                      <HapticTouchable accessibilityLabel="Increase difficulty" style={s.stepperBtn} onPress={() => adjustDifficulty(level, 5)} haptic="selection">
                         <Ionicons name="add" size={14} color={selectedTheme.textPrimary} />
                       </HapticTouchable>
                     </View>
@@ -989,7 +989,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
       <GeoBackground />
       <AmbientBubbles theme={selectedTheme} variant="flashcards" opacity={0.72} />
       <View style={s.header}>
-        <HapticTouchable onPress={onBack} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
         </HapticTouchable>
         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -1048,7 +1048,7 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
               <Text style={s.modalTitle}>preview questions</Text>
               <Text style={s.subtitle}>review, regenerate, or remove before saving</Text>
             </View>
-            <HapticTouchable onPress={() => setShowPreview(false)}><Ionicons name="close" size={22} color={selectedTheme.accent} /></HapticTouchable>
+            <HapticTouchable accessibilityLabel="Close" onPress={() => setShowPreview(false)}><Ionicons name="close" size={22} color={selectedTheme.accent} /></HapticTouchable>
           </View>
 
           {previewStats ? (
@@ -1095,10 +1095,10 @@ export default function QuestionBankScreen({ user, onBack }: Props) {
                     placeholderTextColor={selectedTheme.textSecondary}
                     style={s.regenInput}
                   />
-                  <HapticTouchable style={s.regenBtn} onPress={() => regeneratePreviewQuestion(idx)} disabled={regenBusyIndex === idx} haptic="selection">
+                  <HapticTouchable accessibilityLabel="Regenerate question" style={s.regenBtn} onPress={() => regeneratePreviewQuestion(idx)} disabled={regenBusyIndex === idx} haptic="selection">
                     {regenBusyIndex === idx ? <ActivityIndicator color={selectedTheme.accentHover} size="small" /> : <Ionicons name="refresh" size={15} color={selectedTheme.accentHover} />}
                   </HapticTouchable>
-                  <HapticTouchable style={s.regenBtn} onPress={() => removePreviewQuestion(idx)} haptic="warning">
+                  <HapticTouchable accessibilityLabel="Remove question" style={s.regenBtn} onPress={() => removePreviewQuestion(idx)} haptic="warning">
                     <Ionicons name="trash-outline" size={15} color={selectedTheme.danger} />
                   </HapticTouchable>
                 </View>
@@ -1146,7 +1146,7 @@ function SetCard({ set, color, busy, onOpen, onDelete, styles, ink }: {
   return (
     <HapticTouchable style={styles.setCard} onPress={onOpen} haptic="selection" activeOpacity={0.88}>
       <View style={[styles.setCardBanner, { backgroundColor: color }]}>
-        <HapticTouchable style={styles.setDeleteBtn} onPress={(event) => { event.stopPropagation(); onDelete(); }} haptic="warning">
+        <HapticTouchable accessibilityLabel="Delete" style={styles.setDeleteBtn} onPress={(event) => { event.stopPropagation(); onDelete(); }} haptic="warning">
           <Ionicons name="trash-outline" size={13} color="#171411" />
         </HapticTouchable>
         <Text style={styles.setCardTitle} numberOfLines={3}>{set.title}</Text>

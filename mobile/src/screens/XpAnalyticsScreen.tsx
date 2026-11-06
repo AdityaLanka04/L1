@@ -133,7 +133,7 @@ export default function XpAnalyticsScreen({ user, onBack, onOpenAchievements, on
       <GeoBackground />
 
       <View style={s.topBar}>
-        <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="light">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="light">
           <Ionicons name="chevron-back" size={22} color={selectedTheme.accent} />
         </HapticTouchable>
         <View style={{ flex: 1 }}>
@@ -302,7 +302,7 @@ function XpMenuSidebar({
   return (
     <Modal transparent animationType="none" onRequestClose={onClose}>
       <View style={s.overlay}>
-        <HapticTouchable style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} haptic="none" />
+        <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} haptic="none" />
         <Animated.View style={[s.panel, { width: sidebarWidth, transform: [{ translateX: slideAnim }] }]}>
           <LinearGradient
             colors={[darkenColor(theme.bgTop, theme.isLight ? 4 : 0), theme.panelAlt, theme.bgPrimary]}

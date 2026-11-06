@@ -185,7 +185,7 @@ export default function FriendsScreen({ user, onBack }: Props) {
 
       {/* Same header construction as Solo Quiz / Battles / Flashcards. */}
       <View style={s.header}>
-        <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
         </HapticTouchable>
         <View style={{ flex: 1 }}>
@@ -214,7 +214,7 @@ export default function FriendsScreen({ user, onBack }: Props) {
             {searching
               ? <ActivityIndicator size="small" color={selectedTheme.accent} />
               : searchQ.length > 0 && (
-                  <HapticTouchable onPress={() => { setSearchQ(''); setResults([]); }} haptic="light">
+                  <HapticTouchable accessibilityLabel="Clear search" onPress={() => { setSearchQ(''); setResults([]); }} haptic="light">
                     <Ionicons name="close-circle" size={15} color={selectedTheme.textSecondary} />
                   </HapticTouchable>
                 )
@@ -330,14 +330,14 @@ export default function FriendsScreen({ user, onBack }: Props) {
                       </View>
                     </View>
                     <View style={fc.actions}>
-                      <HapticTouchable
+                      <HapticTouchable accessibilityLabel={kudosed ? 'Remove kudos' : 'Give kudos'}
                         style={[fc.iconBtn, kudosed && fc.iconBtnActive]}
                         onPress={() => doKudos(f.id)}
                         haptic="light"
                       >
                         <Ionicons name={kudosed ? 'heart' : 'heart-outline'} size={15} color={kudosed ? selectedTheme.danger : selectedTheme.textSecondary} />
                       </HapticTouchable>
-                      <HapticTouchable style={fc.iconBtn} onPress={() => doRemove(f.id, fname(f))} haptic="warning">
+                      <HapticTouchable accessibilityLabel="Remove friend" style={fc.iconBtn} onPress={() => doRemove(f.id, fname(f))} haptic="warning">
                         <Ionicons name="person-remove-outline" size={14} color={selectedTheme.textSecondary} />
                       </HapticTouchable>
                     </View>

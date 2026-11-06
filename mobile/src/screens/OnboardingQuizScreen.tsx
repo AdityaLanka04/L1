@@ -519,7 +519,7 @@ export default function OnboardingQuizScreen({ user, onDone }: Props) {
                     {answers.subjects.map(subject => (
                       <View key={subject} style={s.tag}>
                         <Text style={s.tagText}>{subject}</Text>
-                        <HapticTouchable onPress={() => removeSubject(subject)} haptic="light">
+                        <HapticTouchable accessibilityLabel="Remove subject" onPress={() => removeSubject(subject)} haptic="light">
                           <Ionicons name="close" size={12} color={selectedTheme.textSecondary} />
                         </HapticTouchable>
                       </View>

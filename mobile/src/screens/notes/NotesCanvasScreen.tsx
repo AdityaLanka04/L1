@@ -1696,16 +1696,16 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                 </Text>
               </View>
               <View style={styles.stageActions}>
-                <HapticTouchable style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleUndo} disabled={!canUndo} haptic="selection">
+                <HapticTouchable accessibilityLabel="Undo" style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleUndo} disabled={!canUndo} haptic="selection">
                   <Ionicons name="arrow-undo-outline" size={17} color={canUndo ? theme.accentHover : theme.textSecondary} />
                 </HapticTouchable>
-                <HapticTouchable style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleRedo} disabled={!canRedo} haptic="selection">
+                <HapticTouchable accessibilityLabel="Redo" style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleRedo} disabled={!canRedo} haptic="selection">
                   <Ionicons name="arrow-redo-outline" size={17} color={canRedo ? theme.accentHover : theme.textSecondary} />
                 </HapticTouchable>
-                <HapticTouchable style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleDuplicate} disabled={!selectedElement} haptic="selection">
+                <HapticTouchable accessibilityLabel="Duplicate" style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleDuplicate} disabled={!selectedElement} haptic="selection">
                   <Ionicons name="duplicate-outline" size={17} color={selectedElement ? theme.accentHover : theme.textSecondary} />
                 </HapticTouchable>
-                <HapticTouchable style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleDelete} disabled={!selectedElement} haptic="warning">
+                <HapticTouchable accessibilityLabel="Delete" style={[styles.iconChip, { borderColor: toolbarBorder }]} onPress={handleDelete} disabled={!selectedElement} haptic="warning">
                   <Ionicons name="trash-outline" size={17} color={selectedElement ? theme.danger : theme.textSecondary} />
                 </HapticTouchable>
               </View>
@@ -1726,7 +1726,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
               },
             ]}
           >
-            <HapticTouchable onPress={onBack} style={[styles.navBtn, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panelAlt, 0.9) }]} haptic="selection">
+            <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={[styles.navBtn, { borderColor: toolbarBorder, backgroundColor: rgbaFromHex(theme.panelAlt, 0.9) }]} haptic="selection">
               <Ionicons name="chevron-back" size={20} color={theme.accentHover} />
             </HapticTouchable>
 
@@ -1798,7 +1798,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                         {colorOptions.map((preset) => {
                           const active = color === preset;
                           return (
-                            <HapticTouchable
+                            <HapticTouchable accessibilityLabel={`Stroke color ${preset}`} accessibilityState={{ selected: active }}
                               key={preset}
                               style={[styles.colorDot, { backgroundColor: preset, borderColor: active ? theme.accentHover : toolbarBorder }]}
                               onPress={() => {
@@ -1821,7 +1821,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                         <Text style={[styles.inspectorLabel, { color: theme.textSecondary }]}>width</Text>
                         <View style={styles.widthRow}>
                           {STROKE_WIDTHS.map((width) => (
-                            <HapticTouchable
+                            <HapticTouchable accessibilityLabel={`Stroke width ${width}`} accessibilityState={{ selected: strokeWidth === width }}
                               key={width}
                               style={[
                                 styles.widthChip,
@@ -1903,7 +1903,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
                           {FILL_COLORS.map((preset) => {
                             const active = fillColor === preset;
                             return (
-                              <HapticTouchable
+                              <HapticTouchable accessibilityLabel={`Fill color ${preset}`} accessibilityState={{ selected: active }}
                                 key={preset}
                                 style={[
                                   styles.colorDot,
@@ -2207,7 +2207,7 @@ export default function NotesCanvasScreen({ user, initialData, onBack, onSaved, 
 
         <Modal transparent animationType="fade" visible={showTextModal} onRequestClose={closeTextModal}>
           <View style={styles.textModalRoot}>
-            <Pressable style={styles.textModalBackdrop} onPress={closeTextModal} />
+            <Pressable accessibilityLabel="Dismiss" style={styles.textModalBackdrop} onPress={closeTextModal} />
             <View style={[styles.textModalCard, { backgroundColor: theme.panel, borderColor: toolbarBorder }]}>
               <Text style={[styles.textModalTitle, { color: theme.accentHover }]}>
                 {textTarget ? `${textTarget.mode === 'edit' ? 'Edit' : 'Add'} ${textTarget.tool === 'sticky' ? 'Sticky Note' : 'Text'}` : 'Edit'}

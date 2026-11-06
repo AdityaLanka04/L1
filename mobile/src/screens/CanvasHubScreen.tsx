@@ -104,10 +104,10 @@ export default function CanvasHubScreen({ user, onBack, onOpenNotes }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={selectedTheme.accent} />}
       >
         <View style={s.topBar}>
-          <HapticTouchable style={s.iconBtn} onPress={onBack} haptic="light">
+          <HapticTouchable accessibilityLabel="Go back" style={s.iconBtn} onPress={onBack} haptic="light">
             <Ionicons name="chevron-back" size={18} color={selectedTheme.accent} />
           </HapticTouchable>
-          <HapticTouchable style={s.iconBtn} onPress={load} haptic="selection">
+          <HapticTouchable accessibilityLabel="Refresh" style={s.iconBtn} onPress={load} haptic="selection">
             <Ionicons name="refresh-outline" size={18} color={selectedTheme.accent} />
           </HapticTouchable>
         </View>

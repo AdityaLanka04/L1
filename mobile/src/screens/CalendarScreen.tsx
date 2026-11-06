@@ -275,7 +275,7 @@ export default function CalendarScreen({ user, onBack, onNavigate }: Props) {
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={s.header}>
-          <HapticTouchable onPress={onBack} haptic="selection">
+          <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={GOLD_L} />
           </HapticTouchable>
           <View style={{ flex: 1, marginLeft: 12 }}>
@@ -409,7 +409,7 @@ export default function CalendarScreen({ user, onBack, onNavigate }: Props) {
           <View style={s.dayDetail}>
             <View style={s.dayDetailHeadRow}>
               <Text style={s.dayDetailTitle}>{new Date(selected + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
-              <HapticTouchable onPress={() => setShowCreate(true)} haptic="selection" style={s.addReminderBtn}>
+              <HapticTouchable accessibilityLabel="Add reminder" onPress={() => setShowCreate(true)} haptic="selection" style={s.addReminderBtn}>
                 <Ionicons name="add" size={16} color={GOLD_L} />
               </HapticTouchable>
             </View>
@@ -463,7 +463,7 @@ export default function CalendarScreen({ user, onBack, onNavigate }: Props) {
 
       <Modal transparent visible={showCreate} animationType="fade" onRequestClose={() => setShowCreate(false)}>
         <View style={s.modalOverlay}>
-          <HapticTouchable style={StyleSheet.absoluteFill} onPress={() => setShowCreate(false)} activeOpacity={1} haptic="none" />
+          <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setShowCreate(false)} activeOpacity={1} haptic="none" />
           <View style={s.modalCard}>
             <Text style={s.modalTitle}>new reminder</Text>
             <Text style={s.modalSub}>{selected ? new Date(selected + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : ''}</Text>
@@ -489,7 +489,7 @@ export default function CalendarScreen({ user, onBack, onNavigate }: Props) {
 
       <Modal transparent visible={showMonthPicker} animationType="fade" onRequestClose={() => setShowMonthPicker(false)}>
         <View style={s.modalOverlay}>
-          <HapticTouchable style={StyleSheet.absoluteFill} onPress={() => setShowMonthPicker(false)} activeOpacity={1} haptic="none" />
+          <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setShowMonthPicker(false)} activeOpacity={1} haptic="none" />
           <View style={s.modalCard}>
             <View style={s.yearStepper}>
               <HapticTouchable onPress={() => goToMonth(year - 1, month)} haptic="light" style={s.yearStepBtn} accessibilityLabel="Previous year">

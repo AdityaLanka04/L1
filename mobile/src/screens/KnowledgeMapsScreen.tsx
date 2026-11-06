@@ -446,7 +446,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
                 <Text style={s.nodeSheetKicker}>TOPIC DEEP DIVE</Text>
                 <Text style={s.nodeSheetTitle} numberOfLines={2}>{nodeTitle(selectedNode)}</Text>
               </View>
-              <HapticTouchable style={s.sheetClose} onPress={() => setShowNodePanel(false)} haptic="light"><Ionicons name="close" size={20} color={selectedTheme.accentHover} /></HapticTouchable>
+              <HapticTouchable accessibilityLabel="Close" style={s.sheetClose} onPress={() => setShowNodePanel(false)} haptic="light"><Ionicons name="close" size={20} color={selectedTheme.accentHover} /></HapticTouchable>
             </View>
             <Text style={s.pathText} numberOfLines={2}>{nodePath}</Text>
 
@@ -505,7 +505,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
                     </HapticTouchable>
                   )}
                   <HapticTouchable style={s.secondaryAction} onPress={() => { if (selectedNode) { setShowNodePanel(false); setChildModalNode(selectedNode); } }} haptic="selection"><Ionicons name="add" size={17} color={selectedTheme.accentHover} /><Text style={s.secondaryActionText}>ADD CHILD</Text></HapticTouchable>
-                  {!!selectedNode?.parent_id && <HapticTouchable style={s.dangerAction} onPress={() => selectedNode && removeNode(selectedNode)} haptic="warning"><Ionicons name="trash-outline" size={16} color={selectedTheme.danger} /></HapticTouchable>}
+                  {!!selectedNode?.parent_id && <HapticTouchable accessibilityLabel="Delete" style={s.dangerAction} onPress={() => selectedNode && removeNode(selectedNode)} haptic="warning"><Ionicons name="trash-outline" size={16} color={selectedTheme.danger} /></HapticTouchable>}
                 </View>
               </ScrollView>
             ) : nodeTab === 'notes' ? (
@@ -582,7 +582,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
               <HapticTouchable key={map.id} style={s.libraryMapCard} onPress={() => openMap(map)} haptic="selection" activeOpacity={0.88}>
                 <MiniMapPreview index={index} styles={s} />
                 <View style={s.libraryMapBody}>
-                  <View style={s.libraryMapTop}><Text style={s.libraryMapTitle} numberOfLines={2}>{map.title}</Text><HapticTouchable style={s.mapDelete} onPress={() => removeMap(map)} haptic="warning"><Ionicons name="trash-outline" size={14} color={selectedTheme.textSecondary} /></HapticTouchable></View>
+                  <View style={s.libraryMapTop}><Text style={s.libraryMapTitle} numberOfLines={2}>{map.title}</Text><HapticTouchable accessibilityLabel="Delete" style={s.mapDelete} onPress={() => removeMap(map)} haptic="warning"><Ionicons name="trash-outline" size={14} color={selectedTheme.textSecondary} /></HapticTouchable></View>
                   <Text style={s.libraryMapMeta}>{map.total_nodes || 1} topics · depth {map.max_depth_reached || 0}</Text>
                   <View style={s.libraryMapFooter}><View style={s.openMapPill}><Ionicons name="navigate-outline" size={13} color={s.accentInk.color} /><Text style={s.openMapText}>OPEN GRAPH</Text></View><Ionicons name="arrow-forward" size={17} color={selectedTheme.accentHover} /></View>
                 </View>
@@ -596,7 +596,7 @@ export default function KnowledgeMapsScreen({ user, onBack }: Props) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.modalRoot}>
           <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
           <View style={s.sheetHandle} />
-          <View style={s.createHeader}><View><Text style={s.nodeSheetKicker}>NEW KNOWLEDGE MAP</Text><Text style={s.createTitle}>What do you want to understand?</Text></View><HapticTouchable style={s.sheetClose} onPress={() => setShowCreate(false)}><Ionicons name="close" size={20} color={selectedTheme.accentHover} /></HapticTouchable></View>
+          <View style={s.createHeader}><View><Text style={s.nodeSheetKicker}>NEW KNOWLEDGE MAP</Text><Text style={s.createTitle}>What do you want to understand?</Text></View><HapticTouchable accessibilityLabel="Close" style={s.sheetClose} onPress={() => setShowCreate(false)}><Ionicons name="close" size={20} color={selectedTheme.accentHover} /></HapticTouchable></View>
           <View style={s.createBody}>
             <Text style={s.formLabel}>ROOT TOPIC</Text>
             <TextInput value={topic} onChangeText={setTopic} placeholder="Machine learning, photosynthesis…" placeholderTextColor={selectedTheme.textSecondary} style={s.input} autoFocus returnKeyType="done" onSubmitEditing={() => createMap()} />
@@ -829,7 +829,7 @@ function ChildNodeModal({ visible, parent, topic, description, busy, onTopic, on
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalRoot}>
         <LinearGradient colors={[theme.bgTop, theme.bgPrimary, theme.bgBottom]} style={StyleSheet.absoluteFillObject} />
         <View style={styles.sheetHandle} />
-        <View style={styles.createHeader}><View style={{ flex: 1 }}><Text style={styles.nodeSheetKicker}>ADD TO {parent?.topic_name?.toUpperCase()}</Text><Text style={styles.createTitle}>New connected topic</Text></View><HapticTouchable style={styles.sheetClose} onPress={onClose}><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
+        <View style={styles.createHeader}><View style={{ flex: 1 }}><Text style={styles.nodeSheetKicker}>ADD TO {parent?.topic_name?.toUpperCase()}</Text><Text style={styles.createTitle}>New connected topic</Text></View><HapticTouchable accessibilityLabel="Close" style={styles.sheetClose} onPress={onClose}><Ionicons name="close" size={20} color={theme.accentHover} /></HapticTouchable></View>
         <View style={styles.createBody}>
           <Text style={styles.formLabel}>TOPIC</Text><TextInput value={topic} onChangeText={onTopic} placeholder="Specific subtopic" placeholderTextColor={theme.textSecondary} style={styles.input} autoFocus />
           <Text style={styles.formLabel}>DESCRIPTION</Text><TextInput value={description} onChangeText={onDescription} placeholder="Why this belongs in the map…" placeholderTextColor={theme.textSecondary} style={[styles.input, styles.askInput]} multiline textAlignVertical="top" />

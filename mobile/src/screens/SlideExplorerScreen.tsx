@@ -218,7 +218,7 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
       >
         {!selectedDeck ? (
           <View style={s.header}>
-            <HapticTouchable onPress={onBack} haptic="selection">
+            <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
               <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
             </HapticTouchable>
             <Text style={[s.title, { flex: 1 }]}>slides</Text>
@@ -228,14 +228,14 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
           </View>
         ) : (
           <View style={s.topBar}>
-            <HapticTouchable style={s.iconBtn} onPress={() => { setSelectedDeck(null); setAnalysis(null); }} haptic="light">
+            <HapticTouchable accessibilityLabel="Go back" style={s.iconBtn} onPress={() => { setSelectedDeck(null); setAnalysis(null); }} haptic="light">
               <Ionicons name="chevron-back" size={18} color={selectedTheme.accent} />
             </HapticTouchable>
             <View style={s.readerTopInfo}>
               <Text style={s.readerTopTitle} numberOfLines={1}>{shortName(selectedDeck.filename)}</Text>
               <Text style={s.readerTopMeta}>{analysis ? `${slideIndex + 1} of ${analysis.total_slides}` : 'preparing study guide'}</Text>
             </View>
-            <HapticTouchable style={s.iconBtn} onPress={() => analyzeDeck(selectedDeck, true)} disabled={busy === `analyze-${selectedDeck.id}`} haptic="selection">
+            <HapticTouchable accessibilityLabel="Re-analyze deck" style={s.iconBtn} onPress={() => analyzeDeck(selectedDeck, true)} disabled={busy === `analyze-${selectedDeck.id}`} haptic="selection">
               {busy === `analyze-${selectedDeck.id}` ? <ActivityIndicator color={selectedTheme.accent} size="small" /> : <Ionicons name="refresh-outline" size={17} color={selectedTheme.accent} />}
             </HapticTouchable>
           </View>
@@ -294,14 +294,14 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
                     </View>
 
                     <View style={s.navRow}>
-                      <HapticTouchable style={[s.navButton, slideIndex === 0 && s.navButtonDisabled]} onPress={() => goToSlide(slideIndex - 1)} disabled={slideIndex === 0} haptic="selection">
+                      <HapticTouchable accessibilityLabel="Previous slide" style={[s.navButton, slideIndex === 0 && s.navButtonDisabled]} onPress={() => goToSlide(slideIndex - 1)} disabled={slideIndex === 0} haptic="selection">
                         <Ionicons name="chevron-back" size={17} color={slideIndex === 0 ? selectedTheme.textSecondary : selectedTheme.accentHover} />
                       </HapticTouchable>
                       <View style={s.navCenter}>
                         <Text style={s.navTitle} numberOfLines={1}>{current.title || `Slide ${current.slide_number || slideIndex + 1}`}</Text>
                         <Text style={s.navCount}>SLIDE {slideIndex + 1} OF {analysis.slides.length}</Text>
                       </View>
-                      <HapticTouchable style={[s.navButton, slideIndex === analysis.slides.length - 1 && s.navButtonDisabled]} onPress={() => goToSlide(slideIndex + 1)} disabled={slideIndex === analysis.slides.length - 1} haptic="selection">
+                      <HapticTouchable accessibilityLabel="Next slide" style={[s.navButton, slideIndex === analysis.slides.length - 1 && s.navButtonDisabled]} onPress={() => goToSlide(slideIndex + 1)} disabled={slideIndex === analysis.slides.length - 1} haptic="selection">
                         <Ionicons name="chevron-forward" size={17} color={slideIndex === analysis.slides.length - 1 ? selectedTheme.textSecondary : selectedTheme.accentHover} />
                       </HapticTouchable>
                     </View>
@@ -367,7 +367,7 @@ export default function SlideExplorerScreen({ user, onBack, onOpenQuestionBank }
                     <Text style={s.deckTitle} numberOfLines={2}>{shortName(deck.filename)}</Text>
                     <Text style={s.deckMeta}>{deck.page_count || 0} slides · {deck.processing_status || 'ready'}</Text>
                   </View>
-                  <HapticTouchable style={s.deleteBtn} onPress={() => removeDeck(deck)} haptic="warning">
+                  <HapticTouchable accessibilityLabel="Delete" style={s.deleteBtn} onPress={() => removeDeck(deck)} haptic="warning">
                     {busy === `delete-${deck.id}` ? <ActivityIndicator color={selectedTheme.danger} size="small" /> : <Ionicons name="trash-outline" size={15} color={selectedTheme.danger} />}
                   </HapticTouchable>
                 </View>

@@ -186,7 +186,7 @@ function ResultsView({
       <GeoBackground />
       <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
       <View style={s.studyHeader}>
-        <HapticTouchable onPress={onBack} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
         <Text style={s.studyTitle}>session complete</Text>
@@ -578,7 +578,7 @@ function StudyView({
         <GeoBackground />
         <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
         <View style={s.studyHeader}>
-          <HapticTouchable onPress={onBack} haptic="selection">
+          <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={GOLD_L} />
           </HapticTouchable>
           <Text style={s.studyTitle}>flashcards</Text>
@@ -715,7 +715,7 @@ function StudyView({
       <GeoBackground />
       <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
       <View style={s.studyHeader}>
-        <HapticTouchable onPress={onBack} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
         <Text style={s.studyTitle} numberOfLines={1}>{set.title.toLowerCase()}</Text>
@@ -838,7 +838,7 @@ function QuizView({
       <SafeAreaView style={s.safe} edges={['top']}>
         <GeoBackground />
         <View style={s.studyHeader}>
-          <HapticTouchable onPress={onBack} haptic="selection">
+          <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={GOLD_L} />
           </HapticTouchable>
           <Text style={s.studyTitle}>quiz</Text>
@@ -857,7 +857,7 @@ function QuizView({
       <GeoBackground />
       <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
       <View style={s.studyHeader}>
-        <HapticTouchable onPress={onBack} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
         <Text style={s.studyTitle} numberOfLines={1}>{set.title.toLowerCase()}</Text>
@@ -928,7 +928,7 @@ function QuizResultsView({
     <SafeAreaView style={s.safe} edges={['top']}>
       <GeoBackground />
       <View style={s.studyHeader}>
-        <HapticTouchable onPress={onBack} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
         <Text style={s.studyTitle}>quiz report</Text>
@@ -1206,7 +1206,7 @@ function FlashcardsCreate({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={s.header}>
-          <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+          <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
             <Ionicons name="chevron-back" size={20} color={GOLD_L} />
           </HapticTouchable>
           <Text style={[s.createTitle, { flex: 1 }]}>create set</Text>
@@ -1328,7 +1328,7 @@ function FlashcardsCreate({
                     </View>
                     <View style={{ flex: 1 }} />
                     {manualCards.length > 1 ? (
-                      <HapticTouchable onPress={() => removeManualCard(index)} haptic="warning" style={s.manualCardRemove}>
+                      <HapticTouchable accessibilityLabel="Remove card" onPress={() => removeManualCard(index)} haptic="warning" style={s.manualCardRemove}>
                         <Ionicons name="trash-outline" size={13} color={RED} />
                       </HapticTouchable>
                     ) : null}
@@ -1518,7 +1518,7 @@ function FlashcardsSets({
       <AmbientBubbles theme={CURRENT_THEME} variant="flashcards" opacity={0.84} />
       <View style={s.header}>
         {onBack ? (
-          <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+          <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={GOLD_L} />
           </HapticTouchable>
         ) : null}
@@ -1552,7 +1552,7 @@ function FlashcardsSets({
                 onChangeText={setSearch}
               />
               {!!search && (
-                <HapticTouchable onPress={() => setSearch('')} haptic="selection">
+                <HapticTouchable accessibilityLabel="Clear search" onPress={() => setSearch('')} haptic="selection">
                   <Ionicons name="close-circle" size={16} color={GOLD_D} />
                 </HapticTouchable>
               )}

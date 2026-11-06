@@ -121,7 +121,7 @@ export default function LeaderboardScreen({ user, onBack }: Props) {
 
       {/* Product header */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 16) }]}>
-        <HapticTouchable onPress={onBack} style={s.backBtn} haptic="light">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={s.backBtn} haptic="light">
           <Ionicons name="chevron-back" size={18} color={GOLD_M} />
         </HapticTouchable>
         <View style={s.headerCopy}>

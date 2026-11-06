@@ -145,7 +145,7 @@ export default function SettingsScreen({ user, onBack, onAccountDeleted }: Props
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
-          <HapticTouchable onPress={onBack} activeOpacity={0.8} haptic="selection" style={styles.iconButton}>
+          <HapticTouchable accessibilityLabel="Go back" onPress={onBack} activeOpacity={0.8} haptic="selection" style={styles.iconButton}>
             <Ionicons name="chevron-back" size={22} color={selectedTheme.textPrimary} />
           </HapticTouchable>
           <View style={styles.titleWrap}>

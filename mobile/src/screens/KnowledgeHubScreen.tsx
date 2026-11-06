@@ -299,7 +299,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={selectedTheme.accent} />}
       >
         <View style={s.topBar}>
-          <HapticTouchable onPress={onBack} haptic="selection">
+          <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
             <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
           </HapticTouchable>
           <View style={{ flex: 1, marginLeft: 12 }}>
@@ -322,7 +322,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
           <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} style={StyleSheet.absoluteFillObject} />
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>import source</Text>
-            <HapticTouchable onPress={() => setShowImportModal(false)}><Ionicons name="close" size={22} color={selectedTheme.accent} /></HapticTouchable>
+            <HapticTouchable accessibilityLabel="Close" onPress={() => setShowImportModal(false)}><Ionicons name="close" size={22} color={selectedTheme.accent} /></HapticTouchable>
           </View>
           <View style={s.modalBody}>
             <Text style={s.label}>URL</Text>
@@ -361,7 +361,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
               <View key={doc.doc_id} style={s.slotFilled}>
                 <Ionicons name="document-text" size={22} color={selectedTheme.accentHover} />
                 <Text style={s.slotName} numberOfLines={1}>{doc.filename}</Text>
-                <HapticTouchable
+                <HapticTouchable accessibilityLabel="Close"
                   style={s.slotRemove}
                   onPress={() => toggleDeckMembership(doc)}
                   disabled={deckBusyId === doc.doc_id}
@@ -454,7 +454,7 @@ export default function KnowledgeHubScreen({ user, onBack, onNavigate, initialTa
                       <Text style={s.docMeta}>{docTopic(doc)} · {doc.chunk_count} chunks · {doc.status}{disabled ? ' · deck full' : ''}</Text>
                     </View>
                   </HapticTouchable>
-                  <HapticTouchable style={s.deleteBtn} onPress={() => removeDoc(doc)} haptic="warning">
+                  <HapticTouchable accessibilityLabel="Delete" style={s.deleteBtn} onPress={() => removeDoc(doc)} haptic="warning">
                     {actionBusy === `delete-${doc.doc_id}` ? <ActivityIndicator color={selectedTheme.danger} size="small" /> : <Ionicons name="trash-outline" size={15} color={selectedTheme.danger} />}
                   </HapticTouchable>
                 </View>

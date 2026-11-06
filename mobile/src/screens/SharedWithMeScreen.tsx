@@ -230,7 +230,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
         <GeoBackground />
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
           <View style={s.header}>
-            <HapticTouchable onPress={() => { setDetailItem(null); setDetail(null); }} haptic="selection">
+            <HapticTouchable accessibilityLabel="Go back" onPress={() => { setDetailItem(null); setDetail(null); }} haptic="selection">
               <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
             </HapticTouchable>
             <View style={{ flex: 1, marginLeft: 12 }}>
@@ -300,7 +300,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
       <GeoBackground />
 
       <View style={s.header}>
-        <HapticTouchable onPress={onBack} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
         </HapticTouchable>
         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -334,7 +334,7 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
             returnKeyType="search"
           />
           {!!search && (
-            <HapticTouchable onPress={() => setSearch('')} haptic="light">
+            <HapticTouchable accessibilityLabel="Clear search" onPress={() => setSearch('')} haptic="light">
               <Ionicons name="close-circle" size={15} color={selectedTheme.textSecondary} />
             </HapticTouchable>
           )}
@@ -406,14 +406,14 @@ export default function SharedWithMeScreen({ user, onBack }: Props) {
           <GeoBackground />
           <View style={s.modalHeader}>
             {shareTarget ? (
-              <HapticTouchable onPress={() => setShareTarget(null)} haptic="light">
+              <HapticTouchable accessibilityLabel="Go back" onPress={() => setShareTarget(null)} haptic="light">
                 <Ionicons name="chevron-back" size={22} color={selectedTheme.accent} />
               </HapticTouchable>
             ) : (
               <View style={{ width: 22 }} />
             )}
             <Text style={s.modalTitle} numberOfLines={1}>{shareTarget ? `share "${shareTarget.title}"` : 'share something'}</Text>
-            <HapticTouchable onPress={() => { setShowPicker(false); setShareTarget(null); }} haptic="light">
+            <HapticTouchable accessibilityLabel="Close" onPress={() => { setShowPicker(false); setShareTarget(null); }} haptic="light">
               <Ionicons name="close" size={22} color={selectedTheme.accent} />
             </HapticTouchable>
           </View>

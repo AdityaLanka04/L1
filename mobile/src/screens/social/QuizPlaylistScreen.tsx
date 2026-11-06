@@ -111,7 +111,7 @@ function QuizHome({
       <AmbientBubbles theme={selectedTheme} variant="quiz" opacity={0.84} />
 
       <View style={hs.header}>
-        <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
         <View style={{ flex: 1 }}>

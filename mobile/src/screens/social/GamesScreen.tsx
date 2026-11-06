@@ -248,7 +248,7 @@ export default function GamesScreen({ user, onBack }: Props) {
       {/* Same header construction as Solo Quiz / Flashcards: back chevron,
           large left-aligned title, hamburger. */}
       <View style={s.header}>
-        <HapticTouchable onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={{ marginRight: 12 }} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
         <View style={{ flex: 1 }}>
@@ -285,7 +285,7 @@ export default function GamesScreen({ user, onBack }: Props) {
               onChangeText={setSearch}
             />
             {!!search && (
-              <HapticTouchable onPress={() => setSearch('')} haptic="selection">
+              <HapticTouchable accessibilityLabel="Clear search" onPress={() => setSearch('')} haptic="selection">
                 <Ionicons name="close-circle" size={16} color={GOLD_D} />
               </HapticTouchable>
             )}
@@ -443,7 +443,7 @@ export default function GamesScreen({ user, onBack }: Props) {
           <GeoBackground />
 
           <View style={[modal.header, { paddingTop: insets.top + 14 }]}>
-            <HapticTouchable onPress={() => { setShowCreate(false); setCreateError(''); }} style={modal.closeBtn} haptic="light">
+            <HapticTouchable accessibilityLabel="Close" onPress={() => { setShowCreate(false); setCreateError(''); }} style={modal.closeBtn} haptic="light">
               <Ionicons name="close" size={22} color={GOLD_M} />
             </HapticTouchable>
             <View>

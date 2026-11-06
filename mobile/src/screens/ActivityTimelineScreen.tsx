@@ -169,7 +169,7 @@ export default function ActivityTimelineScreen({ user, onBack, onNavigate }: Pro
 
       {/* Header */}
       <View style={s.header}>
-        <HapticTouchable onPress={onBack} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={GOLD_L} />
         </HapticTouchable>
         <View style={{ flex: 1, marginLeft: 12 }}>

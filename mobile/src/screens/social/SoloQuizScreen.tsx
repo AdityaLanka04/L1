@@ -222,7 +222,7 @@ export default function SoloQuizScreen({ user, onBack, autoStart }: Props) {
       <GeoBackground />
 
       <View style={s.header}>
-        <HapticTouchable
+        <HapticTouchable accessibilityLabel="Go back"
           onPress={stage === 'session' ? retryQuiz : onBack}
           style={{ marginRight: 12 }}
           haptic="selection"
@@ -520,7 +520,7 @@ function QuizSession({
       </ScrollView>
 
       <View style={s.sessionNav}>
-        <HapticTouchable
+        <HapticTouchable accessibilityLabel="Previous question"
           style={[s.navBtn, prevDisabled && s.navBtnDisabled]}
           onPress={onPrev}
           disabled={prevDisabled}
@@ -649,7 +649,7 @@ function HistoryView({
             onChangeText={setSearch}
           />
           {!!search && (
-            <HapticTouchable onPress={() => setSearch('')} haptic="selection">
+            <HapticTouchable accessibilityLabel="Clear search" onPress={() => setSearch('')} haptic="selection">
               <Ionicons name="close-circle" size={16} color={theme.accent} />
             </HapticTouchable>
           )}

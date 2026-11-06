@@ -600,7 +600,7 @@ export default function NoteEditorScreen({
 
       <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.navBar}>
-          <HapticTouchable onPress={handleBack} style={styles.navIconBtn} haptic="selection">
+          <HapticTouchable accessibilityLabel="Go back" onPress={handleBack} style={styles.navIconBtn} haptic="selection">
             <Ionicons name="chevron-back" size={20} color={selectedTheme.accentHover} />
           </HapticTouchable>
 
@@ -611,7 +611,7 @@ export default function NoteEditorScreen({
             </Text>
           </View>
 
-          <HapticTouchable onPress={handleFavorite} style={styles.navIconBtn} haptic="selection" disabled={favoriteBusy}>
+          <HapticTouchable accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'} onPress={handleFavorite} style={styles.navIconBtn} haptic="selection" disabled={favoriteBusy}>
             <Ionicons
               name={isFavorite ? 'star' : 'star-outline'}
               size={18}
@@ -688,14 +688,14 @@ export default function NoteEditorScreen({
                       <Text style={styles.sketchMeta}>Canvas attachment</Text>
                     </View>
                     <View style={styles.sketchActions}>
-                      <HapticTouchable
+                      <HapticTouchable accessibilityLabel="Edit sketch"
                         style={styles.sketchActionBtn}
                         onPress={() => onOpenCanvas({ blockId: block.id, initialData: block.canvasData })}
                         haptic="selection"
                       >
                         <Ionicons name="create-outline" size={16} color={selectedTheme.accent} />
                       </HapticTouchable>
-                      <HapticTouchable
+                      <HapticTouchable accessibilityLabel="Delete"
                         style={styles.sketchActionBtn}
                         onPress={() => removeSketch(block.id)}
                         haptic="warning"

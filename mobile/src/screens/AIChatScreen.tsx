@@ -754,7 +754,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
 
       <View style={{ flex: 1 }}>
         <View style={s.header}>
-          <HapticTouchable onPress={openSidebar} activeOpacity={0.8} style={s.headerBtn} haptic="selection">
+          <HapticTouchable accessibilityLabel="Open menu" onPress={openSidebar} activeOpacity={0.8} style={s.headerBtn} haptic="selection">
             <Ionicons name="menu-outline" size={20} color={selectedTheme.textPrimary} />
           </HapticTouchable>
           <View style={s.headerCenter}>
@@ -765,7 +765,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
           </View>
           <View style={s.headerRight}>
             <ContextSelector hsMode={hsMode} selectedCount={selectedDocIds.length} onPress={() => setContextPanelOpen(true)} />
-            <HapticTouchable onPress={newChat} activeOpacity={0.8} style={s.headerBtn} haptic="light">
+            <HapticTouchable accessibilityLabel="New chat" onPress={newChat} activeOpacity={0.8} style={s.headerBtn} haptic="light">
               <Ionicons name="add-outline" size={20} color={selectedTheme.textPrimary} />
             </HapticTouchable>
           </View>
@@ -914,16 +914,16 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
             <View style={s.attachmentPreview}>
               <Image source={{ uri: attachment.uri }} style={s.attachmentThumb} />
               <Text style={s.attachmentName} numberOfLines={1}>{attachment.name}</Text>
-              <HapticTouchable onPress={removeAttachment} style={s.attachmentRemove} haptic="light">
+              <HapticTouchable accessibilityLabel="Remove attachment" onPress={removeAttachment} style={s.attachmentRemove} haptic="light">
                 <Ionicons name="close" size={13} color={selectedTheme.textPrimary} />
               </HapticTouchable>
             </View>
           ) : null}
           <View style={s.composerCard}>
-            <HapticTouchable onPress={pickAttachment} style={s.composerIconBtn} activeOpacity={0.7} haptic="light">
+            <HapticTouchable accessibilityLabel="Attach file" onPress={pickAttachment} style={s.composerIconBtn} activeOpacity={0.7} haptic="light">
               <Ionicons name="attach" size={19} color={selectedTheme.textSecondary} />
             </HapticTouchable>
-            <HapticTouchable onPress={takePhoto} style={s.composerIconBtn} activeOpacity={0.7} haptic="medium">
+            <HapticTouchable accessibilityLabel="Take photo" onPress={takePhoto} style={s.composerIconBtn} activeOpacity={0.7} haptic="medium">
               <Ionicons name="camera-outline" size={19} color={selectedTheme.textSecondary} />
             </HapticTouchable>
             <TextInput
@@ -934,10 +934,10 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
               placeholderTextColor={selectedTheme.textSecondary}
               multiline
             />
-            <HapticTouchable onPress={onMicPress} style={s.composerIconBtn} activeOpacity={0.7} haptic="light">
+            <HapticTouchable accessibilityLabel="Voice input" onPress={onMicPress} style={s.composerIconBtn} activeOpacity={0.7} haptic="light">
               <Ionicons name="mic-outline" size={19} color={selectedTheme.textSecondary} />
             </HapticTouchable>
-            <HapticTouchable
+            <HapticTouchable accessibilityLabel="Send message"
               style={[s.sendBtn, ((!input.trim() && !attachment) || loading) && s.sendDisabled]}
               onPress={() => send()}
               activeOpacity={0.85}
@@ -1027,7 +1027,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
         <Modal transparent animationType="none" onRequestClose={closeSidebar}>
           <SafeAreaProvider>
             <View style={s.overlay}>
-              <HapticTouchable style={StyleSheet.absoluteFill} onPress={closeSidebar} activeOpacity={1} haptic="none" />
+              <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={closeSidebar} activeOpacity={1} haptic="none" />
               <Animated.View style={[s.sidebar, { transform: [{ translateX: slideAnim }] }]} {...closePanResponder.panHandlers}>
                 <LinearGradient colors={[darkenColor(selectedTheme.bgTop, selectedTheme.isLight ? 4 : 0), selectedTheme.panelAlt, selectedTheme.bgPrimary]} style={StyleSheet.absoluteFill} />
                 <SafeAreaView style={{ flex: 1, paddingBottom: 6 }} edges={['top', 'bottom']}>
@@ -1049,7 +1049,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
                         >
                           <Ionicons name="folder-outline" size={16} color={selectedTheme.textPrimary} />
                         </HapticTouchable>
-                        <HapticTouchable
+                        <HapticTouchable accessibilityLabel="Search chats" accessibilityState={{ expanded: sidebarSearchOpen }}
                           onPress={() => setSidebarSearchOpen((open) => !open)}
                           style={[s.sidebarSearchBtn, sidebarSearchOpen && s.sidebarSearchBtnActive]}
                           activeOpacity={0.8}
@@ -1134,7 +1134,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
 
       <Modal transparent visible={newFolderModalOpen} animationType="fade" onRequestClose={() => setNewFolderModalOpen(false)}>
         <View style={s.centerOverlay}>
-          <HapticTouchable style={StyleSheet.absoluteFill} onPress={() => setNewFolderModalOpen(false)} activeOpacity={1} haptic="none" />
+          <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setNewFolderModalOpen(false)} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
             <Text style={s.centerCardTitle}>new folder</Text>
             <TextInput
@@ -1159,7 +1159,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
 
       <Modal transparent visible={!!renameTarget} animationType="fade" onRequestClose={() => setRenameTarget(null)}>
         <View style={s.centerOverlay}>
-          <HapticTouchable style={StyleSheet.absoluteFill} onPress={() => setRenameTarget(null)} activeOpacity={1} haptic="none" />
+          <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setRenameTarget(null)} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
             <Text style={s.centerCardTitle}>rename chat</Text>
             <TextInput
@@ -1184,7 +1184,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
 
       <Modal transparent visible={!!shareTarget} animationType="fade" onRequestClose={() => setShareTarget(null)}>
         <View style={s.centerOverlay}>
-          <HapticTouchable style={StyleSheet.absoluteFill} onPress={() => setShareTarget(null)} activeOpacity={1} haptic="none" />
+          <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => setShareTarget(null)} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
             <Text style={s.centerCardTitle}>share "{shareTarget?.title || 'this chat'}"</Text>
             <HapticTouchable style={s.shareLinkRow} onPress={copyChatLink} haptic="selection">
@@ -1223,7 +1223,7 @@ export default function AIChatScreen({ user, initialPrompt }: Props) {
 
       <Modal transparent visible={!!negativeFeedbackTarget} animationType="fade" onRequestClose={() => setNegativeFeedbackTarget(null)}>
         <View style={s.centerOverlay}>
-          <HapticTouchable style={StyleSheet.absoluteFill} onPress={() => { setNegativeFeedbackTarget(null); setFeedbackComment(''); }} activeOpacity={1} haptic="none" />
+          <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={() => { setNegativeFeedbackTarget(null); setFeedbackComment(''); }} activeOpacity={1} haptic="none" />
           <View style={s.centerCard}>
             <Text style={s.centerCardTitle}>what went wrong?</Text>
             <Text style={s.centerCardSub}>optional — helps us improve cerbyl</Text>

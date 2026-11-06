@@ -173,7 +173,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
 
       {/* Header */}
       <View style={s.header}>
-        <HapticTouchable onPress={onBack} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} haptic="selection">
           <Ionicons name="chevron-back" size={22} color={selectedTheme.accentHover} />
         </HapticTouchable>
         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -276,7 +276,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
             <GeoBackground />
             <View style={[m.header, { paddingTop: insets.top + 14 }]}>
               <Text style={m.createTitle}>new playlist</Text>
-              <HapticTouchable onPress={() => setShowCreate(false)} haptic="light">
+              <HapticTouchable accessibilityLabel="Close" onPress={() => setShowCreate(false)} haptic="light">
                 <Ionicons name="close" size={22} color={selectedTheme.accent} />
               </HapticTouchable>
             </View>
@@ -338,7 +338,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
           <GeoBackground />
           <View style={m.header}>
             <Text style={m.title}>search & filter</Text>
-            <HapticTouchable onPress={() => setShowFilters(false)} haptic="light">
+            <HapticTouchable accessibilityLabel="Close" onPress={() => setShowFilters(false)} haptic="light">
               <Ionicons name="close" size={22} color={selectedTheme.accent} />
             </HapticTouchable>
           </View>
@@ -357,7 +357,7 @@ export default function PlaylistsScreen({ user, onBack }: Props) {
                 autoFocus
               />
               {!!search && (
-                <HapticTouchable onPress={() => setSearch('')} haptic="light">
+                <HapticTouchable accessibilityLabel="Clear search" onPress={() => setSearch('')} haptic="light">
                   <Ionicons name="close-circle" size={15} color={DIM} />
                 </HapticTouchable>
               )}

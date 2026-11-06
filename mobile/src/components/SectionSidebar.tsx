@@ -70,7 +70,7 @@ export default function SectionSidebar({
   return (
     <Modal transparent animationType="none" onRequestClose={onClose}>
       <View style={s.overlay}>
-        <HapticTouchable style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} haptic="none" />
+        <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} haptic="none" />
 
         {/* The transform lives on this outer wrapper only -- the gradient
             and content sit in a plain, untransformed inner view, so there's

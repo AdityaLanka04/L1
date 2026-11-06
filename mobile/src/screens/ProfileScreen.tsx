@@ -212,7 +212,7 @@ export default function ProfileScreen({ user, onLogout, onUserUpdate, onNavigate
                 </View>
               ) : null}
             </HapticTouchable>
-            <HapticTouchable onPress={handleOpenSettings} activeOpacity={0.8} haptic="selection" style={styles.settingsButton}>
+            <HapticTouchable accessibilityLabel="Settings" onPress={handleOpenSettings} activeOpacity={0.8} haptic="selection" style={styles.settingsButton}>
               <Ionicons name="settings-outline" size={20} color={selectedTheme.textPrimary} />
             </HapticTouchable>
           </View>

@@ -247,7 +247,7 @@ export default function ChallengePlayScreen({ user, challengeId, onExit }: Props
       <LinearGradient colors={[selectedTheme.bgTop, selectedTheme.bgPrimary, selectedTheme.bgBottom]} locations={[0, 0.58, 1]} style={StyleSheet.absoluteFillObject} />
       <GeoBackground />
       <View style={s.playHeader}>
-        <HapticTouchable onPress={onExit} style={s.exitPillSmall} haptic="light">
+        <HapticTouchable accessibilityLabel="Exit challenge" onPress={onExit} style={s.exitPillSmall} haptic="light">
           <Ionicons name="close" size={16} color={GOLD_M} />
         </HapticTouchable>
         <View style={{ flex: 1 }}>

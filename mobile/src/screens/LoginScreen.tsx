@@ -386,7 +386,7 @@ export default function LoginScreen({ onLogin }: Props) {
                     <Text style={[s.label, s.spacedLabel]}>password</Text>
                     <View style={s.inputGroup}>
                       <TextInput style={[s.input, s.inputWithIcon]} value={password} onChangeText={setPassword} placeholder="enter password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showPassword} />
-                      <HapticTouchable style={s.eyeBtn} onPress={() => setShowPassword(v => !v)} activeOpacity={0.7} haptic="selection">
+                      <HapticTouchable accessibilityLabel={showPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                         <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                       </HapticTouchable>
                     </View>
@@ -443,14 +443,14 @@ export default function LoginScreen({ onLogin }: Props) {
                             <Text style={s.label}>new password</Text>
                             <View style={s.inputGroup}>
                               <TextInput style={[s.input, s.inputWithIcon]} value={resetPassword} onChangeText={setResetPassword} placeholder="new password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showResetPassword} />
-                              <HapticTouchable style={s.eyeBtn} onPress={() => setShowResetPassword(v => !v)} activeOpacity={0.7} haptic="selection">
+                              <HapticTouchable accessibilityLabel={showResetPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowResetPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                                 <Ionicons name={showResetPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                               </HapticTouchable>
                             </View>
                             <Text style={[s.label, s.spacedLabel]}>confirm password</Text>
                             <View style={s.inputGroup}>
                               <TextInput style={[s.input, s.inputWithIcon]} value={resetConfirmPassword} onChangeText={setResetConfirmPassword} placeholder="confirm password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showResetConfirmPassword} />
-                              <HapticTouchable style={s.eyeBtn} onPress={() => setShowResetConfirmPassword(v => !v)} activeOpacity={0.7} haptic="selection">
+                              <HapticTouchable accessibilityLabel={showResetConfirmPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowResetConfirmPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                                 <Ionicons name={showResetConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                               </HapticTouchable>
                             </View>
@@ -540,7 +540,7 @@ export default function LoginScreen({ onLogin }: Props) {
                     <Text style={[s.label, s.spacedLabel]}>password</Text>
                     <View style={s.inputGroup}>
                       <TextInput style={[s.input, s.inputWithIcon]} value={regPassword} onChangeText={setRegPassword} placeholder="8+ chars, uppercase + symbol" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showRegPassword} />
-                      <HapticTouchable style={s.eyeBtn} onPress={() => setShowRegPassword(v => !v)} activeOpacity={0.7} haptic="selection">
+                      <HapticTouchable accessibilityLabel={showRegPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowRegPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                         <Ionicons name={showRegPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                       </HapticTouchable>
                     </View>
@@ -548,7 +548,7 @@ export default function LoginScreen({ onLogin }: Props) {
                     <Text style={[s.label, s.spacedLabel]}>confirm password</Text>
                     <View style={s.inputGroup}>
                       <TextInput style={[s.input, s.inputWithIcon]} value={regConfirmPassword} onChangeText={setRegConfirmPassword} placeholder="re-enter password" placeholderTextColor={rgbaFromHex(CB_ACCENT, 0.45)} secureTextEntry={!showRegConfirmPassword} />
-                      <HapticTouchable style={s.eyeBtn} onPress={() => setShowRegConfirmPassword(v => !v)} activeOpacity={0.7} haptic="selection">
+                      <HapticTouchable accessibilityLabel={showRegConfirmPassword ? 'Hide password' : 'Show password'} style={s.eyeBtn} onPress={() => setShowRegConfirmPassword(v => !v)} activeOpacity={0.7} haptic="selection">
                         <Ionicons name={showRegConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={rgbaFromHex(CB_ACCENT, 0.65)} />
                       </HapticTouchable>
                     </View>

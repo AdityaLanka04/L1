@@ -91,7 +91,7 @@ export default function ContextPanel({ visible, onClose, onChange }: Props) {
     <Modal transparent animationType="none" onRequestClose={onClose}>
       <SafeAreaProvider>
         <View style={s.overlay}>
-          <HapticTouchable style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} haptic="none" />
+          <HapticTouchable accessibilityLabel="Dismiss" style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} haptic="none" />
           <Animated.View style={[s.panel, { transform: [{ translateX: slideAnim }] }]}>
             <LinearGradient colors={[darkenColor(selectedTheme.bgTop, selectedTheme.isLight ? 4 : 0), selectedTheme.panelAlt, selectedTheme.bgPrimary]} style={StyleSheet.absoluteFill} />
             <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -100,7 +100,7 @@ export default function ContextPanel({ visible, onClose, onChange }: Props) {
                   <Text style={s.title}>deck</Text>
                   <Text style={s.caption}>what the AI reads from</Text>
                 </View>
-                <HapticTouchable onPress={onClose} style={s.closeBtn} activeOpacity={0.8} haptic="selection">
+                <HapticTouchable accessibilityLabel="Close" onPress={onClose} style={s.closeBtn} activeOpacity={0.8} haptic="selection">
                   <Ionicons name="close" size={18} color={selectedTheme.textPrimary} />
                 </HapticTouchable>
               </View>
@@ -137,7 +137,7 @@ export default function ContextPanel({ visible, onClose, onChange }: Props) {
                             <Text style={s.docName} numberOfLines={1}>{doc.filename}</Text>
                             <Text style={s.docMeta}>{doc.subject || 'general'} · {doc.chunk_count} chunks</Text>
                           </View>
-                          <HapticTouchable onPress={() => removeDoc(doc.doc_id)} style={s.docDelete} haptic="warning">
+                          <HapticTouchable accessibilityLabel="Remove document" onPress={() => removeDoc(doc.doc_id)} style={s.docDelete} haptic="warning">
                             {removingId === doc.doc_id ? (
                               <ActivityIndicator size="small" color={selectedTheme.danger} />
                             ) : (

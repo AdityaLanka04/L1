@@ -575,7 +575,7 @@ function AIMediaHub({
         >
           <View style={s.header}>
             {onBack && (
-              <HapticTouchable onPress={onBack} style={s.backBtn} haptic="selection">
+              <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={s.backBtn} haptic="selection">
                 <Ionicons name="chevron-back" size={22} color={GOLD_L} />
               </HapticTouchable>
             )}
@@ -673,7 +673,7 @@ function AIMediaHub({
                   record a lecture, meeting, or voice note and get ai-generated notes instantly
                 </Text>
                 <View style={s.recordBtnWrap}>
-                  <HapticTouchable
+                  <HapticTouchable accessibilityLabel={recorderState.isRecording ? 'Stop recording' : 'Start recording'}
                     style={s.recordBtn}
                     activeOpacity={0.8}
                     haptic="medium"
@@ -1205,7 +1205,7 @@ function AIMediaResults({
       <GeoBackground />
       <AmbientBubbles theme={CURRENT_THEME} variant="media" opacity={0.86} />
       <View style={s.subHeader}>
-        <HapticTouchable onPress={onBack} style={s.backBtn} haptic="selection">
+        <HapticTouchable accessibilityLabel="Go back" onPress={onBack} style={s.backBtn} haptic="selection">
           <Ionicons name="chevron-back" size={20} color={GOLD_XL} />
         </HapticTouchable>
         <Text style={s.subTitle}>{tab === 'podcast' ? 'podcast' : 'notes'}</Text>
